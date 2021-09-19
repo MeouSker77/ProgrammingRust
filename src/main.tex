@@ -1,0 +1,86 @@
+\documentclass[twoside,10pt,AutoFakeBold,AutoFakeSlant]{book}
+
+\usepackage{xeCJK}
+\usepackage{indentfirst}
+\usepackage{minted}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{framed}
+\usepackage{color}
+\usepackage[colorlinks,breaklinks,linktoc=page,allcolors=linkcolor]{hyperref}
+\usepackage[numbered]{bookmark}     % 设置书签
+\usepackage[pagestyles,clearempty]{titlesec}   % 设置页眉格式
+\usepackage[a4paper,left=2cm,right=2cm,bottom=3.67cm]{geometry} % 设置页边距
+
+\linespread{1.25}\linespread{1.4}   % 设置行距
+\CJKsetecglue{\,}                   % 设置中英文间的空格
+
+\setCJKmainfont[ItalicFont=楷体,BoldItalicFont=楷体]{宋体}  % 设置中文正文字体
+\setCJKmonofont{宋体}                                       % 设置中文等宽字体
+\setmainfont{Times New Roman}                               % 设置英文正文字体
+\setmonofont[Path=../fonts/,BoldFont=Inconsolata-Bold.ttf]{Inconsolata-Regular.ttf}       % 设置英文等宽字体
+\setlist{nosep}                 % 设置列表垂直间距为0
+
+\usemintedstyle{solarized-light}
+
+\newpagestyle{front}{               % 自定义页眉格式
+\sethead[\thepage][][\chaptertitle] % 偶数页页眉格式
+{\chaptertitle}{}{\thepage}         % 奇数页页眉格式
+\headrule                           % 页眉下水平分隔线
+}
+
+\newpagestyle{main}{        % 自定义页眉格式
+\sethead[\thepage][][Chapter \thechapter: \quad \chaptertitle] % 偶数页页眉格式
+{\thesection \quad \sectiontitle}{}{\thepage}   % 奇数页页眉格式
+\headrule                   % 页眉下水平分隔线
+}
+
+\definecolor{linkcolor}{RGB}{175, 74, 87}       % 定义链接颜色
+\definecolor{stringcolor}{RGB}{255, 102, 0}   % 定义字符串颜色
+\definecolor{keywordcolor}{RGB}{42, 141, 156}   % 定义关键字颜色
+\definecolor{identifiercolor}{RGB}{121, 121, 192} % 定义变量颜色
+
+\newenvironment{note}{
+    \begin{framed}
+        \begin{center}
+            {\color{gray} \huge{\textbf{\texttt{N\,O\,T\,E}}}}
+        \end{center}
+}{
+    \end{framed}
+}
+
+% \includeonly{ch01}
+
+\begin{document}
+    \frontmatter
+    \pagestyle{front}
+    \pdfbookmark[0]{目录}{\indexname}
+    \tableofcontents
+    \include{preface}
+
+    \mainmatter
+    \pagestyle{main}
+    \include{ch01}
+    \include{ch02}
+    \include{ch03}
+    \include{ch04}
+    \include{ch05}
+    \include{ch06}
+    \include{ch07}
+    \include{ch08}
+    \include{ch09}
+    \include{ch10}
+    \include{ch11}
+    \include{ch12}
+    \include{ch13}
+    \include{ch14}
+    \include{ch15}
+    \include{ch16}
+    \include{ch17}
+    \include{ch18}
+    \include{ch19}
+    \include{ch20}
+    \include{ch21}
+    \include{ch22}
+    \include{ch23}
+\end{document}

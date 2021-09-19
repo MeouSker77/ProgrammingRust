@@ -1,0 +1,3 @@
+src/*
+!src/*.tex
+!src/main.pdf
