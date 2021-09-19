@@ -1,0 +1,125 @@
+\chapter{Rust概览}\label{ch02}
+Rust给像本书一样的书籍的作者提出了一个挑战：赋予这门语言特色的并不是可以在第一页就展示出来的某些惊人的特性，而是如何设计这门语言来让它的各个部分可以无缝的协同工作，最终达到我们在上一章提到的目标：安全、高性能的系统级编程。这门语言的每一部分都在其他所有部分中得到了最好的证明。
+
+因此，相比于一次着眼于一种语言特性，我们选择了几个简单但却完整的程序作为概览，每一个程序都会涉及到一些语言特性：
+
+\begin{itemize}
+    \item 作为热身，我们准备了一个简单的计算命令行参数的程序，以及相应的单元测试。这个程序展示了Rust的核心类型，并引入了\emph{trait}。
+    \item 接下来，我们构建了一个web服务器。我们将会使用一个第三方库来处理HTTP的细节，并引入字符串处理、闭包、错误处理。
+    \item 我们的第三个程序绘制了一个漂亮的图形，讲计算分布到多个线程来提高速度。这一部分包括一个泛型函数的示例，阐明了怎么处理类似于一个像素的概念，并展示了Rust对并发的支持。
+    \item 最后，我们展示了一个使用正则表达式处理文件的健壮的命令行程序。这个程序展示了Rust标准库中处理文件的设施，和最常用的第三方正则表达式库。
+\end{itemize}
+
+Rust保证在对代码的性能影响最小的情况下防止未定义行为，这一保证影响了整个Rust中每个部分的设计，从标准的数据结构例如vector和string到Rust程序员使用第三方库的方式都受此影响。这些具体的细节书中都会提到，但是现在，我们想向你展示Rust是一门强大且有趣的语言。
+
+当然，首先你要在你的计算机上安装Rust。
+
+\section{rustup和Cargo}
+安装Rust的最佳方式是使用\texttt{rustup}。访问\url{https://rustup.rs}并按照说明进行操作。
+
+或者，你可以访问\href{https://www.rust-lang.org/}{Rust网站}来获取预构建好的Linux、macOS、Windows上的包。一些操作系统发行版里也包含Rust。我们推荐\texttt{rustup}，因为它是专用于管理Rust安装的工具，就像Ruby的RVM和Node的NVM一样。例如，当一个新版本的Rust发布时，你只需要输入\texttt{rustup update}就可以完成更新。
+
+在任何情况下，完成了安装之后，你应该可以通过命令行访问以下三条新命令：
+\begin{minted}{text}
+    $ cargo --version
+    cargo 1.49.0 (d00d64df9 2020-12-05)
+    $ rustc --version
+    rustc 1.49.0 (e1884a8e3 2020-12-29)
+    $ rustdoc --version
+    rustdoc 1.49.0 (e1884a8e3 2020-12-29)
+\end{minted}
+
+这里，\texttt{\$}是命令提示符。在Windows上，可能是\texttt{C:$\backslash$>}或者别的类似的。这里我们运行了安装的三条命令，查询它们的版本。接下来让我们依次讲解每一个命令：
+\begin{itemize}
+    \item \texttt{cargo}是rust的编译管理器、包管理器和通用的工具。你可以使用Cargo来新建项目、构建并运行程序、管理所有代码中依赖的外部库。
+    \item \texttt{rustc}是Rust的编译器。通常我们使用Cargo来调用编译器，但有时也需要直接运行它。
+    \item \texttt{rustdoc}是Rust的文档工具。如果你在源代码中按照文档注释的格式写了文档，那么\texttt{rustdoc}可以通过它们构建出漂亮的HTML文档。和\texttt{rustc}一样，我们通常用Cargo来调用\texttt{rustdoc}。
+\end{itemize}
+
+方便起见，Cargo可以为我们创建新的Rust包，并设置好一些标准元数据：
+\begin{minted}{text}
+    $ cargo new hello
+        Created binary (application) `hello` package
+\end{minted}
+
+这个命令创建了一个叫做\texttt{hello}的新的包目录，并准备好构建一个可执行程序。
+
+进入包的顶级目录并查看：
+\begin{minted}{text}
+    $ cd hello
+    $ ls -la
+    total 24
+    drwxrwxr-x.  4 jimb jimb 4096 Sep 22 21:09 .
+    drwx------. 62 jimb jimb 4096 Sep 22 21:09 ..
+    drwxrwxr-x.  6 jimb jimb 4096 Sep 22 21:09 .git
+    -rw-rw-r--.  1 jimb jimb    7 Sep 22 21:09 .gitignore
+    -rw-rw-r--.  1 jimb jimb   88 Sep 22 21:09 Cargo.toml
+    drwxrwxr-x.  2 jimb jimb 4096 Sep 22 21:09 src
+\end{minted}
+
+我们可以看到Cargo创建了一个文件\texttt{Cargo.toml}来保存包的元数据。此时这个文件里还没有太多内容：
+\begin{minted}{toml}
+    [package]
+    name = "hello"
+    version = "0.1.0"
+    authors = ["You <you@example.com>"]
+    edition = "2018"
+
+    # See more keys and their definitions at
+    # https://doc.rust-lang.org/cargo/reference/manifest.html
+
+    [dependencies]
+\end{minted}
+
+如果我们的程序中需要依赖的库，我们可以在这个文件中添加它们，Cargo将会负责下载、构建和更新这些库。我们将在\hyperref[ch08]{第8章}中详细讲述\texttt{Cargo.toml}文件。
+
+Cargo已经为我们的包初始化好了\texttt{git}版本控制系统，创建了一个\texttt{.git}元数据目录和一个\texttt{.gitignore}文件。你可以通过向\texttt{cargo new}命令传递\texttt{--vcs none}参数来跳过这一步。
+
+\texttt{src}子目录包含了实际的Rust代码：
+\begin{minted}{text}
+    $ cd src
+    $ ls -l
+    total 4
+    -rw-rw-r--.  1 jimb jimb 45 Sep 22 21:09 main.rs
+\end{minted}
+
+看起来Cargo好像已经替我们写好了程序。\texttt{main.rs}中包含以下文本：
+\begin{minted}{Rust}
+    fn main() {
+        println!("Hello, world!");
+    }
+\end{minted}
+
+在Rust中，你甚至不需要编写自己的“Hello, World!”程序，这是新的Rust程序的模板：两个文件，总共13行。
+
+我们可以从包中的任何目录调用\texttt{cargo run}命令来构建并运行我们的程序：
+\begin{minted}{text}
+    $ cargo run
+        Compiling hello v0.1.0 (/home/jimb/rust/hello)
+        Finished dev [unoptimized + debuginfo] target(s) in 0.28s
+        Running `/home/jimb/rust/hello/target/debug/hello`
+    Hello, world!
+\end{minted}
+
+这里，Cargo调用了Rust的编译器\texttt{rustc}，然后运行了它生成的可执行文件。Cargo把可执行文件放在了顶层目录的\texttt{target}子目录下：
+\begin{minted}{text}
+    $ ls -l ../target/debug
+    total 580
+    drwxrwxr-x. 2 jimb jimb   4096 Sep 22 21:37 build
+    drwxrwxr-x. 2 jimb jimb   4096 Sep 22 21:37 deps
+    drwxrwxr-x. 2 jimb jimb   4096 Sep 22 21:37 examples
+    -rwxrwxr-x. 1 jimb jimb 576632 Sep 22 21:37 hello
+    -rw-rw-r--. 1 jimb jimb    198 Sep 22 21:37 hello.d
+    drwxrwxr-x. 2 jimb jimb     68 Sep 22 21:37 incremental
+    $ ../target/debug/hello
+    Hello, world!
+\end{minted}
+
+如果需要的话，Cargo可以为我们清理生成的文件：
+\begin{minted}{text}
+    $ cargo clean
+    $ ../target/debug/hello
+    bash: ../target/debug/hello: No such file or directory
+\end{minted}
+
+% \section{Rust函数}
