@@ -29,7 +29,7 @@ Rust保证在对代码的性能影响最小的情况下防止未定义行为，�
     rustdoc 1.49.0 (e1884a8e3 2020-12-29)
 \end{minted}
 
-这里，\texttt{\$}是命令提示符。在Windows上，可能是\texttt{C:$\backslash$>}或者别的类似的。这里我们运行了安装的三条命令，查询它们的版本。接下来让我们依次讲解每一个命令：
+这里，\texttt{\$}是命令提示符。在Windows上，可能是\texttt{C:\textbackslash>}或者别的类似的。这里我们运行了安装的三条命令，查询它们的版本。接下来让我们依次讲解每一个命令：
 \begin{itemize}
     \item \texttt{cargo}是rust的编译管理器、包管理器和通用的工具。你可以使用Cargo来新建项目、构建并运行程序、管理所有代码中依赖的外部库。
     \item \texttt{rustc}是Rust的编译器。通常我们使用Cargo来调用编译器，但有时也需要直接运行它。
@@ -122,4 +122,44 @@ Cargo已经为我们的包初始化好了\texttt{git}版本控制系统，创建
     bash: ../target/debug/hello: No such file or directory
 \end{minted}
 
-% \section{Rust函数}
+\section{Rust函数}
+Rust的语法借鉴自其他语言。如果你熟悉C、C++、Java或者JavaScript，你可以很快找到自己的方式来理解Rust的程序结构。这里有一个使用\href{https://en.wikipedia.org/wiki/Euclidean_algorithm}{欧几里得算法}计算两个整数的最大公约数的函数。你可以把它添加到\texttt{src/main.rs}的最后：
+\begin{minted}{Rust}
+    fn gcd(mut n: u64, mut m: u64) -> u64 {
+        assert!(n != 0 && m != 0);
+        while m != 0 {
+            if m < n {
+                let t = m;
+                m = n;
+                n = t;
+            }
+            m = m % n;
+        }
+        n
+    }
+\end{minted}
+
+\texttt{fn}关键字（读作“fun”）创建了一个函数。这里，我们定义了一个叫\texttt{gcd}的函数，它有两个参数\texttt{m}和\texttt{n}，类型都是\texttt{u64}，也就是64位无符号整数。\texttt{->}词元指明了返回值类型：我们的函数返回一个\texttt{u64}类型的值。四个空格缩进是Rust的标准风格。
+
+Rust的整数类型的名字代表了它们的大小和符号性：\texttt{i32}是有符号32位整数；\texttt{u8}是无符号8位整数（用于“字节”值）等等。\texttt{isize}和\texttt{usize}类型分别代表可以存下一个指针的有符号和无符号整数，在32位平台上它们就是32位，在64位平台上就是64位。Rust还有两种浮点数类型：\texttt{f32}和\texttt{f64}，分别是IEEE标准的单精度和双精度浮点数类型，类似于C和C++中的\texttt{float}和\texttt{double}。
+
+默认情况下，当变量初始化后，它的值就不能再被改变，但通过在参数\texttt{m}和\texttt{n}前加上\texttt{mut}关键字（读作“mute”，\emph{mutable}的缩写）就可以在函数体中对它们进行赋值。在实践中，大多数变量都不会被重新赋值，在阅读代码时\texttt{mut}关键字将是一个有用的提示。
+
+函数体中首先调用了\texttt{assert!}宏，确保两个参数都不是0。\texttt{!}字符标志着这是宏调用，而不是函数调用。类似于C和C++中的\texttt{assert}宏，Rust中的\texttt{assert!}宏也会检查参数是否为真，如果不为真则中断程序，并输出一条有用的信息，其中包括断言失败的源码位置。这种终止的方式被称为\emph{panic}。和C和C++中断言可以被跳过不同，Rust总是检查断言，不管程序怎么编译。还有一个\texttt{debug\_assert!}宏，当程序被编译为release模式时会被跳过。
+
+我们函数的主体是一个包含一条\texttt{if}语句和一条赋值语句的\texttt{while}循环。和C和C++不同，Rust的条件表达式不需要括号，但紧随其后的控制流语句需要花括号。
+
+\texttt{let}语句声明了一个局部变量，比如函数中的\texttt{t}。我们不需要写出\texttt{t}的类型，因为Rust可以通过使用这个值的方式来推断它的类型。在我们的函数中，\texttt{t}只有和\texttt{m}、\texttt{n}相匹配，是\texttt{u64}类型时才可以正常运行。Rust只在函数体内推断类型：你必须写出函数参数和返回值的类型，就像我们所做的那样。如果你想指明\texttt{t}的类型，你可以写：
+\begin{minted}{Rust}
+    let t: u64 = m;
+\end{minted}
+
+Rsut有\texttt{return}语句，但是\texttt{gcd}函数并不需要。如果一个函数体以一个\emph{没有}分号结尾的表达式结尾，那么这个表达式的值就是函数的返回值。事实上，任何一个花括号包围的语法块都可以作为一个表达式。例如，这里有一个表达式打印出一条消息，然后返回\texttt{x.cos()}作为它的值：
+\begin{minted}{Rust}
+    {
+        println!("evaluating cos x");
+        x.cos()
+    }
+\end{minted}
+
+在Rust中当控制流到达函数底部时利用这种形式返回值是一种很典型的做法，只有当在函数的中途显式地返回时才会使用\texttt{return}语句。
