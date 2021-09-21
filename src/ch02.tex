@@ -335,3 +335,83 @@ Rust对所有权和引用的规则时Rust的内存管理和安全并发的关键
 \begin{minted}{text}
     $ rustup doc --std
 \end{minted}
+
+\section{提供web页面}
+Rust的一个强项就是发布在网站\href{https://crates.io}{crates.io}上的可以自由使用的包。\texttt{cargo}命令让你可以方便的使用crates.io的包：它将会按需下载正确的版本，构建并在需要时更新它。一个Rust包，无论是库还是可执行文件，都被称为一个\emph{crate}。Cargo和crates.io都是因为这个术语而得名。
+
+为了展示它的工作方式，我们将会使用\texttt{actix-web}网络框架crate，\texttt{serde}序列化crate和其它它们依赖的crate来构建一个简单的web服务器。如\hyperref[f2-1]{图2-1}所示，我们的网站将会提示用户输入两个数字，然后计算它们的最大公约数。
+\begin{figure}[htbp]
+    \label{f2-1}
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f2-1.png}
+    \caption{提供计算最大公约数功能的web页面}
+\end{figure}
+
+首先，我们需要使用Cargo创建一个新的包，名称为\texttt{actix-gcd}：
+\begin{minted}{text}
+    $ cargo new actix-gcd
+        Created binary (application) `actix-gcd' package
+    $ cd actix-gcd
+\end{minted}
+
+然后，我们将编辑项目中的\texttt{Cargo.toml}文件来列举出我们需要的包，它的内容如下所示：
+\begin{minted}{toml}
+    [package]
+    name = "actix-gcd"
+    version = "0.1.0"
+    authors = ["You <you@example.com>"]
+    edition = "2018"
+
+    # See more keys and their definitions at
+    # https://doc.rust-lang.org/cargo/reference/manifest.html
+
+    [dependencies]
+    actix-web = "1.0.8"
+    serde = { version = "1.0", features = ["derive"] }
+\end{minted}
+
+\texttt{Cargo.toml}中\texttt{dependencies}节的每一行都有一个cartes.io上的crate的名字和需要使用的版本。在这个例子中，我们需要\texttt{actix-web} crate的\texttt{1.0.8}版本和\texttt{serde} crate的\texttt{1.0}版本。crates.io上这两个crate可能还有更新的版本，但是通过指定我们测试成功的特定版本，可以保证即使这两个crate发布了新的版本，代码仍然可以正常工作。我们将会在\hyperref[ch08]{第8章}中详细的讨论版本管理。
+
+crate有一些可选的特性：这些特性是有些用户可能用不到、但仍然需要包含在crate中的部分接口或实现。\texttt{serde}提供了一个非常简洁的方式来处理web表单中的数据，但是根据\texttt{serde}的文档，只有当我们选择了这个crate的\texttt{derive}特性，才可以使用这种方式，因此我们在\texttt{Cargo.toml}文件中制定了这个特性。
+
+注意我们只需要指明那些我们直接使用的crate，\texttt{cargo}会自动下载它们依赖的其他crate。
+
+在我们的第一个版本中，我们将保持web服务器的简洁：它将只提供一个页面，提示用户输入要计算的数字。将\texttt{actix-gcd/src/main.rs}中的内容替换为如下：
+\begin{minted}{Rust}
+    use actix_web::{web, App, HttpResponse, HttpServer};
+
+    fn main() {
+        let server = HttpServer::new( || {
+            App::new()
+                .route("/", web::get().to(get_index))
+        });
+
+        println!("Servering on http://localhost:3000...");
+        server
+            .bind("127.0.0.1:3000").expect("error binding server to     address")
+            .run().expect("error running server");
+
+    }
+
+    fn get_index() -> HttpResponse {
+        HttpResponse::Ok()
+            .content_type("text/html")
+            .body(
+                r#"
+                    <title>GCD Calculator</title>
+                    <form action="/gcd" method="post">
+                    <input type="text" name="n"/>
+                    <input type="text" name="m"/>
+                    <button type="submit">Compute GCD</button>
+                    </form>
+                "#
+            )
+    }
+\end{minted}
+
+我们以一条\texttt{use}声明开始，引入一些\texttt{actix-web}的定义。当我们写下\texttt{use actix\_web::\{...\}}时，花括号里的每一个名称都被导入到作用域中，这样我们就可以直接使用\texttt{HttpResponse}，而不用每次都写出全名\texttt{actix\_web::HttpResponse}。（我们稍后才会使用\texttt{serde} crate）
+
+我们的\texttt{main}函数很简单：它首先调用\texttt{HttpServer::new}来创建一个服务器，这个服务器会响应对\texttt{"/"}路径的get方法；然后打印出一条消息；最后让服务器监听本地机器上的3000 TCP端口。
+
+我们传递给\texttt{HttpServer::new}的参数是Rust的\emph{闭包}表达式\texttt{|| \{ App::new() ... \}}。闭包是一种可以被当作函数来调用的值。这里定义的闭包没有参数，但如果需要参数的话，要写在\texttt{||}之间。\texttt{\{ ... \}}是闭包的函数体。当我们启动服务器时，Actix会启动一个线程池来处理到达的请求。每一个线程都会调用我们的闭包来获取一个\texttt{App}的拷贝，\texttt{App}的值将告诉它如何路由和处理请求。
+
