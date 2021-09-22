@@ -415,3 +415,111 @@ crate有一些可选的特性：这些特性是有些用户可能用不到、但
 
 我们传递给\texttt{HttpServer::new}的参数是Rust的\emph{闭包}表达式\texttt{|| \{ App::new() ... \}}。闭包是一种可以被当作函数来调用的值。这里定义的闭包没有参数，但如果需要参数的话，要写在\texttt{||}之间。\texttt{\{ ... \}}是闭包的函数体。当我们启动服务器时，Actix会启动一个线程池来处理到达的请求。每一个线程都会调用我们的闭包来获取一个\texttt{App}的拷贝，\texttt{App}的值将告诉它如何路由和处理请求。
 
+闭包会调用\texttt{App::new}来创建一个新的、空的\texttt{App}并调用它的\texttt{route}方法来添加一个路径\texttt{"/"}的路由。用\texttt{web::get().to(get\_index)}为这个路由添加处理函数，作用是遇到HTTP \texttt{GET}请求时调用函数\texttt{get\_index}。\texttt{route}方法会返回调用它的\texttt{App}自身，并增加新的路由。因为闭包的结尾处没有分号，因此\texttt{App}就是闭包的返回值，\texttt{HttpServer}线程将会使用它。
+
+\texttt{get\_index}函数构建了一个\texttt{HttpResponse}类型的值作为HTTP \texttt{GET /}请求的响应。\texttt{HttpResponse::Ok()}代表HTTP \texttt{200 OK}状态，表示请求被成功处理。我们还调用了它的\texttt{content\_type}和\texttt{body}方法来填充相应的细节；每一个调用都会返回调用它们的\texttt{HttpResponse}。最后，\texttt{body}方法的返回值作为\texttt{get\_index}的返回值。
+
+因为相应的文本中包含很多双引号，所以我们使用了Rust的raw string语法：字母\texttt{r}、0个或多个井号（\texttt{\#}字符）、一个双引号，string的内容、最后以另一个双引号加上和开头处相同数量的井号结尾。raw string中出现的任何字符都不会被转义，包括双引号；事实上，没有转移的序列例如\texttt{\textbackslash"}也可以被识别。我们可以通过增多井号的数量来保证终止的标记不会出现在字符串内容中。
+
+编写完\texttt{main.rs}之后，我们可以使用\texttt{carto run}命令来运行它：它会自动获取所需的crate、编译它们、编译我们自己的程序、并链接在一起、然后启动它：
+\begin{minted}{text}
+    $ cargo run
+        Updating crates.io index
+     Downloading crates ...
+      Downloaded serde v1.0.100
+      Downloaded actix-web v1.0.8
+      Downloaded serde_derive v1.0.100
+    ...
+      Compiling serde_json v1.0.40
+      Compiling actix-router v0.1.5
+      Compiling actix-http v0.2.10
+      Compiling awc v0.2.7
+      Compiling actix-web v1.0.8
+      Compiling gcd v0.1.0 (/home/jimb/rust/actix-gcd)
+       Finished dev [unoptimized + debuginfo] target(s) in 1m 24s
+        Running `/home/jimb/rust/actix-gcd/target/debug/actix-gcd`
+    Serving on http://localhost:3000...
+\end{minted}
+
+到目前为止，我们可以可以访问给定的URL并看到如\hyperref[f2-1]{图2-1}所示的页面。
+
+不幸的是，点击GCD并不会做任何事，而且会把我们的浏览器导航到一个空页面。接下来让我们来修复它，通过向我们的\texttt{App}添加另一个路由来处理我们表单的\texttt{POST}请求的响应。
+
+终于到了使用我们在\texttt{Cargo.toml}中列出的\texttt{serde} crate的时候了：它提供了一种帮助我们处理表单数据的简单方法。首先，我们需要在\texttt{src/main.rs}中添加如下\texttt{use}声明：
+\begin{minted}{Rust}
+    use serde::Deserialie;
+\end{minted}
+
+Rust程序员通常会把\texttt{use}声明集中在文件开始处，但这并不是必须的：Rust允许\texttt{use}声明以任何顺序出现，只要它们出现在正确的嵌套层级。
+
+接下来让我们定义一个Rust结构体类型来表示我们希望从表单中接收到的数据：
+\begin{minted}{Rust}
+    #[derive(Deserialize)]
+    struct GcdParameters {
+        n: u64,
+        m: u64,
+    }
+\end{minted}
+
+这里定义了一个新的类型叫做\texttt{GcdParameters}，它有两个字段\texttt{n}和\texttt{m}，都是\texttt{u64}类型，和\texttt{gcd}函数的参数类型保持一致。
+
+\texttt{struct}定义上方的注解是一个属性，类似于我们之前用来标记为测试函数时使用的\texttt{\#[test]}属性。在一个类型定义前加上\texttt{\#[derive(Deserialize)]}属性可以告诉\texttt{serde} crate在程序编译时自动为该类型生成代码来把HTML \texttt{POST}请求的表单数据转为该类型的值。事实上，这个属性可以让你从几乎所有结构化的数据：JSON、YAML、TOML或其他文本或二进制格式中解析出一个\texttt{GcdParameters}类型的值。\texttt{serde} crate还提供一个\texttt{Serialize}属性来做相反的事，即把Rust值写成结构化的格式。
+
+有了上面的定义，我们可以简单的写出我们的处理函数：
+\begin{minted}{Rust}
+    fn post_gcd(form: web::Form<GcdParameters>) -> HttpResponse {
+        if form.n == 0 || form.m == 0 {
+            return HttpResponse::BadRequest()
+                .content_type("text/html")
+                .body("Computing the GCD with zero is boring.");
+        }
+
+        let response = 
+            format!("The greatest common divisor of the numbers {} and {} \
+                    is <b>{}</b>\n",
+                    form.n, form.m, gcd(form.n, form.m));
+        
+        HttpResponse::Ok()
+            .content_type("text/html")
+            .body(response)
+    }
+\end{minted}
+
+作为Actix请求的处理函数，它的参数的类型必须是Actix知道怎么从中提取出HTTP请求的类型。我们的\texttt{post\_gcd}函数有一个参数\texttt{form}，它的类型是\texttt{web::Form<GcdParameters>}。当且仅当\texttt{T}可以从HTML的\texttt{POST}表单数据反序列化出来时，Actix才知道怎么\texttt{web::Form<T>}类型中提取出值。因为我们在\texttt{GcdParameters}类型的定义前加上了\texttt{\#[derive(Deserialize)]}属性，所以Actix可以从表单数据中反序列化出它，因此请求的处理函数可以使用\texttt{web::Form<GcdParameters>}作为参数。这些类型和函数之间的关系都是在编译期处理的，如果你用了Actix不知道该如何处理的类型作为参数的类型，Rust编译器将会立刻告诉你这个错误。
+
+再看\texttt{post\_gcd}的实现：如果有参数的值为0，这个函数会返回一个HTTP \texttt{401 BAD REQUEST}错误，因为这种情况下我们的\texttt{gcd}函数会panic。然后，它使用\texttt{format!}宏创建了一个响应。\texttt{format!}宏类似于\texttt{println!}宏，只不过它不会把字符串写入到标准输出，而是会返回字符串。当响应的文本就绪后，\texttt{post\_gcd}用一个HTTP \texttt{200 OK}响应来包装它，设置好content type之后，就把它返回到请求方。
+
+我们还要把\texttt{post\_gcd}注册为表单的处理函数。我们要把\texttt{main}函数替换为如下内容：
+\begin{minted}{Rust}
+    fn main() {
+        let server = HttpServer::new(|| {
+            App::new()
+                .route("/", web::get().to(get_index))
+                .route("/gcd", web::post().to(post_gcd))
+        });
+
+        println!("Servering on http://localhost:3000...");
+        server
+            .bind("127.0.0.1:3000").expect("error binding server to address")
+            .run().expect("error running server");
+    }
+\end{minted}
+
+唯一的变化在于多了一个\texttt{route}的调用，把\texttt{web::post().to(post\_gcd)}注册为路径\texttt{"/gcd"}的handler。
+
+最后剩余的部分是我们之前编写的\texttt{gcd}函数，要把它添加到\texttt{actix-gcd/src/main.rs}文件中。完成这些之后，你可以停止之前运行的服务器并重新启动程序：
+\begin{minted}{text}
+    $ cargo run
+    Compiling actix-gcd v0.1.0 (/home/jimb/rust/actix-gcd)
+     Finished dev [unoptimized + debuginfo] target(s) in 0.0 secs
+      Running `target/debug/actix-gcd`
+    Serving on http://localhost:3000...
+\end{minted}
+
+这一次，通过访问\emph{http://localhost:3000}，输入一些数字，然后点击Compute GCD按钮，你应该能看到如下的结果（\hyperref[f2-2]{图2-2}）。
+\begin{figure}[htbp]
+    \label{f2-2}
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f2-2.png}
+    \caption{显示计算GCD结果的web页面}
+\end{figure}
