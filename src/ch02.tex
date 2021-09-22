@@ -341,10 +341,10 @@ Rust的一个强项就是发布在网站\href{https://crates.io}{crates.io}上�
 
 为了展示它的工作方式，我们将会使用\texttt{actix-web}网络框架crate，\texttt{serde}序列化crate和其它它们依赖的crate来构建一个简单的web服务器。如\hyperref[f2-1]{图2-1}所示，我们的网站将会提示用户输入两个数字，然后计算它们的最大公约数。
 \begin{figure}[htbp]
-    \label{f2-1}
     \centering
     \includegraphics[width=0.8\textwidth]{../img/f2-1.png}
     \caption{提供计算最大公约数功能的web页面}
+    \label{f2-1}
 \end{figure}
 
 首先，我们需要使用Cargo创建一个新的包，名称为\texttt{actix-gcd}：
@@ -518,8 +518,111 @@ Rust程序员通常会把\texttt{use}声明集中在文件开始处，但这并�
 
 这一次，通过访问\emph{http://localhost:3000}，输入一些数字，然后点击Compute GCD按钮，你应该能看到如下的结果（\hyperref[f2-2]{图2-2}）。
 \begin{figure}[htbp]
-    \label{f2-2}
     \centering
     \includegraphics[width=0.8\textwidth]{../img/f2-2.png}
     \caption{显示计算GCD结果的web页面}
+    \label{f2-2}
 \end{figure}
+
+\section{并发}
+Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安全问题的规则同样可以保证线程之间在没有数据竞争的情况下共享数据。例如：
+\begin{itemize}
+    \item 如果你使用自旋锁来同步需要修改共享数据结构的线程，Rust保证只有当你持有锁的情况下才可以访问数据，并且当你处理完数据后自动释放锁。在C和C++中，自旋锁和要保护的数据之间的关系一般都写在注释里。
+    \item 如果你想在几个线程中共享只读数据，Rust保证你不可能意外修改数据。在C和C++中，类型系统也可以帮我们做到这一点，但很容易出错。
+    \item 如果你把一个数据结构的所有权从一个线程转移到另一个线程，Rust保证你确实已经失去了对它的访问权。在C和C++中，需要由你自己来保证发送线程不会再次访问该数据。如果你没有正确做到这些，那么结果将会却决于处理器的缓存和你最近写入了多少内存。
+\end{itemize}
+
+在这一节中，我们将带领你编写你的第二个多线程程序。
+
+你已经编写过第一个多线程程序了：你用来实现最大公约数服务器的Actix web框架使用了线程池来运行请求的处理函数。如果服务器同时收到很多请求，它会立刻在若干个线程里运行\texttt{get\_form}和\texttt{post\_gcd}函数。这可能让我们有些震惊，因为当我们编写那些函数时我们完全没有并发的概念。
+
+不过Rust保证这么做是安全的，不管你的服务器变得多复杂：只要你的程序能够编译，它就能免于数据竞争。所有的Rust函数都是线程安全的。
+
+这一节的程序将绘制曼德勃罗集，它是一种通过迭代一个简单的复数函数得到的分形。绘制曼德勃罗集经常被称为\emph{embarrassingly parallel}算法，因为线程之间的通信太过简单；我们将会在\hyperref[ch19]{第19章}中讲述更为复杂的模式，但这个例子已经可以展示出一些核心的部分。
+
+开始之前，我们要创建一个新的Rust项目：
+\begin{minted}{text}
+    $ cargo new mandelbrot
+         Created binary (application) `mandelbrot` package
+    $ cd mandelbrot
+\end{minted}
+
+所有的代码都会添加到\texttt{mandelbrot/src/main.rs}里，我们将会把一些依赖添加到\texttt{mandelbrot/Cargo.toml}。
+
+在开始实现并行的曼德勃罗集之前，我们需要先描述一下我们准备实现的计算过程。
+
+\subsection{曼德勃罗集到底是什么}
+了解这一点可以帮我们在阅读代码时更加清楚它要做什么，因此首先让我们先探讨一些纯数学只是。我们将以一个简单的例子开始，并逐渐添加复杂的细节，直到我们讲到曼德勃罗集的核心。
+
+首先这里有一个无限循环，用Rust的语法来写的话就是一个\texttt{loop}语句：
+\begin{minted}{Rust}
+    fn square_loop(mut x: f64) {
+        loop {
+            x = x * x;
+        }
+    }
+\end{minted}
+
+在现实中，Rust可能会看出\texttt{x}的值从来没有被使用过，因此并不执行计算。但一开始，首先让我们假设代码按照我们所写的运行。\texttt{x}的值将会发生什么变化？任何小于1的数平方都会变得更小，因此它会接近于0；1的平方还是1；大于1的数平方会变得更大，因此它会接近无限大；负数的平方将会使它变为整数，然后它的变化就和前面说的一样（\hyperref[f2-3]{图2-3}）。
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f2-3.png}
+    \caption{重复平方一个数的结果}
+    \label{f2-3}
+\end{figure}
+
+因此根据传递给\texttt{square\_loop}的值不同，\texttt{x}可能会保持0或者1不变，也可能接近0或者接近无限大。
+
+现在让我们考虑一个稍有不同的循环：
+\begin{minted}{Rust}
+    fn square_add_loop(c: f64) {
+        let mut x = 0.;
+        loop {
+            x = x * x + c;
+        }
+    }
+\end{minted}
+
+这一次，\texttt{x}从0开始，并且每次迭代时平方之后再加上\texttt{c}。这导致我们更难看出\texttt{x}会怎么变化，但一些实验表明如果\texttt{c}大于\texttt{0.25}或者小于\texttt{-2.0}，那么\texttt{x}将会变得接近无穷大；否则它会保持在接近0的某个区间。
+
+更进一步，如果不用\texttt{f64}类型的值，考虑使用复数来执行相同的循环。crates.io上的\texttt{num} crate提供了一个我们可以使用的复数类型，因此我们必须在我们程序的\texttt{Cargo.toml}文件的\texttt{[dependencies]}节中添加一行对\texttt{num}的引用。这是到目前为止这个文件里的全部内容（稍后我们还会添加一些内容）：
+\begin{minted}{toml}
+    [package]
+    name = "mandelbrot"
+    version = "0.1.0"
+    authors = ["You <you@example>"]
+    edition = "2018"
+
+    # See more keys and their definitions at
+    # https://doc.rust-lang.org/cargo/reference/manifest.html
+
+    [dependencies]
+    num = "0.4"
+\end{minted}
+
+现在我们可以写出循环的倒数第二个版本：
+\begin{minted}{Rust}
+    use num::Complex;
+
+    fn complex_square_add_loop(c: Complex<f64>) {
+        let mut z = Complex { re: 0.0, im: 0.0};
+        loop {
+            z = z * z + c;
+        }
+    }
+\end{minted}
+
+用\texttt{z}表示复数是一种习惯，因此我们重命名了变量。表达式\texttt{Complex \{ re: 0.0, im: 0.0 \}}创建了一个\texttt{num} crate的\texttt{Complex}类型的复数0值。\texttt{Complex}时一个Rust的结构体类型，定义类似于如下：
+\begin{minted}{Rust}
+    struct Complex<T> {
+        /// Real portion of the complex number
+        re: T,
+
+        /// Imaginary portion of the complex number
+        im: T,
+    }
+\end{minted}
+
+上面的代码定义了一个叫\texttt{Complex}的结构体，有两个字段：\texttt{re}和\texttt{im}。\texttt{Complex}是一个\emph{泛型}结构体：你可以将类型名后的\texttt{<T>}理解为“任意类型\texttt{T}”。例如，\texttt{Complex<f64>}是一个\texttt{re}和\texttt{im}字段都是\texttt{f64}类型的复数，\texttt{Complex<f32>}则是32位浮点数，等等。有了这个定义之后，类似于\texttt{Complex \{ re: 0.24, im: 0.3 \}}这样的表达式将会产生一个\texttt{re}字段初始化为0.24、\texttt{im}字段初始化为0.3的\texttt{Complex}类型的值。
+
+
