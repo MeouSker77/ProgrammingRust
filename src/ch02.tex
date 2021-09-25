@@ -837,3 +837,100 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
 这是Rust的类型转换语法：把\texttt{pixel.0}转换为\texttt{f64}类型的值。与C和C++不同，Rust禁止数字类型之间的隐式转换，你必须显式写明类型转换。这可能会很枯燥，但显式指明类型转换有时会很有用。整数之间的隐式转换看起来似乎没有问题，但历史上在真实世界的C和C++代码中它们导致了很多的bug和安全漏洞。
 
 \subsection{绘制曼德勃罗集}
+为了绘制曼德勃罗集，对于图像中的每个像素点，我们需要用它在复平面中对应的点来调用\texttt{escape\_time}，然后根据结果决定像素点的颜色：
+\begin{minted}{Rust}
+    /// Render a rectangle of the Mandelbrot set into a buffer of pixels.
+    ///
+    /// The `bounds` argument gives the width and height of the buffer `pixels`,
+    /// which holds one grayscale pixel per byte. The `upper_left` and `lower_right`
+    /// arguments specify points on the complex plane corresponding to the upper-
+    /// left and lower-right corners of the pixel buffer.
+    fn render(pixels: &mut [u8],
+          bounds: (usize, usize),
+          upper_left: Complex<f64>,
+          lower_right: Complex<f64>)
+    {
+        assert!(pixels.len() == bounds.0 * bounds.1);
+
+        for row in 0..bounds.1 {
+            for column in 0..bounds.0 {
+                let point = pixel_to_point(bounds, (column, row),
+                                           upper_left, lower_right);
+                pixels[row * bounds.0 + column] = 
+                    match escape_time(point, 255) {
+                        None => 0,
+                        Some(count) => 255 - count as u8
+                    };
+            }
+        }
+    }
+\end{minted}
+
+这一段代码看起来应该很熟悉：
+\begin{minted}{Rust}
+    pixels[row * bounds.0 + column] =
+        match escape_time(point, 255) {
+            None => 0,
+            Some(count) => 255 - count as u8
+        };
+\end{minted}
+
+如果\texttt{escape\_time}函数判定\texttt{point}属于曼德勃罗集，\texttt{render}将会把相应像素设为黑色。否则，\texttt{render}根据点要迭代多少次才能离开圆来决定像素的颜色有多深。
+
+\subsection{写入图片文件}
+\texttt{image} crate提供读写很多图片格式的函数，还有一些对图片进行简单操作的函数。它包含了一个PNG图片格式的编码器，我们的程序将用它来保存最后的结果。为了使用\texttt{image}，在\texttt{Cargo.toml}的\texttt{[dependencies]}节添加下面这一行：
+\begin{minted}{toml}
+    image = "0.13.0"
+\end{minted}
+
+然后再加上下面的代码：
+\begin{minted}{Rust}
+    use image::ColorType;
+    use image::png::PNGEncoder;
+    use std::fs::File;
+
+    /// Write the buffer `pixels`, whose dimensions are given by `bounds`, to the
+    /// file named `filename`.
+
+    fn write_image(filename: &str, pixels: &[u8], bounds: (usize, usize)) -> Result<(), std::io::Error> 
+    {
+        let output = File::create(filename)?;
+
+        let encoder = PNGEncoder::new(output);
+        encoder.encode(&pixels,
+                       bounds.0 as u32, bounds.1 as u32,
+                       ColorType::Gray(8))?;
+        Ok(())
+    }
+\end{minted}
+
+这个函数的操作非常直观：它打开一个文件，然后尝试写入图片。我们把\texttt{pixels}编码为实际的像素数据，图片的宽和高来自\texttt{bounds}，最后一个参数表明该如何解析\texttt{pixels}的字节：\texttt{ColorType::Gray(8)表示每个字节都是8比特的灰度值}。
+
+这些都很直观，有趣的地方是它处理错误的方式。如果我们遇到了一个错误，我们需要把错误返回给调用者。正如我们之前提到的那样，Rust里可能会失败的函数应该返回一个\texttt{Result}值，成功时是\texttt{Ok(s)}（\texttt{s}是成功后的结果），或者失败时是\texttt{Err(e)}（\texttt{e}是错误码）。因此\texttt{write\_image}的成功和错误类型是什么呢？
+
+在一切顺利的情况下，我们的\texttt{write\_image}函数没有需要返回的值，因为它把数据都写入到了文件里。因此它的成功类型是\emph{单元}类型\texttt{()}，这么称呼是因为这种类型只有唯一的值，这个唯一的值也被写作\texttt{()}。单元类型类似于C和C++中的\texttt{void}。
+
+当出现错误时，不管是因为\texttt{File::create}不能创建文件还是\texttt{encoder.encode}不能写入图片，I/O操作都会返回一个错误码。\texttt{File::create}的返回类型是\texttt{Result<std::fs::File, std::io::Error>}，而\texttt{encoder.encode}的返回类型是\texttt{Result<(), std::io::Error>}，因此两者有相同的错误类型：\texttt{std::io::Error}。我们的\texttt{write\_image}函数也把错误类型设置为同样的类型，当两者中任何一个出现错误时，函数应该立即返回，并把描述错误信息的\texttt{std::io::Error}向上传播。
+
+因此为了正确的处理\texttt{File::create}的结果，我们需要\texttt{match}它的返回值，类似于这样：
+\begin{minted}{Rust}
+    let output = match File::create(filename) {
+        Ok(f) => f,
+        Err(e) => {
+            return Err(e);
+        }
+    }
+\end{minted}
+
+当成功时，将\texttt{output}赋值为\texttt{Ok}里携带的\texttt{File}值。当失败时，把错误传播给调用者。
+
+这种模式的\texttt{match}语句在Rust中太过常见，因此Rust提供了一个\texttt{?}操作符作为这种模式的缩写。因此，我们不需要再每次都显式地写出这样的逻辑来处理可能的错误，我们可以用下面这种等价但简洁的多的语法：
+\begin{minted}{Rust}
+    let output = File::create(filename)?;
+\end{minted}
+
+如果\texttt{File::create}失败了，\texttt{?}操作符会使\texttt{write\_image}函数返回，并把错误向上传播。否则，\texttt{output}将被赋值为成功打开的\texttt{File}。
+
+\begin{note}
+    初学者的一个常见错误是尝试在\texttt{main}函数中使用\texttt{?}。然而，因为\texttt{main}函数自身不返回值，所以这种写法是错误的。正确的做法是使用\texttt{match}表达式或者类似于\texttt{unwrap}或\texttt{expect}这样的缩写方法。还有一种方式是把\texttt{main}改为返回\texttt{Result}，我们之后会介绍这种方式。
+\end{note}
