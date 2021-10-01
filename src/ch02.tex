@@ -934,3 +934,218 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
 \begin{note}
     初学者的一个常见错误是尝试在\texttt{main}函数中使用\texttt{?}。然而，因为\texttt{main}函数自身不返回值，所以这种写法是错误的。正确的做法是使用\texttt{match}表达式或者类似于\texttt{unwrap}或\texttt{expect}这样的缩写方法。还有一种方式是把\texttt{main}改为返回\texttt{Result}，我们之后会介绍这种方式。
 \end{note}
+
+\section{一个并发的曼德勃罗集程序}
+所有的部分都已经就位，我们将在\texttt{main}函数中加入并发的部分。首先，一个简单的无并发版本如下：
+\begin{minted}{Rust}
+    use std::env;
+
+    fn main() {
+        let args: Vec<String> = env::args().collect();
+
+        if args.len() != 5 {
+            eprintln!("Usage: {} FILE PIXELS UPPERLEFT LOWERRIGHT",     args[0]);
+            eprintln!("Example: {} mandel.png 1000x750 -1.20,0.35   -1,0.20", args[0]);
+            std::process::exit(1);
+        }
+
+        let bounds = parse_pair(&args[2], 'x')
+            .expect("error parsing image dimensions");
+        let upper_left = parse_complex(&args[3])
+            .expect("error parsing upper left corner point");
+        let lower_right = parse_complex(&args[4])
+            .expect("error parsing lower right corner point");
+
+        let mut pixels = vec![0; bounds.0 * bounds.1];
+
+        render(&mut pixels, bounds, upper_left, lower_right);
+
+        write_image(&args[1], &pixels, bounds)
+            .expect("error writing PNG file");
+    }
+\end{minted}
+
+把命令行参数收集为一个\texttt{String}的vector之后，我们逐个解析每个参数，然后开始计算。
+
+\begin{minted}{Rust}
+    let mut pixels = vec![0; bounds.0 * bounds.1];
+\end{minted}
+
+宏调用\texttt{vec![v; n]}会创建一个有\texttt{n}个元素，并且每个元素都被初始化为\texttt{v}的vector，因此上面的代码会创建一个长度为\texttt{bounds.0 * bounds.1}，元素全为0的vector，其中\texttt{bounds}是通过解析命令行参数得到的图片的分辨率。我们将把这个vector用作数组来存储一字节的灰度像素值，如\hyperref[f2-5]{图2-5}所示。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f2-5.png}
+    \caption{将vector用作矩形像素数组}
+    \label{f2-5}
+\end{figure}
+
+下一行有趣的代码如下：
+\begin{minted}{Rust}
+    render(&mut pixels, bounds, upper_left, lower_right);
+\end{minted}
+这里调用了\texttt{render}函数来计算图片。表达式\texttt{\&mut pixels}获取了对我们的像素缓冲区的可变引用，这样可以让\texttt{render}用计算出的灰度值填充像素缓冲区，即使\texttt{pixels}仍然保有vector的所有权。剩余的参数传递了图像的维度和我们要绘制的复平面对应的矩形。
+
+\begin{minted}{Rust}
+    write_image(&args[1], &pixels, bounds)
+        .expect("error writing PNG file");
+\end{minted}
+
+最后，我们把像素缓冲区以PNG格式写入到磁盘上。在这个例子中，我们传递了一个缓冲区的共享（不可变）引用，因为\texttt{write\_image}不需要修改缓冲区的内容。
+
+到了这里，我们可以以release模式构建并运行应用，这样可以允许编译器进行更多优化。几秒之后，它将会生成一幅漂亮的图片\texttt{mandel.png}：
+\begin{minted}{text}
+    $cargo build --release
+       Updating crates.io index
+      Compiling autocfg v1.0.1
+      ...
+      Compiling image v0.13.0
+      Compiling mandelbrot v0.1.0 ($RUSTBOOK/mandelbrot)
+       Finished release [optimized] target(s) in 25.36s
+    $ time target/release/mandelbrot mandel.png 4000x3000 -1.20,0.35 -1,0.20
+    real 0m4.678s
+    user 0m4.661s
+    sys  0m0.008s
+\end{minted}
+这条命令会创建一个叫\texttt{mandel.png}的文件，你可以用系统的图片查看器或者在浏览器中打开。如果一切正常的话，它应该看起来类似于\hyperref[f2-6]{图2-6}。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f2-6.png}
+    \caption{曼德勃罗集程序的结果}
+    \label{f2-6}
+\end{figure}
+
+在上面的测试中，我们使用了Unix的\texttt{time}程序分析了程序的运行时间：它需要花费5秒才能对图片中的每个像素进行曼德勃罗计算。但几乎所有现代机器都有很多个处理核心，而这个程序只利用到了一个。如果我们可以把计算任务分配给机器提供的所有计算资源，我们将能更快的完成图片的计算。
+
+为了实现这一点，我们把图片分成了几个部分，每一个处理单元负责计算一个部分的像素值。为了简单，我们把图片分成水平的条带，如图\hyperref[f2-7]{图2-7}所示。当所有的处理单元都计算完成之后，我们再把结果写入到磁盘。
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f2-7.png}
+    \caption{把像素缓冲区分成若干条带来并行渲染}
+    \label{f2-7}
+\end{figure}
+
+\texttt{crossbeam} crate提供了很多值并行的设置，包括我们恰好需要的\emph{scoped thread}。为了使用它，我们需要在\texttt{Cargo.toml}中加上下面这一行：
+\begin{minted}{toml}
+    crossbeam = "0.8"
+\end{minted}
+
+然后我们需要删除调用\texttt{render}的那一行，将它替换为如下内容：
+\begin{minted}{Rust}
+    let threads = 8;
+    let rows_per_band = bounds.1 / threads + 1;
+
+    {
+        let bands: Vec<&mut [u8]> =
+            pixels.chunks_mut(rows_per_band * bounds. 0).collect();
+        crossbeam::scope(|spawner| {
+            for (i, band) in bands.into_iter().enumerate() {
+                let top = rows_per_band * i;
+                let height = band.len() / bounds.0;
+                let band_bounds = (bounds.0, height);
+                let band_upper_left =
+                    pixel_to_point(bounds, (0, top), upper_left, lower_right);
+                let band_lower_right =
+                    pixel_to_point(bounds, (bounds.0, top + height),
+                                   upper_left, lower_right);
+                spawner.spawn(move |_| {
+                    render(band, band_bounds, band_upper_left, band_lower_right);
+                });
+            }
+        }).unwrap();
+    }
+\end{minted}
+
+和之前一样对这段代码进行分解：
+\begin{minted}{Rust}
+    let threads = 8;
+    let rows_per_band = bounds.1 / threads + 1;
+\end{minted}
+
+这里我们决定使用8个线程\footnote{}。然后我们计算每一个条带包含多少个像素，我们将结果加一来保证即使图片的高度不是\texttt{threads}的倍数的情况下，这些条带仍然能包含整个图像。
+
+\begin{minted}{Rust}
+    let bands: Vec<&mut [u8]> =
+        pixels.chunks_mut(rows_per_band * bounds.0).collect();
+\end{minted}
+
+这里我们把像素缓冲区划分为了若干条带。缓冲区的\texttt{chunks\_mut}方法返回了一个产生可变引用的迭代器，每一个引用都是缓冲区的切片，这些引用互相不重叠，切片里包含\texttt{rows\_per\_band * bounds.0}个像素——也就是说，\texttt{rows\_per\_band}行的像素。\texttt{chunks\_mut}产生的最后一个切片可能会含有较少的行，但每一行的像素数量都相同。最后，使用迭代器的\texttt{collect}方法创建一个vector来保存这些可变且互不相交的切片。
+
+现在我们可以使用\texttt{crossbeam}库了：
+\begin{minted}{Rust}
+    crossbeam::scope(|spawner| {
+        ...
+    }).unwrap();
+\end{minted}
+参数\texttt{|spawner| \{ ... \}}是一个Rust的闭包，这个闭包接收一个参数\texttt{spawner}。注意，和使用\texttt{fn}声明的函数不同，我们不需要指明闭包中的参数的类型；Rust将会自动推断参数和返回值的类型。在这个例子中，\texttt{crossbeam::scope}会调用这个闭包，并将闭包中创建新线程需要使用的值作为\texttt{spawner}参数传入。\texttt{crossbeam::scope}会等待所有的线程都结束之后才会返回。这样可以确保线程不会在\texttt{pixels}离开作用域之后再访问它的数据，并且可以确保当\texttt{crossbeam::scope}返回时，计算图片的过程已经完成。如果一切顺利，\texttt{crossbeam::scope}会返回\texttt{Ok(())}，但如果任何一个线程panic了，它会返回一个\texttt{Err}。我们对返回的\texttt{Result}调用\texttt{unwrap}，这样当遇到线程panic的情况时程序也会panic。
+
+\begin{minted}{Rust}
+    for (i, band) in bands.into_iter().enumerate() {
+\end{minted}
+这里我们迭代了像素缓冲区的条带。\texttt{into\_iter()}迭代器在循环体的每一次迭代时获取一个条带的所有权，以确保同一时间内只有一个线程可以写入它。我们将在\hyperref[ch5]{第5章}详细讲解它是如何工作的。之后，\texttt{enumerate}适配器产生一个包含迭代元素和它的索引的tuple。
+
+\begin{minted}{Rust}
+    let top = rows_per_band * i;
+    let height = band.len() / bounds.0;
+    let band_bounds = (bounds.0, height);
+    let band_upper_left = 
+        pixel_to_point(bounds, (0, top), upper_left, lower_right);
+    let band_lower_right = 
+        pixel_to_point(bounds, (bounds.0, top + height),
+                       upper_left, lower_right);
+\end{minted}
+给定索引和每个条带的实际大小（再次提醒以下最后一个条带可能比其他的要短），我们可以构造出一个\texttt{render}所需的矩形区域，不同的是现在每一个区域指向缓冲区的条带，而不是整个图像。类似于之前，我们再次调用\texttt{pixel\_to\_point}函数来找出区域的左上角和右下角在复平面中的位置。
+
+\begin{minted}{Rust}
+    spawner.spawn(move |_| {
+        render(band, band_bounds, band_upper_left, band_lower_right);
+    });
+\end{minted}
+
+最后，我们创建了一个线程来运行闭包\texttt{move |\_| \{ ... \}}。前边的\texttt{move}关键字表示这个闭包需要获取它用到的变量的所有权；在闭包获取了所有权之后，就只有闭包可以使用可变的切片\texttt{band}。参数列表\texttt{|\_|}表示这个闭包有一个参数，但不会用到这个参数（另一个用于嵌套线程的spawner）。
+
+如同我们之前提到的一样，\texttt{crossbeam::scope}调用会保证在它返回之前所有的线程都已经结束，这意味着我们可以安全的把图片保存到文件，正如我们接下来要做的一样。
+
+\subsection{运行曼德勃罗集绘制器}
+
+我们在程序中使用了好几个外部crate：\texttt{num}用于复数的数学计算、\texttt{image}用于写入PNG文件、\texttt{crossbeam}用于创建scoped thread。这是最终的包含所有这些依赖的\texttt{Cargo.toml}文件：
+\begin{minted}{toml}
+    [package]
+    name = "mandelbrot"
+    version = "0.1.0"
+    authors = ["You <you@example.com>"]
+    edition = "2018"
+
+    [dependencies]
+    num = "0.4"
+    image = "0.13"
+    crossbeam = "0.8"
+\end{minted}
+
+这些都就绪之后，我们可以构建并运行程序：
+\begin{minted}{text}
+    $ cargo build --release
+        Updating crates.io index
+       Compiling crossbeam-queue v0.3.1
+       Compiling crossbeam v0.8.0
+       Compiling mandelbrot v0.1.0 ($RUSTBOOK/mandelbrot)
+        Finished release [optimized] target(s) in #.## secs
+    $ time target/release/mandelbrot mandel.png 4000x3000 -1.20,0.35 -1,0.20
+    real    0m1.436s
+    user    0m4.922s
+    sys     0m0.011s
+\end{minted}
+
+这里，我们再次使用了\texttt{time}来查看程序运行了多长时间；注意尽管还是花费了接近5秒的处理器时间，但实际经过的时间只有1.5秒左右。这其中有一部分时间用来写入图片文件，你可以试着注释掉相应的代码并再次测量。在我们的测试笔记本上，计算曼德勃罗集的并发版本只需要大概1/4的时间。我们将会在\hyperref[ch19]{第19章}中展示如何从本质上加快速度。
+
+和之前一样，程序会创建一个\texttt{mandel.png}文件。有了这个更快的版本，你可以更加轻易的通过改变命令行参数来探索曼德勃罗集。
+
+\subsection{安全性是不可见的}
+
+在最后，我们的最终版本的并行程序和其它语言编写的并没有本质上的不同：我们把像素缓冲区分成不同部分，每一个处理器核心都单独计算它自己的那一部分，并在全部结束时保存结果。所以Rust的并发支持到底有什么特殊之处？
+
+我们在这个过程中并没有我们\emph{不能}编写的Rust程序。我们在这一章中编写的代码正确的把缓冲区划分到了各个线程中，但这段代码还有很多不正确的变体（会导致数据竞争）；所有这些变体都不可能通过Rust编译器的静态检查。一个C或C++编译器将会乐于帮助你探索带有数据竞争的程序的广阔空间；Rust则会在错误发生之前就告诉你。
+
+在\hyperref[ch04]{第4章}和\hyperref[ch05]{第5章}中，我们描述了Rust保证内存安全的规则。\hyperref[ch19]{第19章}将会介绍这些规则怎么保证并发的安全性。
+
