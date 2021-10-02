@@ -5,9 +5,10 @@
 \usepackage{minted}
 \usepackage{xcolor}
 \usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{colortbl}
 \usepackage{enumitem}
 \usepackage{framed}
-% \usepackage{color}
 \usepackage[colorlinks,breaklinks,linktoc=page,allcolors=linkcolor]{hyperref}
 \usepackage[numbered]{bookmark}     % 设置书签
 \usepackage[pagestyles,clearempty]{titlesec}   % 设置页眉格式
@@ -37,6 +38,7 @@
 }
 
 \definecolor{linkcolor}{RGB}{175, 74, 87}       % 定义链接颜色
+\definecolor{tablecolor}{RGB}{241, 246, 252}    % 定义表格背景颜色
 
 \newenvironment{note}{
     \begin{framed}
@@ -47,7 +49,7 @@
     \end{framed}
 }
 
-% \includeonly{ch01}
+\includeonly{ch03}
 
 \begin{document}
     \frontmatter

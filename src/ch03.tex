@@ -1,1 +1,374 @@
 \chapter{基本类型}\label{ch03}
+\emph{这个世界上有很多很多不同类型的书，这是一件好事。但也有很多很多不同类型的人，每个人都想读到一些不同的东西。}
+\begin{flushright}
+    ——Lemony Snicket
+\end{flushright}
+
+在很大程度上，Rust语言是围绕它的类型来设计的。它对高性能代码的支持源于让开发者选择不同情况下最合适的数据表示，并在简单性和成本之间取得适当的平衡。Rust的内存和线程安全也依赖于类型系统的健全性，Rust的灵活性则来自于它的泛型和trait。
+
+这一章将介绍Rust的基本类型。这些源码级别的类型都有对应的成本和性能可预测的机器级的组件。尽管Rust并不保证它会完全按照你的要求精确的表示数据，但只有当它是一个可靠的改进时它才会违背你的要求。
+
+与JavaScript或Python这种动态类型语言相比，Rust要求你事先就进行更多规划。你必须写出函数参数和返回值、结构体字段、以及一些其他结构的类型。然而，Rust的两个特性使得这比你想象中的要简单很多：
+
+\begin{itemize}
+    \item 有了你指明的类型，Rust的\emph{类型推导}将会为你推导出剩余的大部分类型。在实践中，通常只有一个类型能够满足给定的变量或表达式。在这种情况下，Rust允许你留空，或者说\emph{省略}这个类型。例如，你可以像下面这样写出一个函数里的所有类型：
+          \begin{minted}{Rust}
+    fn build_vector() -> Vec<i16> {
+        let mut v: Vec<i16> = Vec::<i16>::new();
+        v.push(10i16);
+        v.push(20i16);
+        v
+    }
+    \end{minted}
+          但这非常杂乱和重复。给定了函数的返回值之后，很明显\texttt{v}必须是\texttt{Vec<i16>}类型：一个16位有符号整数的vector，没有其他的类型可以满足语义。并且据此可以推出vector的每个元素必须是\texttt{i16}类型。这就是Rust的类型推导适用的场景，所以你可以改为：
+          \begin{minted}{Rust}
+    fn build_vector() -> Vec<i16> {
+        let mut v = Vec::new();
+        v.push(10);
+        v.push(20);
+        v
+    }
+    \end{minted}
+          这两个定义是完全等价的，Rust将会生成完全相同的机器代码。类型推导可以回馈一部分动态类型语言的可读性，并且仍能在编译时捕捉到类型错误。
+    \item 函数可以是\emph{泛型}的：一个函数可以同时处理很多不同类型的值。
+
+          在Python和JavaScript中，所有的函数都很自然的是泛型的：一个函数可以操作任何类型的值，只要这个类型有函数体中需要的属性和方法。（这种特性通常被称作\emph{鸭子类型}：如果它像鸭子一样叫，那它就是一只鸭子。）但正是这种灵活性也导致这些语言很难检测出类型错误，在这些语言里测试通常是唯一一种捕捉类型错误的方式。Rust的泛型函数给予了这门语言某种程度上和动态类型同样的灵活性，并且仍能在编译期捕获所有的类型错误。
+
+          除了灵活性之外，泛型函数和非泛型的函数一样高效。例如，为每个整数类型都编写一个\texttt{sum}函数与编写一个处理所有整数类型的泛型\texttt{sum}函数相比，并没有性能上的优势。我们将在\hyperref[ch11]{第11章}种详细讨论泛型函数。
+\end{itemize}
+
+这一章的剩余部分将会自上而下的覆盖Rust的类型，从最简单的数字类型例如证书和浮点数到持有多个值的复合类型：box、tuple、数组和字符串。
+
+这里有一个Rust中类型的汇总。\hyperref[t3-1]{表3-1}显示了Rust的原始类型，包括一些来自标准库的基本类型，和一些用户自定义类型的示例。
+
+\begin{longtable}{p{0.25\textwidth}p{0.4\textwidth}p{0.25\textwidth}}
+    \caption{Rust中的类型示例}
+    \label{t3-1}\\
+    \hline
+    \textbf{类型}   & \textbf{描述}    & \textbf{值}    \\
+    \hline
+    \texttt{i8, i16, i32, i64, i128, u8, u16, u32, u64, u128}    & 指定位数的有符号和无符号整数 & \texttt{42, -5i8, 0x400u16, 0o100i16, 20\_922\_789\_888\_000u64, b'*'(u8字节字面量)}    \\
+    \rowcolor{tablecolor}
+    \texttt{isize, usize}   & 有符号和无符号整数，和机器里的一个指针一样大（32位或64位）   & \texttt{137, -0b0101\_0010isize, 0xffff\_fc00usize} \\
+    \texttt{f32, f64}       & IEEE浮点数，单精度和双精度                                & \texttt{1.61803, 3.14f32, 6.0221e23f64} \\
+    \rowcolor{tablecolor}
+    \texttt{bool}           & 布尔值            & \texttt{true, false} \\
+    \texttt{char}           & Unicode字符，32位 & \texttt{'*', '\textbackslash n', '字', '\textbackslash x7f', '\textbackslash u\{CA0\}'} \\
+    \rowcolor{tablecolor}
+    \texttt{(char, u8, i32)}                        & Tuple：把类型混合在一起   & \texttt{('\%', 0x7f, -1)} \\
+    \texttt{()}                                     & “单元值”（空tuple）      & \texttt{()} \\
+    \rowcolor{tablecolor}
+    \texttt{struct S \{ x: f32, y: f32 \}}          & 命名字段结构体            & \texttt{S \{ x: 120.0, y: 209.0 \}} \\
+    \texttt{struct T (i32, char);}                  & 元组结构体                & \texttt{T(120, 'X')} \\
+    \rowcolor{tablecolor}
+    \texttt{struct E;}                              & 元组结构体，无字段        & \texttt{E} \\
+    \texttt{enum Attend \{ OnTime, Late(u32) \}}    & 枚举，代数数据类型        & \texttt{Attend::Late(5), Attend::OnTime} \\
+    \rowcolor{tablecolor}
+    \texttt{Box<Attend}                             & Box：持有一个堆上的值的指针   & \texttt{Box::new(Late(15))} \\
+    \texttt{\&i32, \&mut i32}                       & 共享和可变引用：生命周期不能超过所引用对象的无所有权的指针 & \texttt{\&s.y, \&mut v} \\
+    \rowcolor{tablecolor}
+    \texttt{String}                                 & UTF-8字符串，动态大小         & \texttt{"ラーメン: ramen"\newline.to\_string()} \\
+    \texttt{\&str}                                  & \texttt{str}的引用：指向UTF-8字符串的无所有权的指针 & \texttt{"そば: soba", \&s[0..12]} \\
+    \rowcolor{tablecolor}
+    \texttt{[f64; 4], [u8; 256]}                    & 固定长度的数组，所有元素的类型都必须相同   & \texttt{[1.0, 0.0, 0.0, 1.0], [b' '; 256]} \\
+    \texttt{Vec<f64>}                               & 可变长度的vector，所有元素的类型都必须相同 & \texttt{vec![0.367, 2.718, 7.389]} \\
+    \rowcolor{tablecolor}
+    \texttt{\&[u8], \&mut [u8]}                     & 切片的引用：指向数组或vector的一部分，包含指针和长度 & \texttt{\&v[10..20], \&mut a[..]} \\
+    \texttt{Option<\&str>}      & 可选值：\texttt{None}(无值)或\texttt{Some(v)}(有值，值为\texttt{v})   & \texttt{Some("Dr.", None)} \\
+    \rowcolor{tablecolor}
+    \texttt{Result<u64, Error>} & 可能会失败的操作的结果：成功时是\texttt{Ok(v)}，失败时是\texttt{Err(e)} & \texttt{Ok(4096), Err(Error::last\_os\_error())} \\
+    \texttt{\&dyn Any, \&mut dyn Read}  & trait对象：指向一个实现了给定方法的任何值 & \texttt{value as \&dyn Any, \&mut file as \&mut dyn Read} \\
+    \rowcolor{tablecolor}
+    \texttt{fn(\&str) -> bool}          & 函数指针      & \texttt{str::is\_empty}           \\
+    （闭包类型）                         & 闭包         & \texttt{|a, b| \{ a*a + b*b \}}    \\
+\end{longtable}
+
+这些类型中的大部分都会在这一章中介绍，除了下面这些：
+\begin{itemize}
+    \item 我们将在\hyperref[ch09]{第9章}中单独介绍\texttt{struct}类型。
+    \item 我们将在\hyperref[ch10]{第10章}中单独介绍枚举类型。
+    \item 我们将在\hyperref[ch11]{第11章}中介绍trait对象。
+    \item 我们将在这里介绍\texttt{String}和\texttt{\&str}的基础，但在\hyperref[ch17]{第17章}中介绍更多细节。
+    \item 我们将在\hyperref[ch14]{第14章}介绍函数和闭包类型。
+\end{itemize}
+
+\section{固定位数的数字类型}
+Rust类型系统的基础是一组固定宽度的数字类型的集合，这些类型和现代处理器中的硬件类型相匹配。
+
+固定宽度的数字类型可能会溢出或失去精度，但它们适用于大多数的类型，并且比任意精度的整数和精确小数快几千倍。如果你需要那些类型的数字，可以在\texttt{num} crate找到相应的支持。
+
+Rust的数字类型的名称遵循通用的模式，宽度加上表示的含义（\hyperref[f3-2]{表3-2}）。
+\begin{table}[htbp]
+    \centering
+    \caption{Rust的数字类型}
+    \label{f3-2}
+    \begin{tabular}{llll}
+        \hline
+        \textbf{大小(比特数)}   & \textbf{无符号整数}   & \textbf{有符号整数}   & \textbf{浮点数}   \\
+        \hline
+        \texttt{8}  & \texttt{u8}   & \texttt{i8}   &              \\
+        \rowcolor{tablecolor} 
+        \texttt{16} & \texttt{u16}  & \texttt{i16}  &              \\
+        \texttt{32} & \texttt{u32}  & \texttt{i32}  & \texttt{f32} \\
+        \rowcolor{tablecolor} 
+        \texttt{64} & \texttt{u64}  & \texttt{i64}  & \texttt{f64} \\
+        \texttt{128}& \texttt{u128} & \texttt{i128} &              \\
+        \rowcolor{tablecolor} 
+        机器字      & \texttt{usize} & \texttt{isize} & \\
+    \end{tabular}
+\end{table}
+
+这里，\emph{机器字}是运行代码的机器上的一个指针的大小，32位或者64位。
+
+\subsection{整数类型}
+
+Rust的无符号整数使用全部的范围来表示正数和0（\hyperref[t3-3]{表3-3}）。
+\begin{table}[htbp]
+    \centering
+    \caption{Rust无符号整数类型}
+    \label{t3-3}
+    \begin{tabular}{ll}
+        \hline
+        \textbf{类型}   &   \textbf{范围}                   \\
+        \hline
+        \texttt{u8}     & 0到$2^{8}-1$（0到255）            \\
+        \rowcolor{tablecolor} 
+        \texttt{u16}    & 0到$2^{16}-1$（0到65,535）        \\
+        \texttt{u32}    & 0到$2^{32}-1$（0到4,294,967,295） \\
+        \rowcolor{tablecolor} 
+        \texttt{u64}    & 0到$2^{64}-1$（0到18,446,744,073,709,551,615或1万8千亿）  \\
+        \texttt{u128}   & 0到$2^{128}-1$（0到大约$3.4*10^{38}$）                    \\
+        \rowcolor{tablecolor} 
+        \texttt{usize}  & 0到$2^{32}-1$或$2^{64}-1$         \\
+    \end{tabular}
+\end{table}
+
+Rust的有符号整数使用两种互补的表示方法，使用和无符号类型相对应的位模式来表示一个包含正数和负数的范围（\hyperref[t3-4]{表3-4}）。
+\begin{table}[htbp]
+    \centering
+    \caption{Rust的有符号整数类型}
+    \label{t3-4}
+    \begin{tabular}{ll}
+        \hline
+        \textbf{类型}   &   \textbf{范围}   \\
+        \hline
+        \texttt{i8}     & $-2^{7}$到$2^{7}-1$（-128到127）   \\
+        \rowcolor{tablecolor}
+        \texttt{i16}    & $-2^{15}$到$2^{15}-1$（-32,768到32,767）  \\
+        \texttt{i32}    & $-2^{31}$到$2^{31}-1$（-2,147,483,648到2,147,483,647）    \\
+        \rowcolor{tablecolor}
+        \texttt{i64}    & $-2^{63}$到$2^{63}-1$（-9,223,372,036,854,775,808到9,223,372,036,854,775,807）    \\
+        \texttt{i128}   & $-2^{127}$到$2^{127-1}$（大约$-1.7*10^{38}$到$+1.7*10^{38}$） \\
+        \rowcolor{tablecolor}
+        \texttt{isize}  & $-2^{31}$到$2^{31}-1$，或者$-2^{63}$到$2^{63}-1$  \\
+    \end{tabular}
+\end{table}
+
+Rust使用\texttt{u8}类型来表示一个字节的值。例如，从二进制文件或者套接字读取数据就会返回\texttt{u8}类型的数据流。
+
+与C和C++不同，Rust区分了字符和数字类型：\texttt{char}不是\texttt{u8}，也不是\texttt{u32}（尽管它是32位）。我们将会在“\hyperref[char]{字符}”这一节介绍Rust的\texttt{char}类型。
+
+\texttt{usize}和\texttt{isize}类似于C和C++中的\texttt{size\_t}和\texttt{ptrdiff\_t}类型。它们的位数和目标机器上地址空间的位数相同：在32位架构上就是32位，在64位架构上就是64位。Rust要求数组索引为\texttt{usize}类型的值。数组或vector或其他任何含有多个元素的数据结构的长度都是\texttt{usize}类型。
+
+Rust中的整数字面量可以有一个后缀来指示类型：\texttt{42u8}是一个\texttt{u8}类型的值，\texttt{1729isize}是一个\texttt{isize}类型的值。如果一个整数字面量没有类型后缀，Rust将会延迟决定它的类型，直到可以从它的使用中推断出它的类型：存储到一个已知类型的变量中、作为参数传递给一个参数类型已知的函数、和一个已知类型的值比较、以及类似的情况。如果到最后还是有很多类型可以满足，此时如果\texttt{i32}是其中一种可能，Rust将推断它为\texttt{i32}类型。否则，Rust会报歧义错误。
+
+前缀\texttt{0x, 0o, 0b}分别表示十六进制、八进制、二进制字面量。
+
+为了让长数字更更读，你可以在数字中间插入下划线。例如，你可以把最大的\texttt{u32}值写作\texttt{4\_294\_967\_295}。下划线放置的位置并不重要，所以你可以每四位插入一个下划线来把十六进制和二进制数字分组，例如\texttt{0xffff\_ffff}或者在最后插入下划线分隔类型后缀，例如\texttt{127\_u8}。\hyperref[t3-5]{表3-5}给出了一些整数字面量的例子。
+\begin{table}[htbp]
+    \centering
+    \caption{整数字面量的例子}
+    \label{t3-5}
+    \begin{tabular}{lll}
+        \hline
+        \textbf{字面量} & \textbf{类型} & \textbf{十进制值} \\
+        \hline
+        \texttt{116i8}          & \texttt{i8}       &   116 \\
+        \rowcolor{tablecolor}
+        \texttt{0xcafeu32}      & \texttt{u32}      &   51966 \\
+        \texttt{0b0010\_1010}   & 推断              &   42 \\
+        \rowcolor{tablecolor}
+        \texttt{0o106}          & 推断              &   70 \\
+    \end{tabular}
+\end{table}
+
+尽管数值类型和\texttt{char}类型是不同的，Rust确实提供了\emph{字节字面量}：很像字符字面量的\texttt{u8}值：\texttt{b'X'}代表字符\texttt{X}的ASCII码值，但是是\texttt{u8}类型的值。例如，因为\texttt{A}的ASCII码值是65，字面量\texttt{b'A'}和\texttt{65u8}是等价的。只有ASCII字符可以出现在字节字面量中。
+
+这里有一些不能用单个字符表示的字符，因为它们要么会导致歧异要么很难看出来。\hyperref[t3-6]{表3-6}中的字符只能用反斜杠转移的方式写出来。
+\begin{table}[htbp]
+    \centering
+    \caption{需要转义的字符}
+    \label{t3-6}
+    \begin{tabular}{lll}
+        \hline
+        \textbf{字符}   &   \textbf{字节字面量} & \textbf{等价的数字值} \\
+        \hline
+        单引号，'   &   \texttt{b'\textbackslash''}      & 39u8 \\
+        \rowcolor{tablecolor}
+        反斜杠，\textbackslash &    \texttt{b'\textbackslash\textbackslash'} & 92u8 \\
+        换行        &    \texttt{b'\textbackslash n'}    & 10u8 \\
+        \rowcolor{tablecolor}
+        回车        &   \texttt{b'\textbackslash r'}     & 13u8 \\
+        制表符      &   \texttt{b'\textbackslash t'}     & 9u8 \\
+    \end{tabular}
+\end{table}
+
+对于那些难以写出或看出的字符，你可以用它们的十六进制码代替。一个字节字面量的形式是\texttt{b'\textbackslash xHH'}，其中\texttt{HH}是两个十六进制的数字，代表值是\texttt{HH}的字节。例如，你可以将ASCII的“escape”字符的字节字面量写作\texttt{b'\textbackslash x1b'}，因为“escape”的ASCII码是27，也就是16进制的1B。因为字节字面量只是\texttt{u8}类型值的另一种表示方式，考虑使用数字字面量可能可读性会更强：只有当你想表示ASCII码时\texttt{b'\textbackslash x1b'}才会比\texttt{27}更有意义。
+
+你可以将一种整数类型转换为另一种整数类型。我们将会在“\hyperref[cast]{类型转换}”这一节中介绍转换的原理，这里有一些例子：
+\begin{minted}{Rust}
+    assert_eq!(   10_i8  as u16,    10_u16); // in range
+    assert_eq!( 2525_u16 as i16,  2525_i16); // in range
+
+    assert_eq!(   -1_i16 as i32,    -1_i32); // 符号扩展
+    assert_eq!(65535_u16 as i32, 65535_i32); // 0扩展
+
+    // 转换一个超出目标类型范围的值
+    // 等价于原值对2^N取模
+    // N是目标类型的位数
+    // 这有时也被称为“截断”
+    assert_eq!( 1000_i16 as  u8,    232_u8);
+    assert_eq!(65535_u32 as i16,     -1_i16);
+
+    assert_eq!(   -1_i8  as u8,     255_u8);
+    assert_eq!(  255_u8  as i8,      -1_i8);
+\end{minted}
+
+标准库提供一些整数的方法来进行操作。例如：
+\begin{minted}{Rust}
+    assert_eq!(2_u16.pow(4), 16);               // 求指数幂
+    assert_eq!((-4_i32).abs(), 4);              // 求绝对值
+    assert_eq!(0b101101_u8.count_ones(), 4);    // 位计数
+\end{minted}
+
+你可以在在线文档中找到这些。但是注意，文档中\texttt{i32}（原始类型）和模块导入的类型（搜索\texttt{std::i32}）有不同的单独页面。
+
+在实际编码时，你不需要像我们在这里一样写出类型后缀，因为上下文会自动推断出类型。当推断不出来时，错误信息可能会让你很惊讶。例如，下面的代码不能编译：
+\begin{minted}{Rust}
+    println!("{}", (-4).abs());
+\end{minted}
+
+Rust报错：
+\begin{minted}{text}
+    error: can't call method `abs` on ambiguous numeric type `{integer}`
+\end{minted}
+
+这可能有点迷惑：所有的整数类型都有\texttt{abs}方法，所以问题在哪呢？从技术角度来说，Rust需要在调用某个类型的方法之前知道这个值的精确类型。只有当所有的方法调用都被解析之后仍然存在歧义才会使用默认的\texttt{i32}类型，而在这里，在解析\texttt{abs}方法时就需要知道\texttt{-4}的类型，默认推导为\texttt{i32}的规则在此时不能生效。解决方法是指明类型，要么加上类型后缀，要么使用类型特定的函数：
+\begin{minted}{Rust}
+    println!("{}", (-4_i32).abs());
+    println!("{}", i32::abs(-4));
+\end{minted}
+
+注意函数调用的优先级高于一元前缀运算符，所以当对负数调用方法时一定要小心。如果这个地方第一个表达式里\texttt{-4\_i32}两侧没有括号，\texttt{-4\_i32.abs()}将会对\texttt{4}调用\texttt{abs}方法，返回正数\texttt{4}，然后求负数返回\texttt{-4}。
+
+\subsection{Checked、Wrapping、Saturating、Overflowing算术}
+
+当整数运算溢出时，如果是在debug模式下Rust会panic。在release模式下，运算结果会\emph{回环}：它会返回正确的值对结果类型能表示的范围取余之后的结果。（这两种情况下，溢出都不像在C和C++中一样是未定义行为）。
+
+例如，下面的代码在debug模式下会panic：
+\begin{minted}{Rust}
+    let mut i = 1;
+    loop {
+        i *= 10;    // panic: 尝试乘到溢出
+                    // （但只有在debug模式会panic！）
+    }
+\end{minted}
+
+在release模式下，溢出时乘法会回环成负数，然后循环会无限执行。
+
+如果默认行为不是你希望的结果，整数类型提供了一个方法让你指定想要做什么。例如，下面的代码在任何构建模式下都会panic：
+\begin{minted}{Rust}
+    let mut i: i32 = 1;
+    loop {
+        // panic: 乘法溢出（在任何构建模式下）
+        i = i.checked_mul(10).expect("multiplication overflowed");
+    }
+\end{minted}
+
+这些整数运算的方法可以被分为四个通用的类别：
+\begin{itemize}
+    \item \emph{Checked}操作返回一个结果的\texttt{Option}值：如果运算结果可以被结果类型正确表示就返回\texttt{Some(v)}，否则返回\texttt{None}。例如：
+    \begin{minted}{Rust}
+    // 10和20的结果可以用u8表示。
+    assert_eq!(10_u8).checked_add(20), Some(30));
+
+    // 不幸的是，100和200的和不能用u8表示。
+    assert_eq!(100_u8).checked_add(200), None);
+
+    // 求和，如果溢出就panic。
+    let sum = x.checked_add(y).unwrap();
+
+    // 奇怪的是，在一种特定情况下，有符号除法也可能会导致溢出。
+    // 一个有符号整数能表示-2^(n-1)，但不能表示2^(n-1)。
+    assert_eq!((-128_i8).checked_div(-1), None);
+    \end{minted}
+
+    \item \emph{Wrapping}操作返回正确的值对结果类型能表示的范围的余数：
+    \begin{minted}{Rust}
+    // 第一个积可以用u16来表示。
+    // 第二个不能，因此我们得到250000对2^16取模。
+    assert_eq!(100_u16.wrapping_mul(200), 20000);
+    assert_eq!(500_u16.wrapping_mul(500), 53392);
+
+    // 有符号数的操作可能会回环成负数。
+    assert_eq!(500_i16.wrapping_mul(500), -12144);
+
+    // 在移位操作中，移动的位数会回环到该类型的位数之内
+    // 因此对16位的数字移动17位等于移动1位
+    assert_eq!(5_i16.wrapping_shl(17), 10);
+    \end{minted}
+    正如解释的那样，这就是release模式下算术操作的行为。使用这种写法的好处是在所有的构建模式下代码的行为都一致。
+
+    \item \emph{Saturating}操作会返回最接近正确结果的表示。换句话说，结果被“截断”到这个类型能表示的最大或最小值：
+    \begin{minted}{Rust}
+    assert_eq!(32760_i16.saturating_add(10), 32767);
+    assert_eq!((-32760_i16).saturating_sub(10), -32768);
+    \end{minted}
+    没有饱和除法、取余、位移操作。
+
+    \item \emph{Overflowing}操作返回一个tuple\texttt{(reulst, overflowed)}，其中\texttt{result}是回环版本的方法返回的结果，而\texttt{overflowed}是一个指示是否发生溢出的\texttt{bool}值：
+    \begin{minted}{Rust}
+    assert_eq!(255_u8.overflowing_sub(2), (253, false));
+    assert_eq!(255_u8.overflowing_add(2), (1, true));
+    \end{minted}
+    \texttt{overflowing\_shl}和\texttt{overflowing\_shr}稍微有些偏离这个模式：只有当移位距离恰好等于类型的位宽度时\texttt{overflowed}才为true。实际的移位距离等于要求的距离对位宽度取余后的结果：
+    \begin{minted}{Rust}
+        // 对`u16`来说移动17位太多了，17对16取余等于1。
+        assert_eq!(5_u16.overflowing_shl(17), (10, true));
+    \end{minted}
+\end{itemize}
+
+\hyperref[t3-7]{表3-7}中列出了以\texttt{checked\_}，\texttt{wrapping\_}，\texttt{saturating\_}，\texttt{overflowing\_}为前缀的方法。
+\begin{table}[htbp]
+    \centering
+    \caption{操作的名称}
+    \label{t3-7}
+    \begin{tabular}{lll}
+        \hline
+        \textbf{操作}   & \textbf{名称后缀} &   示例 \\
+        \hline
+        加法    &   \texttt{add}    & \texttt{100\_i8.checked\_add(27) == Some(127)}    \\
+        \rowcolor{tablecolor}
+        减法    &   \texttt{sub}    & \texttt{10\_u8.checked\_sub(11) == None}      \\
+        乘法    &   \texttt{mul}    & \texttt{128\_u8.saturating\_mul(3) == 255}    \\
+        \rowcolor{tablecolor}
+        除法    &   \texttt{div}    & \texttt{64\_u16.wrapping\_div(8) == 8}    \\
+        取余    &   \texttt{rem}    & \texttt{(-32768\_i16).wrapping\_rem(-1) == 0} \\
+        \rowcolor{tablecolor}
+        负数    &   \texttt{neg}    & \texttt{(-128\_i8).checked\_neg() == None} \\
+        绝对值  &   \texttt{abs}    & \texttt{(-32768\_i16).wrapping\_abs() == -32768} \\
+        \rowcolor{tablecolor}
+        指数    &   \texttt{pow}    & \texttt{3\_u8.checked\_pow(4) == Some(81)} \\
+        左移    &   \texttt{shl}    & \texttt{10\_u32.wrapping\_shl(34) == 40}  \\
+        \rowcolor{tablecolor}
+        右移    &   \texttt{shr}    & \texttt{40\_u64.wrapping\_shr(66) == 10}  \\
+    \end{tabular}
+\end{table}
+
+\subsection{浮点数}
+Rust提供IEEE的单精度和双精度浮点数。这两个类型还包括正无穷、负无穷、正0、负0和\emph{非数}值。（\hyperref[t3-8]{表3-8}）
+
+\begin{table}[htbp]
+    \centering
+    \caption{IEEE单精度和双精度浮点数类型}
+\end{table}
