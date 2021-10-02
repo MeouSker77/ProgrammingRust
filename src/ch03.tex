@@ -462,3 +462,53 @@ Rust的\texttt{as}运算符可以把\texttt{bool}值转换为整数值：
 
 尽管\texttt{bool}类型只需要单个比特来表示，Rust还是使用整个字节来表示\texttt{bool}，因此你可以创建指向它的指针。
 
+\section{字符}\label{char}
+Rust的字符类型\texttt{char}代表一个单独的Unicode字符，是一个32位的值。
+
+Rust使用\texttt{char}表示单个字符，但使用UTF-8编码字符串和文本流。因此，\texttt{String}表示它的文本是一个UTF-8字节序列，而不是字符的数组。
+
+字符串字面量是被单括号包围的单个字符，例如\texttt{'8'}或\texttt{'!'}。你可以使用Unicode范围内的任何字符：\texttt{'錆'}是一个\texttt{char}字面量代表日语汉字中的\emph{sabi}（rust）。
+
+和字节字面量一样，一些字符需要反斜杠转义（\hyperref[t3-10]{表3-10}）。
+\begin{table}[htbp]
+    \centering
+    \caption{需要反斜杠转义的字符}
+    \label{t3-10}
+    \begin{tabular}{lll}
+        \hline
+        \textbf{字符}   &   \textbf{Rust字符字面量} \\
+        \hline
+        单引号，'   &   \texttt{b'\textbackslash''} \\
+        \rowcolor{tablecolor}
+        反斜杠，\textbackslash &    \texttt{b'\textbackslash\textbackslash'} \\
+        换行        &    \texttt{b'\textbackslash n'} \\
+        \rowcolor{tablecolor}
+        回车        &   \texttt{b'\textbackslash r'} \\
+        制表符      &   \texttt{b'\textbackslash t'} \\
+    \end{tabular}
+\end{table}
+
+如果你喜欢的话，你可以以十六进制的方式写出一个字符的Unicode编码：
+\begin{itemize}
+    \item 如果字符的码点在U+0000道U+007F之间（可以据此判断是否在ASCII字符集之中），那么你可以将字符写作\texttt{'\textbackslash xHH'}，\texttt{HH}是一个两位的十六进制数字。例如，字符字面量\texttt{'*'}和\texttt{'\textbackslash x2A'}是等价的，因为字符\texttt{*}的码点是42，十六进制是2A。
+    \item 你可以用\texttt{'\textbackslash u{HHHHHH}'}形式写出任何Unicode字符，\texttt{HHHHHH}是一个最长6位的十六进制数字，可以用下划线分隔。\footnote{译者注：此处原文中给了一个例子，但译者不知道该怎么打出卡纳达语里的字符，复制粘贴也不行，就省略了这个例子。}
+\end{itemize}
+
+一个\texttt{char}总是存储一个在0x0000到0xD7FF或0xE000到0x10FFFF之间的Unicode码点。一个\texttt{char}绝不会在两个范围之间（即0xD800到0xDFFF），也不会超出Unicode的编码空间（即大于0x10FFFF）。Rust使用类型系统和动态检查来确保\texttt{char}值总是在允许的范围内。
+
+Rust永远不会进行\texttt{char}和其他任何类型之间的隐式转换。你可以使用\texttt{as}转换运算符来把\texttt{char}转换为整数类型，对于小于32位的类型，字符值的高位会被截断：\footnote{译者注：这个例子中也省略了卡纳达语字符相关的内容}
+\begin{minted}{Rust}
+    assert_eq!('*' as i32, 42);
+\end{minted}
+
+插句题外话，\texttt{u8}是唯一可以用\texttt{as}运算符转换成\texttt{char}的整数类型：Rust认为这时的\texttt{as}运算开销很低并且不可能失败，但任何\texttt{u8}之外的整数类型都包含不是有效的Unicode码点的值，因此这些转换需要运行时检查。所以，标准库提供了函数\texttt{std::char::from\_u32}接受任何\texttt{u32}值，并返回\texttt{Option<char>}：如果\texttt{u32}的值不是合法的Unicode码点，\texttt{from\_u32}会返回\texttt{None}；否则，它会返回\texttt{Some(c)}，\texttt{c}就是作为转换结果的\texttt{char}。
+
+标准库为字符类型提供了一些有用的方法，你可以在文档中的“\texttt{char}(primitive type)”和模块“\texttt{std::char}”的页面中查找这些方法。例如：
+\begin{minted}{Rust}
+    assert_eq!('*'.is_alphabetic(), false);
+    assert_eq!('β'.is_alphabetic(), true);
+    assert_eq!('8'.to\_digit(10), Some(8));
+    assert_eq!(std::char::from_digit(2, 10), Some('2'));
+\end{minted}
+
+当然，单个字符显然没有字符串和文本流有趣。我们将会在“\hyperref[string]{字符串类型}”中介绍Rust的标准\texttt{String}类型和常用的文本处理操作。
