@@ -445,3 +445,20 @@ Rust的\texttt{f32}和\texttt{f64}分别对应C和C++（如果实现支持IEEE�
 缺少隐式类型转换导致Rust的表达式可能会比C和C++中类似的表达式更加冗长。然而，隐式整数转换经常导致bug和安全漏洞。尤其是用来表示内存中某个东西的长度的整数，可能会导致意外的溢出。在我们的实践中，在Rust中显式写出类型转换可以提醒我们可能忽略的问题。
 
 我们会在“\hyperref[cast]{类型转换}”一节中介绍转换的原理。
+
+\section{布尔类型}
+
+Rust的布尔类型\texttt{bool}，只有两个值：\texttt{true}和\texttt{false}。比较运算符例如\texttt{==}和\texttt{<}会产生\texttt{bool}类型的结果：\texttt{2 < 5}的结果是\texttt{true}。
+
+许多语言都很宽容，允许在需要布尔值的上下文中使用其他类型：C和C++隐式把字符、整数、浮点数和指针转换为布尔值，因此它们可以直接用作\texttt{if}或\texttt{while}语句的条件。Python还允许string、list、字典、甚至集合用作布尔值，如果不为空时视为true。然而Rust非常严格：像\texttt{if}和\texttt{while}这样的控制流的条件必须是\texttt{bool}表达式，短路求职运算符\texttt{\&\&}和\texttt{||}也是这样。你必须写\texttt{if x != 0 \{ ... \}}，而不能写\texttt{if x \{ ... \}}。
+
+Rust的\texttt{as}运算符可以把\texttt{bool}值转换为整数值：
+\begin{minted}{Rust}
+    assert_eq!(false as i32, 0);
+    assert_eq!(true  as i32, 1);
+\end{minted}
+
+然而，\texttt{as}不能反过来把整数值转换为\texttt{bool}值。你必须显式写出比较运算例如\texttt{x != 0}。
+
+尽管\texttt{bool}类型只需要单个比特来表示，Rust还是使用整个字节来表示\texttt{bool}，因此你可以创建指向它的指针。
+
