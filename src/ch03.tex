@@ -512,3 +512,60 @@ Rust永远不会进行\texttt{char}和其他任何类型之间的隐式转换。
 \end{minted}
 
 当然，单个字符显然没有字符串和文本流有趣。我们将会在“\hyperref[string]{字符串类型}”中介绍Rust的标准\texttt{String}类型和常用的文本处理操作。
+
+\section{元组}
+\emph{元组}是两个、或三个、四个、五个、……不同类型的值的组合。你可以将元组看作被逗号分隔和括号包围的元素序列。例如，\texttt{("Brazil", 1985)}是一个元组，它的第一个元素是一个静态分配的字符串，第二个元素是一个整数，它的类型是\texttt{(\&str, i32)}。给定一个元组值\texttt{t}，你可以通过\texttt{t.0}、\texttt{t.1}、……来访问它的元素。
+
+某种程度上，元组类似于数组：这两个类型都代表一系列有固定顺序的值。许多编程语言合并或结合了这两种概念，但在Rust中，它们是完全独立的。一方面，元组的每个元素可以拥有不同的类型，而数组的所有元素必须有相同的类型。另外，元组只允许常数索引，例如\texttt{t.4}。你不可能写\texttt{t.i}或者\texttt{t[i]}来获取第i个元素。
+
+Rust代码中经常使用元组类型来返回多个值。例如，字符串切片中的\texttt{split\_at}方法：用于将一个字符串切分为两半并返回的函数，被声明为类似如下形式：
+\begin{minted}{Rust}
+    fn split_at(&self, mid: usize) -> (&str, &str);
+\end{minted}
+
+返回类型\texttt{(\&str, \&str)}是两个字符串切片组成的元组。你可以使用模式匹配语法来把返回的元素赋值给不同的变量：
+\begin{minted}{Rust}
+    let text = "I see the eigenvalue in thine eye";
+    let (head, tail) = text.split_at(21);
+    assert_eq!(head, "I see the eigenvalue ");
+    assert_eq!(tail, "in thine eye");
+\end{minted}
+
+这比下边的等价代码可读性更强：
+\begin{minted}{Rust}
+    let text = "I see the eigenvalue in thine eye";
+    let temp = text.split_at(21);
+    let head = temp.0;
+    let tail = temp.1;
+    assert_eq!(head, "I see the eigenvalue ");
+    assert_eq!(tail, "in thine eye");
+\end{minted}
+
+你也可以将元组视为一种极简的结构体类型。例如，在\hyperref[ch02]{第2章}的曼德勃罗集程序中，我们需要向函数传递要绘制的图片的宽度和高度。我们可以声明一个有\texttt{width}和\texttt{height}成员的结构体，但这么简单的事没有必要搞得这么复杂，因此我们用了一个元组：
+\begin{minted}{Rust}
+    /// 写入缓冲区`pixels`，它的大小由`bounds`给出，
+    /// 写入的文件名是`filename`。
+    fn write_image(filename: &str, pixels: &[u8], bounds: (usize, usize))
+        -> Result<(), std::io::Error>
+    { ... }
+\end{minted}
+
+参数\texttt{bounds}的类型是\texttt{(usize, usize)}，一个有两个\texttt{usize}值得元组。诚然，我们可以直接使用单独的\texttt{width}和\texttt{height}参数，生成的机器代码也会完全相同。这么写的目的只是想表明，我们把图片的大小看成一个值，而不是两个值，使用元组的写法可以清晰的表现出这一点。
+
+元组的另一个常见用法是0元组\texttt{()}。这通常被称为\emph{单元类型}因为它只有一个取值，也写作\texttt{()}。Rust在上下文要求某种类型，但没有有意义的值要传递的情况下使用单元类型。
+
+例如，一个不返回值的函数的返回类型是\texttt{()}。标准库中的\texttt{std::mem::swap}函数没有有意义的返回值；它只是交换两个参数的值。\texttt{std::mem::swap}的声明如下：
+\begin{minted}{Rust}
+    fn swap<T>(x: &mut T, y: &mut T);
+\end{minted}
+\texttt{<T>}意味着\texttt{swap}是\emph{泛型}的：你可以将它用于任何类型\texttt{T}的引用。但签名中省略了\texttt{swap}的返回类型，这实际上是返回单元类型的缩写：
+\begin{minted}{Rust}
+    fn swap<T>(x: &mut T, y: &mut T) -> ();
+\end{minted}
+
+与此类似，我们之前提到的\texttt{write\_image}例子中返回值类型是\texttt{Result<(), std::io::Error>}，这意味着如果出错时函数返回\texttt{std::io::Error}类型的值，如果成功时返回无值。
+
+如果你想的话，你可以在元组的最后一个元素之后加上一个逗号：类型\texttt{(\&str, i32,)}和\texttt{(\&str, i32)}是等价的，\texttt{("Brazil", 1985,)}和\texttt{("Brazil", 1985)}也是。Rust允许任何逗号分隔的值列表最后加上一个额外的逗号：函数参数、数组、结构体和枚举定义，等等。这对人类来说可能看起来很奇怪，但当需要在最后添加或删除条目时会变得方便一些。
+
+为了一致性，还有只包含单个值的元组。字面量\texttt{("lonely hearts",)}是一个包含单个字符串的元组，它的类型是\texttt{(\&str,)}。这里，最后的逗号是必须的，这是为了和单纯的用括号把表达式括起来相区分。
+
