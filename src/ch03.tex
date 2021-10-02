@@ -501,7 +501,7 @@ Rust永远不会进行\texttt{char}和其他任何类型之间的隐式转换。
     assert_eq!('*' as i32, 42);
 \end{minted}
 
-插句题外话，\texttt{u8}是唯一可以用\texttt{as}运算符转换成\texttt{char}的整数类型：Rust认为这时的\texttt{as}运算开销很低并且不可能失败，但任何\texttt{u8}之外的整数类型都包含不是有效的Unicode码点的值，因此这些转换需要运行时检查。所以，标准库提供了函数\texttt{std::char::from\_u32}接受任何\texttt{u32}值，并返回\texttt{Option<char>}：如果\texttt{u32}的值不是合法的Unicode码点，\texttt{from\_u32}会返回\texttt{None}；否则，它会返回\texttt{Some(c)}，\texttt{c}就是作为转换结果的\texttt{char}。
+另外，\texttt{u8}是唯一可以用\texttt{as}运算符转换成\texttt{char}的整数类型：Rust只会对开销很低并且不可能失败的转换使用\texttt{as}运算符，但任何\texttt{u8}之外的整数类型都包含不是有效的Unicode码点的值，因此这些转换需要运行时检查。所以，标准库提供了函数\texttt{std::char::from\_u32}接受任何\texttt{u32}值，并返回\texttt{Option<char>}：如果\texttt{u32}的值不是合法的Unicode码点，\texttt{from\_u32}会返回\texttt{None}；否则，它会返回\texttt{Some(c)}，\texttt{c}就是作为转换结果的\texttt{char}。
 
 标准库为字符类型提供了一些有用的方法，你可以在文档中的“\texttt{char}(primitive type)”和模块“\texttt{std::char}”的页面中查找这些方法。例如：
 \begin{minted}{Rust}
@@ -568,4 +568,60 @@ Rust代码中经常使用元组类型来返回多个值。例如，字符串切�
 如果你想的话，你可以在元组的最后一个元素之后加上一个逗号：类型\texttt{(\&str, i32,)}和\texttt{(\&str, i32)}是等价的，\texttt{("Brazil", 1985,)}和\texttt{("Brazil", 1985)}也是。Rust允许任何逗号分隔的值列表最后加上一个额外的逗号：函数参数、数组、结构体和枚举定义，等等。这对人类来说可能看起来很奇怪，但当需要在最后添加或删除条目时会变得方便一些。
 
 为了一致性，还有只包含单个值的元组。字面量\texttt{("lonely hearts",)}是一个包含单个字符串的元组，它的类型是\texttt{(\&str,)}。这里，最后的逗号是必须的，这是为了和单纯的用括号把表达式括起来相区分。
+
+\section{指针类型}
+Rust有几个表示内存地址的类型。
+
+这是Rust和其他大多数有垃圾回收语言的不同之处。在Java中，如果\texttt{class Rectangle}包含一个字段\texttt{Vector2D upperLeft}，那么\texttt{upperLeft}实际上是对另一个单独创建的\texttt{Vector2D}对象的引用。在Java中一个对象从来不会真的包含其他对象。
+
+Rust里则不同。Rust被设计为最少分配内存。默认情况下Rust里是值嵌套的，值\texttt{((0, 0), (1440, 900))}被存储为四个相邻的整数。如果你把它赋值给一个局部便变量，那么你将得到一个4个证书大小的局部变量，不会在堆上分配任何内存。
+
+这有助于提高内存效率，但它会导致当Rust程序需要指向其他值的指针时，必须显式使用指针类型。好消息是safe Rust里的指针类型有一些约束来保证不会出现未定义行为，因此Rust中的指针比C++中的更容易正确使用得多。
+
+我们将会在这里讨论三种指针类型：引用、box、unsafe指针。
+
+\subsection{引用}
+
+一个\texttt{\&String}（读作“ref String”）类型的值是一个\texttt{String}值的引用，一个\texttt{\&i32}类型的值是一个\texttt{i32}值的引用，等等。
+
+把引用想象成Rust的基本指针类型可以让我们更容易理解。在运行时，一个\texttt{i32}的引用是一个单独的机器字，里面存储的是指向的\texttt{i32}值的地址，可能在栈上也可能在堆上。表达式\texttt{\&x}产生一个\texttt{x}的引用；在Rust的术语中，我们称它\emph{借用了\texttt{x}的引用}。给定引用\texttt{r}，表达式\texttt{*r}就是\texttt{r}指向的值。这些类似于C和C++中的\texttt{\&}和\texttt{*}运算符。类似于C指针，当引用离开作用域时并不会自动释放任何资源。
+
+然而和C指针不同的是，Rust的引用永远不为空：在safe Rust中没有任何办法产生一个空引用。而且和C指针不同，Rust通过追踪值的所有权和生命周期，在编译期就可以杜绝悬垂指针、double free和指针失效的情况。
+
+Rust的指针有以下两种类型：
+\begin{flushleft}
+    \emph{\texttt{\&T}}
+\end{flushleft}
+
+\hangafter 0
+\hangindent 2em
+\noindent
+一个不可变的共享引用。你可以同时拥有同一个值的多个共享的引用，但它们都是只读的：修改它们指向的值是禁止的，就像C中的\texttt{const T*}一样。
+
+\begin{flushleft}
+    \emph{\texttt{\&mut T}}
+\end{flushleft}
+
+\hangafter 0
+\hangindent 2em
+\noindent
+一个可变的、独占的应用。你可以读写它指向的值，类似于C中的\texttt{T*}。但只要这个引用存在，你不能再持有任何这个值的其他任何类型的引用。事实上，这时候你唯一可以访问这个值的方法就是通过这个可变引用。
+
+Rust使用这种方式来区分共享和可变的引用，以此来强制执行“单个写者或多个读者”规则：要么你可以读写值，要么它只能被任何数量的读者共享。这种分隔由编译器检查来强制执行，它是Rust安全保证的核心。\hyperref[ch05]{第5章}解释了Rust中使用安全引用的规则。
+
+\subsection{Box}
+
+最简单的在堆上分配内存的方式是使用\texttt{Box::new}：
+\begin{minted}{Rust}
+    let t = (12, "eggs");
+    let b = Box::new(t);    // 在堆上分配一个元组
+\end{minted}
+
+\texttt{t}的类型是\texttt{(i32, \&str)}，因此\texttt{b}的类型是\texttt{Box<(i32, \&str)>}。调用\texttt{Box::new}会在堆上分配足够的内存来存储元组。当\texttt{b}离开作用域时，内存会被立即释放，除非\texttt{b}被\texttt{move}了——例如被返回了。move对Rust处理堆上分配的值的方式至关重要，我们将在\hyperref[ch04]{第4章}详解介绍这一点。
+
+\subsection{原始指针}
+
+Rust也有原始指针类型\texttt{*mut T}和\texttt{*const T}。原始指针类似于C++中的指针。使用原始指针是不安全的，因为Rust无法追踪它指向的到底是什么。例如，原始指针可能是空、或者可能指向被释放的内存、或者现在指向一个和之前不同类型的值。所有C++中经典的指针错误都有可能。
+
+然而，你只能在\texttt{unsafe}块中解引用原始指针。\texttt{unsafe}块是Rust中的可选机制，它的安全性取决于你自己。如果你的代码没有\texttt{unsafe}块（或者有\texttt{unsafe}块但里面的代码都是完全正确的），那么整本书中强调的安全性保证都适用。细节见\hyperref[ch22]{第22章}。
 
