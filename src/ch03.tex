@@ -625,3 +625,55 @@ Rust也有原始指针类型\texttt{*mut T}和\texttt{*const T}。原始指针�
 
 然而，你只能在\texttt{unsafe}块中解引用原始指针。\texttt{unsafe}块是Rust中的可选机制，它的安全性取决于你自己。如果你的代码没有\texttt{unsafe}块（或者有\texttt{unsafe}块但里面的代码都是完全正确的），那么整本书中强调的安全性保证都适用。细节见\hyperref[ch22]{第22章}。
 
+\section{数组、vector和切片}
+Rust有三种表示一系列值的类型：
+\begin{itemize}
+    \item 类型\texttt{[T; N]}表示一个有\texttt{N}个值的数组，每个元素的类型都是\texttt{T}。每个数组的长度必须在编译期已知，并且是类型的一部分。你不能添加新元素或者缩减元素。
+    \item 类型\texttt{Vec<T>}，是类型\texttt{T}的向量。它是动态分配、可增长的类型\texttt{T}的值的序列。vector的元素存储在堆中，所以你可以按需更改vector的大小：可以添加新的元素、附加其它vector、删除元素等。
+    \item 类型\texttt{\&[T]}和\texttt{\&mut [T]}分别是类型\texttt{T}的共享切片和可变切片，它们是数组或vector等其它值中的一部分元素的引用。你可以把切片可做一个指向第一个元素的指针再加上一个可以访问的元素的数量。一个可变的切片\texttt{\&mut [T]}让你可以读取并修改元素，但不能被共享；共享的切片\texttt{\&[T]}允许你在多个读者间共享数据，但不能修改元素。
+\end{itemize}
+
+如果\texttt{v}是这三种类型中的任意一种，那么表达式\texttt{v.len()}返回\texttt{v}中元素的数量，\texttt{v[i]}返回\texttt{v}中的第\texttt{i+1}个元素。第一个元素是\texttt{v[0]}，最后一个元素是\texttt{v[v.len() - 1]}。Rust会检查\texttt{i}是否在范围内，如果超过了长度范围，表达式会panic。\texttt{v}的长度可能是0，这时任何索引操作都会panic。\texttt{i}必须是\texttt{usize}类型的值，你不能使用任何其他整数类型当作索引。
+
+\subsection{数组}
+创建一个数组有几种方式。最简单的方式是用方括号括起来的一系列值：
+\begin{minted}{Rust}
+    let lazy_caterer: [u32; 6] = [1, 2, 4, 7, 11, 16];
+    let taxonomy = ["Animalia", "Arthropoda", "Insecta"];
+
+    assert_eq!(lazy_caterer[3], 7);
+    assert_eq!(taxonomy.len(), 3);
+\end{minted}
+
+对于需要创建一个初始化为指定值的长数组的情况你可以用\texttt{[V; N]}的写法，其中\texttt{V}是每一个元素的初始值，\texttt{N}是长度。例如，\texttt{[true; 10000]}是一个有10,000个\texttt{bool}类型元素的数组，每个元素都被初始化为\texttt{true}：
+\begin{minted}{Rust}
+    let mut sieve = [true; 10000];
+    for i in 2..100 {
+        if sieve[i] {
+            let mut j = i * i;
+            while j < 10000 {
+                sieve[j] = false;
+                j += 1;
+            }
+        }
+    }
+
+    assert!(sieve[211]);
+    assert!(!sieve[9876]);
+\end{minted}
+
+你会发现这种语法还可以用于创建固定大小的缓冲区：\texttt{[0u8; 1024]}可以用作一个1K的缓冲区，所有字节全部初始化为0。Rust里没有创建未初始化数组的语法。（更广泛的说，Rust保证代码不可能访问任何未初始化的值。）
+
+一个数组的长度是类型的一部分，并且在编译期就已经固定。如果\texttt{n}是一个变量，你不能用\texttt{[true; n]}这种语法来得到一个有\texttt{n}个元素的数组。当你需要运行时才能确定的数组时，使用vector来代替。
+
+数组有一些有用的方法——迭代元素、搜索、排序、填充、过滤等等——事实上这些方法都是切片的，而不是数组的。但在搜索方法是Rust会隐式的把数组的引用转换为切片，因此你可以直接用数组调用切片的方法：
+\begin{minted}{Rust}
+    let mut chaos = [3, 5, 4, 1, 2];
+    chaos.sort();
+    assert_eq!(chaos, [1, 2, 3, 4, 5]);
+\end{minted}
+
+这里，\texttt{sort}方法实际上是为切片定义的，但因为它是以调用者的引用为参数，所以Rust隐式的创建了一个引用整个数组的\texttt{\&mut [i32]}类型的切片，然后在这个切片上调用\texttt{sort}方法。事实上，我们之前提到的\texttt{len}方法最早的时候也是切片的方法。我们将在\hyperref[slice]{切片}这一节中介绍切片。
+
+\subsection{vector}
+一个\texttt{Vec<T>}是一个长度可变的类型\texttt{T}的数组，它的元素都存储在堆上。
