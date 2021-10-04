@@ -1026,6 +1026,18 @@ Rust的字符串是Unicode字符的序列，但它们并不是作为\texttt{char
 
 注意，因为Unicode的特性，简单的逐字符比较\emph{并不}总是能给出预期的答案。例如，Rust的字符串\texttt{"th\textbackslash u{e9}"}和\texttt{"the\textbackslash u{301}"}都是有效的\textbf{thé}（法语中表示茶的单词）的Unicode表示。Unicode认为它们它们应该以相同的方式展示和处理，但是Rust把它们当作两个完全不同的字符串。类似的，Rust的比较运算符比如\texttt{<}只是简单的使用基于字符码点值的字典顺序。这种顺序只是偶尔像用户语言和文化中用于文本的排序。我们将在\hyperref[ch17]{第17章}中详细讨论这个问题。
 
+\subsection{其他类似字符串的类型}
+
+Rust保证字符串是有效的UTF-8字符串。有时一个程序可能会需要处理\emph{非}有效的Unicode字符串。这通常发生在Rust程序与其他不强制遵循Unicode的系统交互时。例如，在大多数操作系统中很容易就能创建一个文件名不是有效的Unicode的文件。当Rust遇到这样的文件名时该如何处理？
+
+Rust的方法是为这些场景提供一些类似字符串的类型：
+\begin{itemize}
+    \item 对于Unicode文本坚持使用\texttt{String}和\texttt{\&str}。
+    \item 当处理文件名时，使用\texttt{std::path::PathBuf}和\texttt{\&Path}来代替。
+    \item 当处理完全不是UTF-8编码的二进制数据时，使用\texttt{Vec<u8>}和\texttt{\&[u8]}。
+    \item 当处理环境变量名称或者命令行参数这些由操作系统提供的内容时，使用\texttt{OsString}和\texttt{\&OsStr}。
+    \item 当和以空字符结尾的C库交互时，使用\texttt{std::ffi::CString}和\texttt{\&CStr}。
+\end{itemize}
 
 
 
