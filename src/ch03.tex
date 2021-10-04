@@ -918,8 +918,46 @@ Rust的设计与此类似。在这一节中，我们将首先展示字符串字�
 
 字节字符串不能包含任何任意Unicode字符，它只能包含ASCII和用\texttt{\textbackslash xHH}形式表示的字符。
 
+\subsection{内存中的字符串}
 
+Rust的字符串是Unicode字符的序列，但它们并不是作为\texttt{char}的数组存储在内存中。事实上，它使用UTF-8编码存储，这是一种可变长度的编码。每一个ASCII字符被存储为一个字节，其他字符可能会占据多个字节。
 
+\hyperref{f3-3}{图3-3}显示了下面代码创建的\texttt{String}和\texttt{&str}：
+\begin{minted}{Rust}
+    let noodles = "noodles".to_string();
+    let oodles = &noodles[1..];
+    let poodles = "某些卡纳达语字符";
+\end{minted}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f3-3.png}
+    \caption{\texttt{String, \&str, str}}
+    \label{f3-3}
+\end{figure}
+
+一个\texttt{String}有一个大小可变的缓冲区来存储UTF-8文本。缓冲区是在堆上分配的，所以他可以按需或按照要求调整缓冲区大小。在这个例子中，\texttt{noodles}是一个拥有8个字节大小的缓冲区的\texttt{String}，其中7个字节已经被使用。你可以将\texttt{String}想象为保证内容是有效UTF-8编码的\texttt{Vec<u8>}；事实上，\texttt{String}就是这么实现的。
+
+一个\texttt{\&str}（读作“stir”或者“字符串切片”）是一个指向其他值拥有的UTF-8文本的引用：它“借用”了这段文本。在这个例子中，\texttt{oodles}是一个指向\texttt{noodles}所持有的文本中的最后六个字节的\texttt{\&str}，因此它表示文本“oodles”。就像其他切片引用一样，\texttt{\&str}是一种胖指针，包括实际数据的地址和长度。你可以将\texttt{\&str}看作一个保证内容为合法的UTF-8编码的\texttt{\&[u8]}。
+
+字符串字面量是一个指向预先分配好内存的文本的\texttt{\&str}，实际的文本通常和程序的机器码一起存储到只读的内存区域。在之前的例子中，\texttt{poodles}是一个字符串字面量，指向程序运行时就已经被创建好并且持续到程序退出的7个字节。
+
+一个\texttt{String}或\texttt{\&str}的\texttt{len()}方法返回它的长度。但这个长度是以字节为单位，而不是以字符为单位：
+\begin{minted}{Rust}
+    assert_eq!("某些卡纳达语字符".len(), 24);
+    assert_eq!("某些卡纳达语字符".chars().count(), 8);
+\end{minted}
+
+不能修改\texttt{\&str}：
+\begin{minted}{Rust}
+    let mut s = "hello";
+    s[0] = 'c';     // error: `&str`不能被修改，以及其他原因
+    s.push('\n');   // error: `&str`没有`push`方法
+\end{minted}
+
+要在运行时创建新的字符串，要使用\texttt{String}。
+
+类型\texttt{\&mut str}确实存在，但它并不好用，因为几乎所有对UTF-8的操作都可能改变字节长度，而一个切片不能重新分配它指向的参照物。事实上，\texttt{\&mut str}唯一能做的操作是\texttt{make\_ascii\_uppercase}和\texttt{make\_ascii\_lowercase}，这两个操作在原址修改文本，并且只影响单个字节的字符。
 
 
 
