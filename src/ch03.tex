@@ -959,6 +959,57 @@ Rust的字符串是Unicode字符的序列，但它们并不是作为\texttt{char
 
 类型\texttt{\&mut str}确实存在，但它并不好用，因为几乎所有对UTF-8的操作都可能改变字节长度，而一个切片不能重新分配它指向的参照物。事实上，\texttt{\&mut str}唯一能做的操作是\texttt{make\_ascii\_uppercase}和\texttt{make\_ascii\_lowercase}，这两个操作在原址修改文本，并且只影响单个字节的字符。
 
+\subsection{String}
+\texttt{\&str}和\texttt{\&[T]}很像：都是一个指向某些数据的胖指针。\texttt{String}类似于\texttt{Vec<T>}，如表\hyperref[t3-11]{表3-11}所示。
+
+\begin{table}[htbp]
+    \centering
+    \caption{\texttt{Vec<T>}和\texttt{String}}的比较
+    \label{t3-11}
+    \begin{tabular}{p{0.6\textwidth}p{0.15\textwidth}p{0.15\textwidth}}
+        \hline
+                    & \textbf{\texttt{Vec<T>}} & \textbf{\texttt{String}} \\
+        \hline
+        自动释放缓冲区 & 是 & 是 \\
+        可增长       & 是 & 是 \\
+        有\texttt{::new()}和\texttt{::with\_capacity()}类型关联函数 & 是 & 是 \\
+        \texttt{.reserve()}和\texttt{.capacity()}方法 & 是 & 是 \\
+        \texttt{.push()}和\texttt{.pop()}方法 & 是 & 是 \\
+        范围语法\texttt{v[start..stop} & 是，返回\texttt{\&[T]} & 是，返回\texttt{\&str} \\
+        自动转换      & \texttt{\&Vec<T>}到\texttt{\&[T]} & \texttt{\&String}到\texttt{\&str} \\
+        继承方法      & 从\texttt{\&[T]} & 从\texttt{\&str} \\
+    \end{tabular}
+\end{table}
+
+类似于\texttt{Vec}，每个\texttt{String}都有它自己的在堆上分配的缓冲区，这个缓冲区不和其他任何\texttt{String}共享。当一个\texttt{String}变量离开作用域时，缓冲区会自动释放，除非\texttt{String}被移动了。
+
+有几种方式创建\texttt{String}：
+\begin{itemize}
+    \item \texttt{.to\_string()}方法把\texttt{\&str}转换为一个\texttt{String}，这会拷贝字符串：
+    \begin{minted}{Rust}
+    let error_message = "too many pets".to_string();
+    \end{minted}
+    \texttt{.to\_owned()}方法做同样的事，你可能会看到它用同样的方式使用。它也可以用于其他类型，正如我们在\hyperref[ch13]{第13章}讨论的一样。
+
+    \item \texttt{format!()}宏类似于\texttt{println!()}，区别在于它返回一个新的\texttt{String}而不是把它打印到标准输出，而且它不会再最后自动加上换行符：
+    \begin{minted}{Rust}
+    assert_eq!(format!("{}°{:02}′{:02}″N", 24, 5, 23),
+               "24°05′23″N".to_string());
+    \end{minted}
+
+    \item 字符串的数组、切片、vector都有两个方法\texttt{.concat()}和\texttt{.join(sep)}，把多个字符串组合成一个：
+    \begin{minted}{Rust}
+    let bits = vec!["veni", "vidi", "vici"];
+    assert_eq!(bits.concat(), "venividivici");
+    assert_eq!(bits.join(", "), "veni, vidi, vici");
+    \end{minted}
+\end{itemize}
+
+有时你需要选择使用\texttt{\&str}还是\texttt{String}。\hyperref[ch05]{第5章}将详细介绍这个问题。现在你只需要知道\texttt{\&str}可以指向任何字符串的任何切片，不管是字符串字面量（存储在可执行文件中）还是\texttt{String}（在运行时分配和释放）。这意味着当允许调用者传递任何类型的字符串时\texttt{\&str}更适合用作参数的类型。
+
+
+
+
 
 
 
