@@ -1088,7 +1088,7 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
 \begin{minted}{Rust}
     for (i, band) in bands.into_iter().enumerate() {
 \end{minted}
-这里我们迭代了像素缓冲区的条带。\texttt{into\_iter()}迭代器在循环体的每一次迭代时获取一个条带的所有权，以确保同一时间内只有一个线程可以写入它。我们将在\hyperref[ch5]{第5章}详细讲解它是如何工作的。之后，\texttt{enumerate}适配器产生一个包含迭代元素和它的索引的tuple。
+这里我们迭代了像素缓冲区的条带。\texttt{into\_iter()}迭代器在循环体的每一次迭代时获取一个条带的所有权，以确保同一时间内只有一个线程可以写入它。我们将在\hyperref[ch05]{第5章}详细讲解它是如何工作的。之后，\texttt{enumerate}适配器产生一个包含迭代元素和它的索引的tuple。
 
 \begin{minted}{Rust}
     let top = rows_per_band * i;

@@ -1007,6 +1007,28 @@ Rust的字符串是Unicode字符的序列，但它们并不是作为\texttt{char
 
 有时你需要选择使用\texttt{\&str}还是\texttt{String}。\hyperref[ch05]{第5章}将详细介绍这个问题。现在你只需要知道\texttt{\&str}可以指向任何字符串的任何切片，不管是字符串字面量（存储在可执行文件中）还是\texttt{String}（在运行时分配和释放）。这意味着当允许调用者传递任何类型的字符串时\texttt{\&str}更适合用作参数的类型。
 
+\subsection{使用字符串}
+
+字符串支持\texttt{==}和\texttt{!=}运算符。只有当两个字符串含有内容和顺序都完全相同的字符时两个字符串才相等（和它们在内存中的位置无关）：
+\begin{minted}{Rust}
+    assert!("ONE".to_lowercase() == "one");
+\end{minted}
+
+字符串还支持比较运算符\texttt{<, <=, >, >=}，以及很多你可以在在线文档的“\texttt{str}(primitive type)”或“\texttt{std::str}”模块的页面中找到的有用的方法和函数（或者直接跳转到\hyperref[ch17]{第17章}）。这里有一些例子：
+\begin{minted}{Rust}
+    assert!("peanut".contains("nut"));
+    assert_eq!("    clean\n".trim(), "clean");
+
+    for word in "veni, vidi, vici".split(", ") {
+        assert!(word.starts_with("v"));
+    }
+\end{minted}
+
+注意，因为Unicode的特性，简单的逐字符比较\emph{并不}总是能给出预期的答案。例如，Rust的字符串\texttt{"th\textbackslash u{e9}"}和\texttt{"the\textbackslash u{301}"}都是有效的\textbf{thé}（法语中表示茶的单词）的Unicode表示。Unicode认为它们它们应该以相同的方式展示和处理，但是Rust把它们当作两个完全不同的字符串。类似的，Rust的比较运算符比如\texttt{<}只是简单的使用基于字符码点值的字典顺序。这种顺序只是偶尔像用户语言和文化中用于文本的排序。我们将在\hyperref[ch17]{第17章}中详细讨论这个问题。
+
+
+
+
 
 
 
