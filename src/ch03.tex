@@ -12,7 +12,7 @@
 
 \begin{itemize}
     \item 有了你指明的类型，Rust的\emph{类型推导}将会为你推导出剩余的大部分类型。在实践中，通常只有一个类型能够满足给定的变量或表达式。在这种情况下，Rust允许你留空，或者说\emph{省略}这个类型。例如，你可以像下面这样写出一个函数里的所有类型：
-          \begin{minted}{Rust}
+    \begin{minted}{Rust}
     fn build_vector() -> Vec<i16> {
         let mut v: Vec<i16> = Vec::<i16>::new();
         v.push(10i16);
@@ -20,8 +20,8 @@
         v
     }
     \end{minted}
-          但这非常杂乱和重复。给定了函数的返回值之后，很明显\texttt{v}必须是\texttt{Vec<i16>}类型：一个16位有符号整数的vector，没有其他的类型可以满足语义。并且据此可以推出vector的每个元素必须是\texttt{i16}类型。这就是Rust的类型推导适用的场景，所以你可以改为：
-          \begin{minted}{Rust}
+    但这非常杂乱和重复。给定了函数的返回值之后，很明显\texttt{v}必须是\texttt{Vec<i16>}类型：一个16位有符号整数的vector，没有其他的类型可以满足语义。并且据此可以推出vector的每个元素必须是\texttt{i16}类型。这就是Rust的类型推导适用的场景，所以你可以改为：
+    \begin{minted}{Rust}
     fn build_vector() -> Vec<i16> {
         let mut v = Vec::new();
         v.push(10);
@@ -29,12 +29,12 @@
         v
     }
     \end{minted}
-          这两个定义是完全等价的，Rust将会生成完全相同的机器代码。类型推导可以回馈一部分动态类型语言的可读性，并且仍能在编译时捕捉到类型错误。
+    这两个定义是完全等价的，Rust将会生成完全相同的机器代码。类型推导可以回馈一部分动态类型语言的可读性，并且仍能在编译时捕捉到类型错误。
     \item 函数可以是\emph{泛型}的：一个函数可以同时处理很多不同类型的值。
 
-          在Python和JavaScript中，所有的函数都很自然的是泛型的：一个函数可以操作任何类型的值，只要这个类型有函数体中需要的属性和方法。（这种特性通常被称作\emph{鸭子类型}：如果它像鸭子一样叫，那它就是一只鸭子。）但正是这种灵活性也导致这些语言很难检测出类型错误，在这些语言里测试通常是唯一一种捕捉类型错误的方式。Rust的泛型函数给予了这门语言某种程度上和动态类型同样的灵活性，并且仍能在编译期捕获所有的类型错误。
+    在Python和JavaScript中，所有的函数都很自然的是泛型的：一个函数可以操作任何类型的值，只要这个类型有函数体中需要的属性和方法。（这种特性通常被称作\emph{鸭子类型}：如果它像鸭子一样叫，那它就是一只鸭子。）但正是这种灵活性也导致这些语言很难检测出类型错误，在这些语言里测试通常是唯一一种捕捉类型错误的方式。Rust的泛型函数给予了这门语言某种程度上和动态类型同样的灵活性，并且仍能在编译期捕获所有的类型错误。
 
-          除了灵活性之外，泛型函数和非泛型的函数一样高效。例如，为每个整数类型都编写一个\texttt{sum}函数与编写一个处理所有整数类型的泛型\texttt{sum}函数相比，并没有性能上的优势。我们将在\hyperref[ch11]{第11章}种详细讨论泛型函数。
+    除了灵活性之外，泛型函数和非泛型的函数一样高效。例如，为每个整数类型都编写一个\texttt{sum}函数与编写一个处理所有整数类型的泛型\texttt{sum}函数相比，并没有性能上的优势。我们将在\hyperref[ch11]{第11章}种详细讨论泛型函数。
 \end{itemize}
 
 这一章的剩余部分将会自上而下的覆盖Rust的类型，从最简单的数字类型例如证书和浮点数到持有多个值的复合类型：box、tuple、数组和字符串。
@@ -856,5 +856,65 @@ Rust有三种表示一系列值的类型：
 因为切片类型总是以引用的方式出现，我们也经常用“切片”来指代\texttt{\&[T]}或\texttt{\&str}这样的类型，用最短的名称表达最常用的概念。
 
 \section{字符串类型}
+
+熟悉C++的程序员应该都知道C++里有两种字符串类型：字符串字面量的类型\texttt{const char *}，标准库里还提供了一个类\texttt{std::string}，用于在运行时动态创建字符串。
+
+Rust的设计与此类似。在这一节中，我们将首先展示字符串字面量的所有写法，然后介绍Rust的两种字符串类型。我们将在\hyperref[ch17]{第17章}中详细讨论字符串和文本的处理。
+
+\subsection{字符串字面量}
+
+字符串字面量被双括号包裹，和\texttt{char}字面量一样是通过反斜杠来转义：
+\begin{minted}{Rust}
+    let speech = "\"Ouch!\" said the well.\n";
+\end{minted}
+
+在字符串字面量里和\texttt{char}字面量里不同的一点是，单引号不需要使用反斜杠转义，但双引号需要。
+
+一个字符串可以占多行：
+\begin{minted}{Rust}
+    println!("In the room the women come and go,
+        Singing of Mount Abora");
+\end{minted}
+这个字符串里的换行符被包括在字符串里，因此也会被输出。第二行开头的空格也是。
+
+
+如果字符串中的一行以反斜杠结尾，那么换行符和下一行的前导空格就会被丢弃掉：
+\begin{minted}{Rust}
+    println!("It was a bright, cold day in April, and \
+        there were four of us-\
+        more or less.");
+\end{minted}
+这段代码会打印出单行文本。打印出的字符串里“and”和“there”之间有一个空格，因为第一行的反斜杠前边有一个空格，而连字符和“more”之间没有空格。
+
+在少数情况下，在字符串里用反斜杠转义反斜杠是一件很烦的事情。（典型的例子就是正则表达式和Windows的路径）对于这种情况，Rust提供了\emph{原始字符串}，原始字符串用小写字母\texttt{r}来标记。原始字符串中的所有反斜杠和空白字符都被原样包含在字符串里，不会识别任何转义：
+\begin{minted}{Rust}
+    let default_win_install_path = r"C:\Program Files\Gorillas";
+
+    let pattern = Regex::new(r"\d+(\.\d+)*");
+\end{minted}
+
+你不能通过在前面加上反斜杠来把双引号包含在原始字符串中——记住，我们说的是\emph{不会识别任何转义}。然而，这种情况也有解决的方法。原始字符串的开头和结尾可以用任意相同数量的井号来标记：
+\begin{minted}{Rust}
+    println!(r###"
+        This raw string started with 'r###"'.
+        Therefore it does not end until we reach a quote mark ('"')
+        followed immediately by three pound signs ('###'):
+    "###);
+\end{minted}
+
+您可以根据需要添加井号，以明确原始字符串的结束位置。
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
