@@ -904,6 +904,22 @@ Rust的设计与此类似。在这一节中，我们将首先展示字符串字�
 
 您可以根据需要添加井号，以明确原始字符串的结束位置。
 
+\subsection{字节字符串}
+
+以\texttt{b}前缀开头的字符串字面量是\emph{字节字符串}。这种字符串实际上是\texttt{u8}值的切片——也就是字节流——而不是Unicode文本：
+\begin{minted}{Rust}
+    let method = b"GET";
+    assert_eq!(method, &[b'G', b'E', b'T']);
+\end{minted}
+
+\texttt{method}的类型是\texttt{\&[u8; 3]}：它是一个有三个字节的数组的引用。它没有任何我们之后要讨论的字符串的方法。它和字符串最像的地方就是我们创建它时用的语法。
+
+字节字符串可以使用我们之前使用过的所有语法：它也可以跨多行、使用反斜杠转义、使用反斜杠连接多行。还有以\texttt{br"}开头的原始字节字符串。
+
+字节字符串不能包含任何任意Unicode字符，它只能包含ASCII和用\texttt{\textbackslash xHH}形式表示的字符。
+
+
+
 
 
 
