@@ -1039,21 +1039,9 @@ Rust的方法是为这些场景提供一些类似字符串的类型：
     \item 当和以空字符结尾的C库交互时，使用\texttt{std::ffi::CString}和\texttt{\&CStr}。
 \end{itemize}
 
+\section{类型别名}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+\texttt{type}关键字可以像C++中的\texttt{typedef}一样为已存在的类型声明一个新名字：
+\begin{minted}{Rust}
+    type Bytes = Vec<u8>;
+\end{minted}
