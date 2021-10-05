@@ -444,6 +444,94 @@ Python拷贝了\texttt{s}的指针，并赋给了\texttt{t}和\texttt{u}，然�
 这里对\texttt{take}的调用有和之前对\texttt{replace}的调用相同的效果。
 
 \section{Copy类型：move的例外}
+到目前为止我们的例子涉及vector、string、和其他可能潜在地使用大量内存并且拷贝开销很大的类型。move保证了这些类型的所有权的明晰、也保证了赋值的开销很小。但对于简单类型例如整数或字符，这种谨慎的处理方式事实上并不是必须的。
+
+让我们比较一下赋值一个\texttt{String}和赋值一个\texttt{i32}值时内存中会发生什么：
+\begin{minted}{Rust}
+    let string1 = "somnambulance".to_string();
+    let string2 = string1;
+
+    let num1: i32 = 36;
+    let num2 = num1;
+\end{minted}
+
+运行完这段代码后，内存布局如\hyperref[f4-11]{图4-11}所示。
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f4-11.png}
+    \caption{赋值\texttt{String}会移动它，而赋值\texttt{i32}会拷贝它}
+    \label{f4-11}
+\end{figure}
+
+类似于之前的vector，赋值会把\texttt{string1}\emph{移动}到\texttt{string2}，这样我们就不会得到两个负责释放同一个缓冲区的字符串。然而，\texttt{num1}和\texttt{num2}的情况与此不同。\texttt{i32}只是在内存中的一种位模式，它并不拥有任何堆上的资源、也不依赖任何它本身所占的字节之外的东西。此时如果我们把它的位都移动给\texttt{num2}，我们就得到了一个和\texttt{num1}完全互相独立的拷贝。
+
+移动一个值会导致源对象变为未初始化。但是尽管把\texttt{string1}视为无值是一个基本的目的，但如果对\texttt{num1}也这么做是毫无意义的，继续使用\texttt{num1}不会导致任何危害。move的优势在这里并不适用，反而变得不够便捷。
+
+之前我们谨慎的说过\emph{大多数}类型会被移动，现在我们来到了例外的情况，也就是Rust称之为\texttt{Copy type}的类型。赋予一个\texttt{Copy}类型的值会拷贝它，而不是移动它。源对象仍然保持初始化状态和可用性，它的值不会发生改变。向函数和构造器传递\texttt{Copy}类型也类似。
+
+标准的\texttt{Copy}类型包括所有的机器整数和浮点数类型、\texttt{char}和\texttt{bool}类型，以及少数其他类型。\texttt{Copy}类型的元组或者固定大小的数组也是\texttt{Copy}类型。
+
+只有简单的逐位拷贝的类型才可以是\texttt{Copy}类型。正如我们解释过的，\texttt{String}不是\texttt{Copy}类型，因为它拥有一个在堆上分配的缓冲区；与此类似，\texttt{Box<t>}也不是\texttt{Copy}类型，它拥有一个堆上分配的指向对象；代表操作系统中文件句柄的\texttt{File}类型，也不是\texttt{Copy}类型，赋值这样一个值意味着向操作系统请求另一个文件句柄。类似的，表示一个自旋锁的\texttt{MutexGuard}类型，也不是\texttt{Copy}类型，拷贝这个类型没有任何意义，因为在一个时间点只有一个线程可以持有锁。
+
+根据经验，任何在drop时要做一些特殊事情的类型不可能是\texttt{Copy}类型：一个\texttt{Vec}需要释放它的内存，一个\texttt{File}需要关闭它的文件句柄，一个\texttt{MutexGuard}需要释放它的锁，等等。对这些类型逐位拷贝会导致搞不清它们中的哪一个要负责释放原始的资源。
+
+自定义的类型呢？默认情况下，\texttt{struct}和\texttt{enum}不是\texttt{Copy}类型：
+\begin{minted}{Rust}
+    struct Label { number: u32 }
+    fn print(l: Label) { println!("STAMP: {}", l.number); }
+
+    let l = Label { number: 3 };
+    print(l);
+    println!("My label number is: {}", l.number);
+\end{minted}
+
+这不能通过编译，Rust会报错：
+\begin{minted}{text}
+    error: borrow of moved value: `l`
+       |
+    10 |     let l = Label { number: 3 };
+       |         - move occurs because `l` has type `main::Label`,
+       |           which does not implement the `Copy` trait
+    11 |     print(l);
+       |           - value moved here
+    12 |     println!("My label number is: {}", l.number);
+       |                                        ^^^^^^^^
+       |                  value borrowed here after move
+\end{minted}
+
+因为\texttt{Label}不是\texttt{Copy}类型，将它传递给\texttt{print}会把值的所有权移动给\texttt{print}函数的参数，在函数返回时会drop掉值。但这非常愚蠢，一个\texttt{Label}只是一个\texttt{u32}套壳。没有理由将\texttt{l}传递给\texttt{print}时应该移动值。
+
+但用户自定义类型只是默认不是\texttt{Copy}类型。如果你的结构体的所有字段都是\texttt{Copy}类型，那么你可以通过在定义上方加上属性\texttt{\#[derive(Copy, Clone)]}来把它变为\texttt{Copy}类型，像这样：
+\begin{minted}{Rust}
+    #[derive(Copy, Clone)]
+    struct Label { number: u32 }
+\end{minted}
+
+这样修改之后，上面的代码就可以通过编译了。然而，如果我们用不是\texttt{Copy}类型的字段来修改这个类型的话，也不能通过编译。假设我们要编译下面的代码：
+\begin{minted}{Rust}
+    #[derive(Copy, Clone)]
+    struct StringLabel { name: String }
+\end{minted}
+
+它会报这样的错误：
+\begin{minted}{Rust}
+    error[E0204]: the trait `Copy` may not be implemented for this type
+     --> ownership_string_label.rs:7:10
+      |
+    7 | #[derive(Copy, Clone)]
+      |          ^^^^
+    8 | struct StringLabel { name: String }
+      |                      ------------ this field does not implement `Copy`
+\end{minted}
+
+为什么不默认把用户自定义类型设置为\texttt{Copy}类型？一个类型是否是\texttt{Copy}类型对接下来的代码如何使用它有巨大的影响：\texttt{Copy}类型更加的灵活，因为赋值和相关的操作不会导致源对象变得未初始化。但对于类型的实现者来说，恰恰相反：\texttt{Copy}类型所能包含的类型十分有限，然而非\texttt{Copy}类型可以使用堆上的内存并且拥有自己的资源。因此将一个类型标记为\texttt{Copy}代表着实现者的一个承诺：如果之后它必须要修改为非\texttt{Copy}类型，很多使用它的代码都需要修改。
+
+然而C++允许你重载赋值运算符和自定义拷贝和移动构造函数，但Rust不允许这种自定义。在Rust里，所有的移动都是逐字节的浅拷贝，同时把源对象设置为未初始化。拷贝与此类似，除了源对象仍然是初始化过的状态。这确实意味着C++类可以提供Rust类所不能提供的方便接口：看起来普通的代码会隐式的调整引用计数、推迟开销很大的拷贝操作、或者使用其它复杂的实现技巧。
+
+但C++中的这种灵活性会导致基本操作例如赋值、传参、返回值变得不可预料。例如，这一章之前的部分我们展示过在C++里把一个变量赋给另一个可能会需要任意数量的内存和处理器时间。Rust的原则之一就是开销对程序员来说必须是明显的。基本的操作必须保持简单。潜在的开销很大的操作必须是显式的，例如在更早的例子中调用\texttt{clone}来获取vector和它包含的string的深拷贝。
+
+在这一节中，我们谈到了术语\texttt{Copy}和\texttt{Clone}，模糊地将它们视作类型具有的特征。事实上，它们是\texttt{trait}的示例，它是Rust的一个开发的工具，你可以通过它根据类型能做什么对类型进行分类。我们将在\hyperref[ch11][第11章]中讨论一般性的trait，在\hyperref[ch13]中专门讨论\texttt{Copy}和\texttt{Clone}。
+
 
 
 
