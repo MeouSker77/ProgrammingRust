@@ -6,7 +6,7 @@
 ——Mark Miller
 \end{flushright}
 
-我们至今为止见过的所有指针类型——简单的\texttt{Box<T>}堆指针、\texttt{String}和\texttt{Vec}内部的指针都拥有值：当所有者被drop时，指针指向的值也会随之消失。Rust还有非拥有指针类型称为\emph{引用}，引用对指向的值的生命周期没有影响。
+我们至今为止见过的所有指针类型——简单的\texttt{Box<T>}堆指针、\texttt{String}和\texttt{Vec}内部的指针都拥有值：当所有者被drop时，指针指向的值也会随之消失。Rust还有非拥有指针类型，称为\emph{引用}，引用对指向的值的生命周期没有影响。
 
 事实上，正相反，引用绝不应该比它们指向的值活的更长。你必须在你的代码中明确表明，引用的生命寿命比它指向的值更短。为了强调这一点，Rust将创建某个值的引用称为\emph{借用}值：你最终必须把你借走的还给它的所有者。
 
@@ -23,7 +23,7 @@
     type Table = HashMap<String, Vec<String>>;
 \end{minted}
 
-换句话说，这是一个把\texttt{String}值映射到\texttt{Vec<String>}值的哈希表，它把艺术家的名字关联到它们的作品的名字。你可以使用\texttt{for}循环来第迭代\texttt{HashMap}的条目，因此我们可以写一个函数打印出一个\texttt{Table}：
+换句话说，这是一个把\texttt{String}值映射到\texttt{Vec<String>}值的哈希表，它把艺术家的名字关联到它们的作品的名字。你可以使用\texttt{for}循环来迭代\texttt{HashMap}的条目，因此我们可以写一个函数打印出一个\texttt{Table}：
 \begin{minted}{Rust}
     fn show(table: Table) {
         for (artist, works) in table {
@@ -97,10 +97,51 @@ Rust会报错\texttt{table}不再可用：
     \item 如果你有一个值的\emph{可变引用}，你可以读取和修改这个值。然而，你不能同时再有任何其他有效的引用。表达式\texttt{\&mut e}返回一个指向\texttt{e}的值的可变引用，它的类型是\texttt{\&mut T}，读作“ref mute \texttt{T}”。可变引用不是\texttt{Copy}类型。
 \end{itemize}
 
+你可以将共享和可变引用的区别看作是一种在编译期强制\emph{多个读者或一个写者}的规则的方法。事实上，这个规则不仅适用于引用，还适用于被借用的值的所有者。只要一个值有共享引用存在，就算是它的拥有者也不能修改它，这个值被锁定了。当\texttt{show}正在使用\texttt{table}时没有人可以修改\texttt{table}。类似的，当一个值有可变引用时，它会排斥其他所有对这个值的方法，此时你不能使用值的持有者，直到可变引用消失。将共享和可变完全分离开来是内存安全的基础，我们将会在下一章介绍原因。
 
+我们的示例中的打印函数不需要修改表格，只需要读取它的内容。所以调用者可以以共享引用的方式传递表格，像下面这样：
+\begin{minted}{Rust}
+    show(&table);
+\end{minted}
 
+引用是非拥有指针，所以\texttt{table}变量仍然保留着整个数据结构的所有权，\texttt{show}只是借用了它。当然，我们还需要调整\texttt{show}的定义来进行匹配，但你必须仔细看才能看出其中的区别：
 
+\begin{minted}{Rust}
+    fn show(table: &Table) {
+        for (artist, works) in table {
+            println!("works by {}:", artist);
+            for work in works {
+                println!("  {}", work);
+            }
+        }
+    }
+\end{minted}
 
+\texttt{show}的参数\texttt{table}的类型从\texttt{Table}变为了\texttt{\&Table}：不再以值传递表格（会导致所有权移动到函数里），我们现在传递一个共享引用。这就是表面上唯一的变化。但是当我们执行函数体时到底是怎么工作的？
+
+我们原先的版本\texttt{for}循环会获取\texttt{HashMap}的所有权按并消耗它。在我们的新版本中它接受一个\texttt{HashMap}的共享引用，迭代一个\texttt{HashMap}的共享引用被定义为产生每个条目的key和value的引用：\texttt{artist}从一个\texttt{String}变为\texttt{\&string}，\texttt{works}从一个\texttt{Vec<String>}变为\texttt{\&Vec<String>}。
+
+内部的循环也有类似的变化。迭代一个vector的共享引用被定义为产生它的每个元素的共享引用，因此\texttt{work}现在是一个\texttt{\&String}。这个函数里不再有任何所有权的变化，而是传递各种无所有权的引用。
+
+现在，如果我们想写一个函数来把每个艺术家的作品按字母顺序排列，一个共享引用显然不够，因为共享引用不允许修改。排序函数需要表格的可变引用：
+\begin{minted}{Rust}
+    fn sort_works(table: &mut Table) {
+        for (_artist, works) in table {
+            works.sort();
+        }
+    }
+\end{minted}
+
+然后我们需要传递：
+\begin{minted}{Rust}
+    sort_works(&mut table);
+\end{minted}
+
+这个可变借用授予了\texttt{sort\_works}读取和修改我们的数据结构的能力，以满足vector的\texttt{sort}方法的需要。
+
+当我们以会把所有权移动到函数中的方式传参时，我们称这种方式为\emph{以值}传参。如果我们传递值的引用，我们称之为\emph{以引用}传参。例如，我们通过将以值传参修改为以引用传参修复了\texttt{show}函数。许多语言都有这种区别，但它在Rust中尤其重要，因为它阐明了所有权如何被引用影响。
+
+\section{使用引用}
 
 
 
