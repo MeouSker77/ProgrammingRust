@@ -1,1 +1,118 @@
 \chapter{引用}\label{ch05}
+
+\emph{Libraries cannot provide new inabilities.}
+
+\begin{flushright}
+——Mark Miller
+\end{flushright}
+
+我们至今为止见过的所有指针类型——简单的\texttt{Box<T>}堆指针、\texttt{String}和\texttt{Vec}内部的指针都拥有值：当所有者被drop时，指针指向的值也会随之消失。Rust还有非拥有指针类型称为\emph{引用}，引用对指向的值的生命周期没有影响。
+
+事实上，正相反，引用绝不应该比它们指向的值活的更长。你必须在你的代码中明确表明，引用的生命寿命比它指向的值更短。为了强调这一点，Rust将创建某个值的引用称为\emph{借用}值：你最终必须把你借走的还给它的所有者。
+
+如果你在读到“你必须在你的代码中明确表明”时感到一丝怀疑，那说明你很优秀。引用自身并没有什么特殊的——本质上，它们只是地址。但保证它们安全的规则是Rust独有的，你以前不可能看到过类似的。尽管这些规则是Rust里最难掌握的部分，但它们能防止的经典的、日常的bug的范围之广令人惊讶，它们对多线程的影响也正在显现。这也是Rust的赌注。
+
+这一章中，我们将讨论Rust中的引用如何工作，展示引用、函数和自定义类型如何包含生命周期信息来保证它们被安全使用，阐释它怎么能在编译期、不引入运行时开销的同时防止常见的bug。
+
+\section{值的引用}
+
+举个例子，假设我们要为文艺复兴时期优秀的艺术家和他们的著名作品建一个表格。Rust的标准库包含一个哈希表类型，所以我们可以像这样定义我们的类型：
+\begin{minted}{Rust}
+    use std::collections::HashMap;
+
+    type Table = HashMap<String, Vec<String>>;
+\end{minted}
+
+换句话说，这是一个把\texttt{String}值映射到\texttt{Vec<String>}值的哈希表，它把艺术家的名字关联到它们的作品的名字。你可以使用\texttt{for}循环来第迭代\texttt{HashMap}的条目，因此我们可以写一个函数打印出一个\texttt{Table}：
+\begin{minted}{Rust}
+    fn show(table: Table) {
+        for (artist, works) in table {
+            println!("works by {}:", artist);
+            for work in works {
+                println!("  {}", work);
+            }
+        }
+    }
+\end{minted}
+
+构造和打印表格都很直观：
+\begin{minted}{Rust}
+    fn main() {
+        let mut table = Table::new();
+        table.insert("Gesualdo".to_string(),
+                     vec!["many madrigals".to_string(),
+                          "Tenebrae Responsoria".to_string()]);
+        table.insert("Caravaggio".to_string(),
+                     vec!["The Musicians".to_string(),
+                          "The Calling of St. Matthew".to_string()]);
+        table.insert("Cellini".to_string(),
+                     vec!["Perseus with the head of Medusa".to_string(),
+                          "a salt cellar".to_string()]);
+        show(table);
+    }
+\end{minted}
+
+它也能正常工作：
+\begin{minted}{text}
+    $ cargo run
+         Running `/home/jimb/rust/book/fragments/target/debug/fragments`
+    works by Gesualdo:
+      many madrigals
+      Tenebrae Responsoria
+    works by Cellini:
+      Perseus with the head of Medusa
+      a salt cellar
+    works by Caravaggio:
+      The Musicians
+      The Calling of St. Matthew
+\end{minted}
+
+但如果你阅读过上一章中有关move的小节，你就会发现\texttt{show}的定义有一些问题。首先，\texttt{HashMap}不是\texttt{Copy}类型——它不可能是，因为它持有动态分配的表格。因此当程序调用\texttt{show(table)}时，整个结构都被移动到函数里，变量\texttt{table}将变为未初始化。（迭代它时没有特定的顺序，你可能会得到一个不同的顺序，不用担心）如果调用者代码尝试继续使用\texttt{table}，它会遇到问题：
+\begin{minted}{Rust}
+    ...
+    show(table);
+    assert_eq!(table["Gesualdo"][0], "many madrigals");
+\end{minted}
+
+Rust会报错\texttt{table}不再可用：
+\begin{minted}{text}
+    error: borrow of moved value: `table`
+       |
+    20 |     let mut table = Table::new();
+       |         --------- move occurs because `table` has type
+       |                   `HashMap<String, Vec<String>>`,
+       |                   which does not implement the `Copy` trait
+    ...
+    31 |     show(table);
+       |          ----- value moved here
+    32 |     assert_eq!(table["Gesualdo"][0], "many madrigals");
+       |                ^^^^^ value borrowed here after move
+\end{minted}
+
+事实上，如果我们仔细查看\texttt{show}的定义，会发现外层的\texttt{for}循环获取了哈希表的所有权然后完全消费了它，内层的\texttt{for}循环对每一个vector做了同样的事（我们之前已经在“liberté, égalité, fraternité”的例子中见过这种行为了）。因为move语义，我们仅仅是为了打印它就已经完全销毁了整个结构体。感谢你，Rust！
+
+正确的处理方式是使用引用。引用让你可以访问一个值，同时不影响它的所有权。引用有两种：
+\begin{itemize}
+    \item \emph{共享引用}让你能读取但不能修改被引用的值。然而，你可以同时持有多个共享引用。表达式\texttt{\&e}返回一个指向\texttt{e}的值的共享引用，如果\texttt{e}的类型是\texttt{T}，那么\texttt{\&e}的类型就是\texttt{\&T}，读作“ref \texttt{T}”。共享引用是\texttt{Copy}类型。
+    \item 如果你有一个值的\emph{可变引用}，你可以读取和修改这个值。然而，你不能同时再有任何其他有效的引用。表达式\texttt{\&mut e}返回一个指向\texttt{e}的值的可变引用，它的类型是\texttt{\&mut T}，读作“ref mute \texttt{T}”。可变引用不是\texttt{Copy}类型。
+\end{itemize}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
