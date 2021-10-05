@@ -146,6 +146,182 @@ Rust程序通常完全不会像C和C++程序中使用\texttt{free}和\texttt{del
 
 这些策略中的每一条都改善了所有权模型的灵活性，同时仍然坚持Rust的承诺。我们将依次介绍它们，引用将在下一章介绍。
 
+\section{move}
+在Rust里对于大多数类型，赋值给变量、把值传给函数、或者从函数返回值并不会拷贝这个值：它们只会\emph{move}它。源对象放弃了值的所有权，把所有权转移给了目的对象，同时源对象变为未初始化的状态；此时目的对象控制值的生命周期。Rust程序一次一个值、一次一个move的构建和拆除复杂的结构。
+
+你可能会很惊讶Rust改变了这些基础操作的含义。确实赋值操作很早之前就已经有了明确的含义。然而，如果你仔细观察过不同的语言是怎么处理赋值操作的，你就会发现不同语言的处理方式有很大差别。这种差别也让我们能更容易的看出Rust的选择的含义和结果。
+
+考虑下面的Python代码：
+\begin{minted}{python}
+    s = ['udon', 'ramen', 'soba']
+    t = s
+    u = s
+\end{minted}
+
+每一个Python对象都有一个引用计数，用来追踪当前有多少个值指向它。因此在对\texttt{s}赋值以后，程序的状态如\hyperref[f4-5]{图4-5}所示（注意有一些内容被省略了）。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f4-5.png}
+    \caption{Python如何在内存中表示一个字符串的列表}
+    \label{f4-5}
+\end{figure}
+
+因为只有\texttt{s}指向列表，所以列表的引用计数是1；因为列表是唯一指向那些字符串的对象，所以每个字符串的引用计数也是1。
+
+当程序执行到\texttt{t}和\texttt{u}的赋值时会发生什么？Python把赋值操作简单实现为让目标变量也指向源变量指向的对象，然后增加对象的引用计数。因此，这段程序的最终状态如\hyperref[f4-6]{图4-6}所示：
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f4-6.png}
+    \caption{在Python里把\texttt{s}赋值给\texttt{t}和\texttt{u}的结果}
+    \label{f4-6}
+\end{figure}
+
+Python拷贝了\texttt{s}的指针，并赋给了\texttt{t}和\texttt{u}，然后把列表的引用计数更新为3。Python中的赋值开销很低，但因为它创建了新的指向对象的引用，我们必须维护引用计数来知道我们什么时候可以释放值。
+
+现在考虑下面类似的C++代码：
+\begin{minted}{C++}
+    using namespace std;
+    vector<string> s = { "udon", "ramen", "soba" };
+    vector<string> t = s;
+    vector<string> u = s;
+\end{minted}
+
+一开始\texttt{s}的值在内存中如\hyperref[f4-7]{图4-7}所示。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f4-7.png}
+    \caption{C++里一个字符串的vector在内存中的表示}
+    \label{f4-7}
+\end{figure}
+
+当把\texttt{s}赋值给\texttt{t}和\texttt{u}时会发生什么呢？在C++里赋值一个\texttt{std::vector}会产生一份这个vector的拷贝；\texttt{std::string}的行为类似。因此当程序到达末尾时，它实际上有3个vector和9个字符串（\hyperref[f4-8]{图4-8}）。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f4-8.png}
+    \caption{在C++里把\texttt{s}赋值给\texttt{t}和\texttt{u}的结果}
+    \label{f4-8}
+\end{figure}
+
+根据值的不同，C++里的赋值可能会消耗任意数量的内存和处理器时间。然而，它的优势是，程序可以很容易的决定何时释放这些内存：当变量离开作用域时，所有这里分配的内存都会被自动释放。
+
+某种意义上，C++和Python选择了相反的策略：Python里赋值操作开销很小，但引用计数（通用一点的说法，垃圾回收）开销很大。C++保持了内存的所有权都很清楚，但赋值时会执行对象的深拷贝导致开销很大。C++程序员通常不太热衷于这种选择：深拷贝可能开销很大，通常会有更好的替代方法。
+
+因此Rust的中的类似程序会怎么做呢？代码如下：
+\begin{minted}{Rust}
+    let s = vec!["udon".to_string(), "ramen".to_string, "soba".to_string()];
+    let t = s;
+    let u = s;
+\end{minted}
+
+类似于C和C++，Rust把字符串字面量例如\texttt{"udon"}存储在只读内存中，因此，为了更清楚地与C++和Python的例子进行对比，我们调用了\texttt{to\_string}来获得在堆上分配的\texttt{String}值。
+
+在\texttt{s}的初始化之后，因为Rust和C++有相似的vector和string表示，所以看起来和C++中的情况很像（\hyperref[f4-9]{图4-9}）。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f4-9.png}
+    \caption{Rust中一个字符串的vector在内存中的表示}
+    \label{f4-9}
+\end{figure}
+
+但回想一下，Rust里大多数类型的赋值操作都是把值从源对象\emph{移动}到目的对象，然后源对象变为未初始化的状态。因此\texttt{t}初始化完之后，程序的内存状态如\hyperref[f4-10]{图4-10}所示。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f4-10.png}
+    \caption{Rust里把\texttt{s}赋值给\texttt{t}之后的结果}
+    \label{f4-10}
+\end{figure}
+
+这里发生了什么？赋值语句\texttt{let t = s;}把vector的三个字段从\texttt{s}移动到了\texttt{t}；现在\texttt{t}拥有了这个vector。vector的元素则仍待在原来的位置，string的位置也没有发生变化。每一个值都只有一个所有者，尽管所有者已经变了。不需要调整引用计数，并且编译器现在把\texttt{s}视作未初始化的状态。
+
+因此当我们到达\texttt{let u = s;}时会发生什么呢？者将会把\texttt{s}的值赋给\texttt{u}。Rust禁止使用未初始化的值，所以编译器会报如下错误：
+\begin{minted}{text}
+    error[E0382]: use of moved value: `s`
+      |
+    7 |     let s = vec!["udon".to_string(), "ramen".to_string(), "soba".to_string()];
+      |         - move occurs because `s` has type `Vec<String>`,
+      |           which does not implement the `Copy` trait
+    8 |     let t = s;
+      |             - value moved here
+    9 |     let u = s;
+      |             ^ value used after move
+\end{minted}
+
+考虑Rust在这里使用move的结果。类似于Python，赋值操作开销很小，程序简单的把vector的三个字长的头部从一个点移动到了另一个点。但和C++类似，所有权总是很清晰：程序不需要引用计数或者垃圾回收来判断什么时候释放vector的元素和string的内容。
+
+你为此付出的代价是如果你想要拷贝你必须显式写出。如果你想要最后和C++程序一样的状态，也就是每个变量都有独立的拷贝，那你必须调用vector的\texttt{clone}方法，它会对vector和它的元素执行深拷贝：
+\begin{minted}{Rust}
+    let s = vec!["udon".to_string(), "ramen".to_string(), "soba".to_string()];
+    let t = s.clone();
+    let u = s.clone();
+\end{minted}
+
+你也可以通过Rust引用计数指针类型复现Python代码的行为，我们将在“\hyperref[rc]{Rc和Arc：共享所有权}”这一节中简要介绍这一点。
+
+\subsection{更多move的操作}
+
+在我们上面展示的初始化例子中，都是在使用\texttt{let}语句引入变量的同时把值赋给它们。复制给一个变量将与此有细微的不同，如果你把值移动进一个已经被初始化的变量，Rust会drop变量之前的值。例如：
+\begin{minted}{Rust}
+    let mut s = "Govinda".to_string();
+    s = "Siddhartha".to_string();   // 值"Govinda"在这里drop
+\end{minted}
+
+在这段代码中，当程序把\texttt{"Siddhartha"}赋值给\texttt{s}时，它之前的值\texttt{"Govinda"}首先被drop掉。但考虑下面的代码：
+\begin{minted}{Rust}
+    let mut s = "Govinda".to_string();
+    let t = s;
+    s = "Siddhartha".to_string();   // 这里不会drop任何内容
+\end{minted}
+
+这一次，\texttt{t}拿走了\texttt{s}中原本的字符串的所有权，因此当我们给\texttt{s}赋值时，它是未初始化的。在这种场景下，不会发生drop。
+
+我们在这里使用初始化和赋值的例子是因为它们足够简单，但Rust在几乎场景下都使用move。向函数传参会把所有权移动给函数的参数；从函数返回值会把所有权移动给调用者；创建一个元组会把值移动给元组，等等。
+
+你现在可能对我们之前章节给出的例子中到底发生了什么有了更深入的理解。例如，当我们构建作曲家的vector时，我们写了：
+\begin{minted}{Rust}
+    struct Person { name: String, birth: i32 }
+
+    let mut composers = Vec::new();
+    composers.push(Person { name: "Palestrina".to_string(), 
+                            birth: 1525 });
+\end{minted}
+
+这段代码展示了除了初始化和赋值之外，move发生的几个场景：
+\begin{flushleft}
+    \emph{从函数返回值}
+\end{flushleft}
+
+\hangafter 0
+\hangindent 2em
+\noindent
+\texttt{Vec::new()}的调用会创建一个新的vector并返回，返回的并不是指向vector的指针，而是vector本身：它的所有权从\texttt{Vec::new}移动到了变量\texttt{composers}。类似的，\texttt{to\_string}调用返回了一个新的\texttt{String}实例。
+
+\begin{flushleft}
+    \emph{构造新的值}
+\end{flushleft}
+
+\hangafter 0
+\hangindent 2em
+\noindent
+新的\texttt{Person}结构体的\texttt{name}字段被\texttt{to\_string}的返回值初始化。结构体获得了这个字符串的所有权。
+
+\begin{flushleft}
+    \emph{向函数传递值}
+\end{flushleft}
+
+\hangafter 0
+\hangindent 2em
+\noindent
+整个\texttt{Person}结构体，而不是指向它的指针，被传递给vector的\texttt{push}方法，这个方法将值移动到了结构体的尾部。vector获得了\texttt{Person}的所有权，因此也变成了name \texttt{String}的间接所有者。
+
+像这样移动值可能听起来并不是很高效，但有两件事需要记住。第一，move只作用于恰当的值，而不作用于它们拥有的堆存储。对于vector和string来说，\emph{恰当的值}是它们三个字长的头部，潜在的很多元素的数组和文本缓冲区仍然停留在堆中原本的位置。第二，Rust编译器的代码生成部分擅长“看穿”所有这些move；在实践中，机器码通常会直接把值存储到它属于的位置。
+
+
+
 
 
 
