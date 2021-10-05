@@ -532,18 +532,68 @@ Python拷贝了\texttt{s}的指针，并赋给了\texttt{t}和\texttt{u}，然�
 
 在这一节中，我们谈到了术语\texttt{Copy}和\texttt{Clone}，模糊地将它们视作类型具有的特征。事实上，它们是\texttt{trait}的示例，它是Rust的一个开发的工具，你可以通过它根据类型能做什么对类型进行分类。我们将在\hyperref[ch11][第11章]中讨论一般性的trait，在\hyperref[ch13]中专门讨论\texttt{Copy}和\texttt{Clone}。
 
+\section{Rc和Arc：共享所有权}\label{rc}
 
+尽管典型的Rust代码中几乎所有的值都只有一个所有者，但在一些情况下，很难让每个值的所有者都有你想要的生命周期，这时你可能会希望值一直保持有效，直到每一个所有者都使用完它。对于这种情况，Rust提供了引用计数类型\texttt{Rc}和\texttt{Arc}。正如你对Rust的期待一样，它们是安全的：你不可能忘记调整引用计数、创建其它指向它的指针、或者出现其他使用C++的引用计数指针类型时可能出现的问题。
 
+\texttt{Rc}和\texttt{Arc}类型非常相似，它们唯一的不同之处在于\texttt{Arc}可以直接安全的在线程之间共享——名称\texttt{Arc}是\emph{原子引用计数}的缩写——\texttt{Rc}则使用更快一些的非线程安全代码来更新引用计数。如果你不需要在线程之间共享指针，那就没有必要承担\texttt{Arc}的性能损失，所以你应该使用\texttt{Rc}；Rust会阻止你无意间在线程之间传递\texttt{Rc}。这两种类型在其他方面都是等价的，因此在本节的剩余部分，我们将只讨论\texttt{Rc}。
 
+之前我们曾经展示过Python使用引用计数来管理值的生存周期。你可以使用\texttt{Rc}来在Rust中实现相似的效果。考虑下面的代码：
+\begin{minted}{Rust}
+    use std::rc::Rc;
 
+    // Rust可以推断出所有这些类型，写出来是为了更清楚
+    let s: Rc<String> = Rc::new("shirataki".to_string());
+    let t: Rc<String> = s.clone();
+    let u: Rc<String> = s.clone();
+\end{minted}
 
+对于任意类型\texttt{T}，一个\texttt{Rc<T>}值是一个指向在堆上分配的\texttt{T}类型值的指针，同时还附有一个引用计数。克隆一个\texttt{Rc<T>}类型的值并不意味着拷贝\texttt{T}，它只是简单的创建另一个指向它的指针，并且递增引用计数。因此上面的代码会产生如\hyperref[f4-12]{图4-12}所示的内存布局：
 
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f4-12.png}
+    \caption{一个有三个引用的引用计数字符串}
+    \label{f4-12}
+\end{figure}
 
+这三个\texttt{Rc<String>}指针中的每一个都指向内存中的同一块内存，这块内存里存储了一个引用计数和一个\texttt{String}。通常的所有权规则应用于\texttt{Rc}指针们，当最后一个\texttt{Rc}指针drop时，Rust会同时drop掉\texttt{String}。
 
+你可以直接对\texttt{Rc<String>}使用任何\texttt{String}的方法：
+\begin{minted}{Rust}
+    assert!(s.contains("shira"));
+    assert_eq!(t.find("taki"), Some(5));
+    println!("{} are quite chewy, almost bouncy, but lack flavor", u);
+\end{minted}
 
+一个\texttt{Rc}指针拥有的值是不可变的。假设你尝试在字符串的结尾添加文本：
+\begin{minted}{Rust}
+    s.push_str(" noodles");
+\end{minted}
 
+Rust将会报错：
+\begin{minted}{Rust}
+    error: cannot borrow data in an `Rc` as mutable
+      --> ownership/ownership_rc_mutability.rs:13:5
+       |
+    13 |     s.push_str(" noodles");
+       |     ^ cannot borrow as mutable
+       |
+\end{minted}
 
+Rust的内存和线程安全保证依赖于没有值既是共享的又是可变的。Rust假设\texttt{Rc}指针指向的值要被共享，因此它必须是不可变的。我们将在\hyperref[ch05]{第5章}解释为什么限制要这么严格。
 
+ 使用引用计数来管理内存的一个已知问题就是，如果两个引用计数的值互相指向彼此，那么每一个都会导致对方的引用计数不可能降到0，因此值永远不会被释放（\hyperref[f4-13]{图4-13}）。
 
+ \begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f4-13.png}
+    \caption{一个引用计数循环，这些对象永远不会被释放}
+    \label{f4-13}
+ \end{figure}
 
+在Rust中出现这种泄漏是可能的，但这种情况非常少见。要想创建这样一个循环，你必须让旧值指向新值，这也意味着旧值要是可变的。因为\texttt{Rc}指针指向的值不可变，所以通常是不能创建这样的循环的。然而，Rust确实提供了一些方法创建部分可变的值的方法；这被称为\emph{内部可变性}，我们将在“\hyperref[intermut]{内部可变性}”一节中介绍。如果你将那些技术和\texttt{Rc}指针结合使用，那么你确实能创建出一个循环，然后造成内存泄漏。
 
+你可以使用\emph{弱指针}\texttt{std::rc::Weak}来避免使用\texttt{Rc}指针创建循环的情况。然而，我们不会再本书中介绍这些，你可以查看标准库的文档获取详情。
+
+移动和引用计数指针是两种缓解所有权树过于死板的方法。在下一章中，我们将看到第三种方法：借用值的引用。一旦你对所有权和借用都感到很舒服，那你就已经跨过了Rust的学习曲线中最陡峭的部分，而且已经准备好接受Rust独特的优势。
