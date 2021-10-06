@@ -197,6 +197,32 @@ Rust会报错\texttt{table}不再可用：
 
 简而言之，C++在引用和左值（指向某个内存地址的表达式）之间隐式转换，如果需要这种转换会在任何地方出现；而在Rust中使用\texttt{\&}和\texttt{*}运算符来创建和解引用，除了\texttt{.}运算符是个例外，它会自动隐式借用和解引用。
 
+\subsection{对引用赋值}
+把一个引用赋值给变量会让这个变量指向新的东西：
+\begin{minted}{Rust}
+    let x = 10;
+    let y = 20;
+    let mut r = &x;
+    if b { r = &y; }
+
+    assert!(*r == 10 || *r == 10);
+\end{minted}
+
+引用\texttt{r}一开始指向\texttt{x}。但如果\texttt{b}为true，\texttt{r}将指向\texttt{y}，如\hyperref[f5-1]{图5-1}所示。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f5-1.png}
+    \caption{引用r，现在指向y而不是x}
+    \label{f5-1}
+\end{figure}
+
+代码的行为似乎太过于简单而不值一提：显然\texttt{r}现在会指向\texttt{y}，因为我们把\texttt{\&y}赋给了它。但我们指出这一点是因为C++的引用与此差别很大：如之前展示的一样，在C++中对一个引用赋值会把值存储在引用指向的对象。一旦一个C++引用被初始化之后，将没有任何方法让它指向别的东西。
+
+
+
+
+
 
 
 
