@@ -650,10 +650,65 @@ Rust的错误信息建议了另一种更通用的解决方法：
 
 事实上，这种内部行为的暴露是Rust要求持有引用的类型显式接受生命周期参数的主要原因。否则，Rust完全可以为结构体中的每个引用标注一个不同的生命周期，让你可以省去写出它们的麻烦。早期版本的Rust确实是这么做的，但开发者发现这样会让人很迷惑：知道一个值什么时候从另一个值里借用了部分内容是很有用的，特别是解决bug时。
 
-不只有引用和像\texttt{S}这样的类型才有生命周期。Rust中的每个类型都有生命周期，包括\texttt{i32}和\texttt{String}。大多数都是简单的\texttt{'static}，意味着这些类型的值想要生存多久就能生存多久。例如，一个\texttt{Vec<i32>}是自包含的，不需要在其他任何值离开作用于之前drop。而一个类型例如\texttt{Vec<\&'a i32>}的生命周期必须被\texttt{'a}包含：在它引用的值离开作用于之前它必须被drop。
+不只有引用和像\texttt{S}这样的类型才有生命周期。Rust中的每个类型都有生命周期，包括\texttt{i32}和\texttt{String}。大多数都是简单的\texttt{'static}，意味着这些类型的值想要生存多久就能生存多久。例如，一个\texttt{Vec<i32>}是自包含的，不需要在其他任何值离开作用于之前drop。而一个类型例如\texttt{Vec<\&'a i32>}的生命周期必须被\texttt{'a}包含：在它引用的值离开作用域之前它必须被drop。
 
+\subsection{不同的生命周期参数}
+假设你定义了一个类似这样的包含两个引用的结构体：
+\begin{minted}{Rust}
+    struct S<'a> {
+        x: &'a i32,
+        y: &'a i32,
+    }
+\end{minted}
 
+这两个引用的生命周期都是\texttt{'a}。如果你想像下面这样做的话这可能会是一个问题：
+\begin{minted}{Rust}
+    let x = 10;
+    let r;
+    {
+        let y = 20;
+        {
+            let s = S { x: &x, y: &y };
+            r = s.x;
+        }
+    }
+    println!("{}", r);
+\end{minted}
 
+这段代码不会制造任何悬垂指针。对\texttt{y}的引用存储在\texttt{s}中，\texttt{s}在\texttt{y}离开作用于之前先离开作用域。\texttt{x}的引用随着\texttt{r}结束，没有超过\texttt{x}的生命周期。
+
+然而，如果你尝试编译这段代码，Rust会报错说\texttt{y}生存的不够久，尽管显然它的生命周期已经够了。
+
+Rust为什么会报错？如果你仔细思考这段代码，你会发现以下原因：
+\begin{itemize}
+    \item \texttt{s}的两个字段都有相同的生命周期\texttt{'a}，所以Rust必须找到一个生命周期同时适用于\texttt{s.x}和\texttt{s.y}。
+    \item 我们进行了赋值\texttt{r = s.x}，这要求\texttt{'a}必须包含\texttt{r}的生命周期。
+    \item 我们用\texttt{\&y}初始化了\texttt{s.y}，这要求\texttt{'a}必须不超过\texttt{y}的生命周期。
+\end{itemize}
+
+这些约束不可能同时满足：没有生命周期比\texttt{y}的作用域短又比\texttt{r}的长。所以Rus报错了。
+
+问题出现的原因是\texttt{S}中的两个引用有相同的生命周期\texttt{'a}。将\texttt{S}的定义修改为每个引用有一个不同的生命周期就可以解决问题：
+\begin{minted}{Rust}
+    struct S<'a, 'b> {
+        x: &'a i32,
+        y: &'b i32
+    }
+\end{minted}
+
+有了这个定义，\texttt{s.x}和\texttt{s.y}就有了独立的生命周期。我们对\texttt{s.x}做什么都不会影响我们存储在\texttt{s.y}中的值，因此现在可以很容易地满足约束：\texttt{'a}可以直接是\texttt{r}的生命周期，\texttt{'b}是\texttt{s}的生命周期（\texttt{y}的生命周期也可以用作\texttt{'b}，但Rust尝试选择最小的满足条件的生命周期）。这样一切都没有问题了。
+
+函数的签名也可以有相似的效果。假设我们有一个类似这样的函数：
+\begin{minted}{Rust}
+    fn f<'a>(r: &'a i32, s: &'a i32) -> &'a i32 { r } // perhaps too tight
+\end{minted}
+
+这里，两个生命周期参数使用了相同的生命周期\texttt{'a}，这可能会像我们之前展示的一样对调用者施加不必要的约束。如果这导致了问题，你可以让每个参数都有独立的生命周期：
+\begin{minted}{Rust}
+    fn f<'a, 'b>(r: &'a i32, s: &'b i32) -> &'a i32 { r } // looser
+\end{minted}
+
+这样的缺点是添加生命周期可能会导致类型和函数类型更难阅读。你们可以先尝试最简单的定义然后逐渐放松限制直到代码能够编译。因为Rust不允许不安全的代码，等Rust告诉你哪有问题然后再去修复是一个完美的策略。
 
 
 
