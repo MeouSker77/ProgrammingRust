@@ -710,10 +710,69 @@ Rust为什么会报错？如果你仔细思考这段代码，你会发现以下�
 
 这样的缺点是添加生命周期可能会导致类型和函数类型更难阅读。你们可以先尝试最简单的定义然后逐渐放松限制直到代码能够编译。因为Rust不允许不安全的代码，等Rust告诉你哪有问题然后再去修复是一个完美的策略。
 
+\subsection{省略生命周期参数}
+目前为止我们已经展示了足够多的返回引用或获取引用参数的函数，但我们通常不需要写出哪个生命周期是哪个。当生命周期很明显的时候Rust让我们可以省略它们。
 
+在最简单的例子中，你可能永远都不需要写出参数的生命周期。Rust会为每一个需要声明周期的位置分配一个生命周期。例如：
+\begin{minted}{Rust}
+    struct S<'a, 'b> {
+        x: &'a i32,
+        y: &'b i32
+    }
 
+    fn sum_r_xy(r: &i32, s: S) -> i32 {
+        r + s.x + s.y
+    }
+\end{minted}
 
+这个函数签名是如下的缩写：
+\begin{minted}{Rust}
+    fn sum_r_xy<'a, 'b, 'c>(r: &'a i32, s: S<'b, 'c>) -> i32
+\end{minted}
 
+如果你返回了带有生命周期的参数的引用或其它类型，Rust仍会尝试允许无歧义的情况下省略。如果你的函数参数中只有一个生命周期参数，那么Rust会假设你的返回值中的所有生命周期参数都是那一个：
+\begin{minted}{Rust}
+    fn first_third(point: &[i32; 3]) -> (&i32, &i32) {
+        (&point[0], &point[2])
+    }
+\end{minted}
+
+如果把所有的生命周期参数都写出来，那么等价的代码如下：
+\begin{minted}{Rust}
+    fn first_third<'a>(point: &'a [i32; 3]) -> (&'a i32, &'a i32)
+\end{minted}
+
+如果参数里有多个生命周期参数，内马尔没有简单的方法推断出返回值中的生命周期参数是哪个，此时Rust会要求你指明。
+
+如果你的函数是某个类型的方法，并通过引用获取\texttt{self}参数，那么会打破这个限制：Rust会假设\texttt{self}的生命周期是返回值中所有内容的生命周期。（Rust中的\texttt{self}参数代表调用这个方法的值，等价于C++、Java、JavaScript中的\texttt{this}，或者Python中的\texttt{self}。我们将在“\hyperref[method]{使用impl定义方法}”一节中介绍方法。
+
+例如，你可以写如下代码：
+\begin{minted}{Rust}
+    struct StringTable {
+        elements: Vec<String>,
+    }
+
+    impl StringTable {
+        fn find_by_prefi(&self, prefix: &str) -> Option<&String> {
+            for i in 0 .. self.elements.len() {
+                if self.elements[i].starts_width(prefix) {
+                    return Some(&self.elements[i]);
+                }
+            }
+            None
+        }
+    }
+\end{minted}
+
+\texttt{find\_by\_prefix}方法的签名是如下签名的缩写：
+\begin{minted}{Rust}
+    fn find_by_prefix<'a, 'b>(&'a self, prefix: &'b str) -> Option<&'a String>
+\end{minted}
+Rust假设如果你要借用，那么你会从\texttt{self}借用。
+
+同样，这些只是缩写，用来提供帮助，并不能带来惊喜。如果它们不是你想要的，你可以显式写出生命周期。
+
+\section{共享 vs 可变}
 
 
 
