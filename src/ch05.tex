@@ -279,6 +279,27 @@ Rust的引用永远不可能为空，没有类似C的\texttt{NULL}或C++的\text
 
 C和C++经常使用空指针来表示没有值：例如，\texttt{malloc}函数会返回一个指向新内存块的指针，但如果没有足够的内存能够满足要求就会返回一个\texttt{nullptr}。在Rust里，如果你需要一个可能是引用可能是无的值，你可以使用类型\texttt{Option<\&T>}。在机器层面，Rust将\texttt{None}表示为空指针，将\texttt{Some(r)}（其中\texttt{r}是一个\texttt{\&T}类型的值）表示为非0的地址，因此\texttt{Option<\&T>}和C或C++中的可以为空的指针一样高效，然而它却是安全的：它的类型要求你在使用它之前要先检查它是不是\texttt{None}。
 
+\subsection{借用任意表达式的引用}
+C和C++只允许你对特定种类的表达式使用\texttt{\&}运算符，而Rust允许你借用任何表达式的引用：
+\begin{minted}{Rust}
+    fn factorial(n: usize) -> usize {
+        (1..n+1).product()
+    }
+    let r = &factorial(6);
+    // 算术运算符可以看穿一层引用
+    assert_eq!(r + &1009, 1729);
+\end{minted}
+
+在类似这样的场景中，Rust简单的创建一个匿名变量来存储表达式的值，然后让引用指向它。匿名变量的生命周期依赖于你使用引用的方式：
+\begin{itemize}
+    \item 如果你立刻通过一个\texttt{let}语句把它赋值给了一个变量（或者将它变为了结构体或数组的一部分），那么Rust会让匿名变量的生命周期变得和\texttt{let}初始化的变量一样长。在上面的例子中，Rust将会对\texttt{r}引用的值进行这样的操作。
+    \item 否则，匿名变量将只能生存到语句结束。在我们的示例中，存储\texttt{1009}的匿名变量只生存到\texttt{assert\_eq!}语句的结尾处。
+\end{itemize}
+
+如果你习惯于C或C++，这可能听起来很容易出错。但记住Rust永远不会让你写出产生悬垂引用的代码。如果引用被用在匿名变量的生命周期之外，Rust总是会在编译期向你报告这个问题。然后你可以把被引用的值保存在一个有恰当的生命周期的命名变量中来修复代码。
+
+\subsection{切片和trait对象的引用}
+
 
 
 
