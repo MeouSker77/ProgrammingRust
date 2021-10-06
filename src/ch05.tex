@@ -550,14 +550,107 @@ Rust中的全局变量叫做\emph{静态变量}：它在程序开始时就被创
 
 \subsection{包含引用的结构体}
 
+Rust怎么处理存储在数据结构中的引用？这里有一个我们之前看到的错误的程序，不过现在我们把它存在了一个结构体中：
+\begin{minted}{Rust}
+    // 不能通过编译
+    struct S {
+        r: &i32
+    }
+    
+    let s;
+    {
+        let x = 10;
+        s = S { r: &x };
+    }
+    assert_eq!(*s.r, 10);   // bad: reads from dropped `x`
+\end{minted}
 
+Rust对引用安全的约束不可能因为我们把引用藏在了结构体里就神奇的消失。这些约束最终也会作用在\texttt{S}上。事实上，Rust是很多疑的：
+\begin{minted}{text}
+    error[E0106]: missing lifetime specifier
+     --> references_in_struct.rs:7:12
+      |
+    7 |         r: &i32
+      |            ^ expected lifetime parameter
+\end{minted}
 
+当一个引用类型出现在其他类型的定义中时，你必须写出它的生命周期。你可以这样写：
+\begin{minted}{Rust}
+    struct S {
+        r: &'static i32
+    }
+\end{minted}
 
+这意味着\texttt{r}只能指向生命周期等于整个程序的\texttt{i32}值，这样限制太大了，替代方案是给类型一个生命周期参数\texttt{'a}并用于\texttt{r}：
+\begin{minted}{Rust}
+    struct S<'a> {
+        r: &'a i32
+    }
+\end{minted}
 
+现在类型\texttt{S}也有了一个生命周期，就像引用类型一样。你创建的每一个类型\texttt{S}的值都有一个新的生命周期\texttt{'a}，它会成为你使用值的约束。你存储在\texttt{r}中的引用的生命周期需要包含\texttt{'a}，\texttt{'a}需要包含存储这个\texttt{S}的变量的生命周期。
 
+回到之前的代码，表达式\texttt{S { r: \&x }}创建了一个生命周期为\texttt{'a}的新\texttt{S}。当你把\texttt{\&x}存储到\texttt{r}字段时，你约束了\texttt{'a}的生命周期必须被\texttt{x}的生命周期包含。
 
+赋值语句\texttt{s = S { ... }}把\texttt{S}存储到了变量中，变量的生命周期直到示例的结尾处，\texttt{'a}的生命周期需要包含\texttt{s}的生命周期。现在Rust遇到了和之前一样的矛盾的约束：\texttt{'a}的生命周期不能超过\texttt{x}，但又要至少和\texttt{s}一样长。没有满足条件的生命周期存在，所以Rust拒绝了这段代码。避免了灾难！
 
+如果把带有生命周期参数的类型存储在其他类型里会发生什么？
+\begin{minted}{Rust}
+    struct D {
+        s: S // not adequate
+    }
+\end{minted}
 
+Rust是多疑的，正如我们在不指明生命周期的情况下把引用存储在\texttt{S}中一样：
+\begin{minted}{Rust}
+    error[E0106]: missing lifetime specifier
+      |
+    8 |     s: S // not adequate
+      |        ^ expected named lifetime parameter
+      |
+\end{minted}
+
+我们不能在这里省略\texttt{S}的生命周期：Rust需要知道\texttt{D}的生命周期和\texttt{S}中的引用的生命周期的关系，这样才能对\texttt{D}进行和对\texttt{S}、普通引用一样的检查。
+
+我们可以给\texttt{s}加上\texttt{'static}生命周期，就可以编译了：
+\begin{minted}{Rust}
+    struct D {
+        s: S<'static>
+    }
+\end{minted}
+
+有了这个定义之后，\texttt{S}字段只能借用生命周期等于整个程序的值。这太严格了，它意味着\texttt{D}不能借用本地变量，\texttt{D}的生命周期没有特殊的限制。
+
+Rust的错误信息建议了另一种更通用的解决方法：
+\begin{minted}{text}
+    help: consider introducing a named lifetime parameter
+      |
+    7 | struct D<'a> {
+    8 |     s: S<'a>
+      |
+\end{minted}
+
+这里，我们给了\texttt{D}自己的生命周期参数并传递给\texttt{S}：
+\begin{minted}{Rust}
+    struct D<'a> {
+        s: S<'a>
+    }
+\end{minted}
+
+通过接受一个生命周期参数\texttt{'a}并把它用于\texttt{s}的类型，我们就可以允许Rust把\texttt{D}的值的生命周期关联到它持有的\texttt{S}的生命周期。
+
+我们之前展示了函数的签名怎么暴露出它对传入的引用的操作。现在我们展示了关于类型的相似之处：一个类型的生命周期参数总是表明它是否持有一些带有有趣的（也就是非\texttt{'static}的）生命周期的引用，以及这些生命周期是什么样的。
+
+例如，假设我们有一个解析函数，这个函数接受一个字节切片，返回一个保存解析结果的结构体：
+\begin{minted}{Rust}
+    fn parse_record<'i>(input: &'i [u8]) -> Record<'i> { ... }
+\end{minted}
+
+根本不需要查看\texttt{Record}类型的定义，我们就可以判断出，如果我们获得了一个\texttt{parse\_record}返回的\texttt{Record}，那么它里面包含的引用一定指向我们传入的缓冲区内的内容，而不是别的东西（除了可能的\texttt{'static}值）。
+
+事实上，这种内部行为的暴露是Rust要求持有引用的类型显式接受生命周期参数的主要原因。否则，Rust完全可以为结构体中的每个引用标注一个不同的生命周期，让你可以省去写出它们的麻烦。早期版本的Rust确实是这么做的，但开发者发现这样会让人很迷惑：知道一个值什么时候从另一个值里借用了部分内容是很有用的，特别是解决bug时。
+
+不只有引用和像\texttt{S}这样的类型才有生命周期。Rust中的每个类型都有生命周期，包括\texttt{i32}和\texttt{String}。大多数都是简单的\texttt{'static}，意味着这些类型的值想要生存多久就能生存多久。例如，一个\texttt{Vec<i32>}是自包含的，不需要在其他任何值离开作用于之前drop。而一个类型例如\texttt{Vec<\&'a i32>}的生命周期必须被\texttt{'a}包含：在它引用的值离开作用于之前它必须被drop。
 
 
 
