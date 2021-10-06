@@ -274,6 +274,15 @@ Rust允许引用的引用：
     assert!(rx == *rrx);    // Ok
 \end{minted}
 
+\subsection{引用永不为空}
+Rust的引用永远不可能为空，没有类似C的\texttt{NULL}或C++的\texttt{nullptr}的值。引用没有默认初始值（不管什么类型，你不能在一个变量初始化之前使用它）并且Rust不允许把整数转换为引用（除了\texttt{unsafe}代码），因此你不能把0转换为引用。
+
+C和C++经常使用空指针来表示没有值：例如，\texttt{malloc}函数会返回一个指向新内存块的指针，但如果没有足够的内存能够满足要求就会返回一个\texttt{nullptr}。在Rust里，如果你需要一个可能是引用可能是无的值，你可以使用类型\texttt{Option<\&T>}。在机器层面，Rust将\texttt{None}表示为空指针，将\texttt{Some(r)}（其中\texttt{r}是一个\texttt{\&T}类型的值）表示为非0的地址，因此\texttt{Option<\&T>}和C或C++中的可以为空的指针一样高效，然而它却是安全的：它的类型要求你在使用它之前要先检查它是不是\texttt{None}。
+
+
+
+
+
 
 
 
