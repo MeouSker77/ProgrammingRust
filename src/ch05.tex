@@ -307,12 +307,96 @@ Rust的另一种胖指针类型是\emph{trait对象}，一个实现了特定trai
 
 除了携带了这些额外信息之外，切片和trait对象的引用和我们在这一章中目前见到的所有引用一样：它们并不获取所有权，不允许比引用对象生存得更久，可能是共享或者可变的，等等。
 
+\section{引用安全}
 
+正如我们目前为止展示的一样，引用与C和C++中的普通指针看起来非常像。但那些指针是不安全的，Rust怎么能保证引用的安全呢？可能最简单的发现规则的方法就是尝试去打破规则。
 
+为了展示最基础的思想，我们将以最简单的例子开始，展示Rust是怎么保证引用在单个函数体里被正确使用。然后我们会看到在函数之间传递引用和在数据结构中对它们排序。这意味着要给函数和数据类型提供\emph{生命周期参数}，我们马上会解释它。最后，我们会展示一些Rust提供的用于简化常用模式的缩写。在这个过程中，我们会看到Rust是怎么指出错误代码并给出建议的解决方岸。
 
+\subsection{借用一个局部变量}
 
+这里有一个非常明显的例子。你不能借用一个局部变量的引用然后把它带出变量的作用域：
+\begin{minted}{Rust}
+    {
+        let r;
+        {
+            let x = 1;
+            r = &x;
+        }
+        assert_eq!(*r, 1);  // bad: reads memory `x` used to occupy
+    }
+\end{minted}
 
+Rust的编译器会拒绝这个程序，并给出详细的错误消息：
+\begin{minted}{text}
+    error: `x` does not live long enough
+      --> references_dangling.rs:8.5
+       |
+    7  |         r = &x;
+       |             ^^ borrowed value does not live long enough
+    8  |     }
+       |     - `x` dropped here while still borrowed
+    9  |     assert_eq!(*r, 1); // bad: reads memory `x` used to occupy
+    10 | }
+\end{minted}
 
+Rust说\texttt{x}只生存到内层块的末尾，然而引用一直生存到外层块的末尾，因此它会变为悬垂指针，这是禁止的。
+
+尽管对于人类来说很容易就能看出来这个程序是错误的，但Rust是如何得到这个结论的值得探究。每一个简单的例子都展示了Rust用于检查更多复杂代码的工具。
+
+Rust尝试给你的程序中的每一个引用赋予一个\emph{生命周期}，这个生命周期要满足使用它的方式带来的约束。一个生命周期是一个引用可以安全使用的程序区间：可能是一条语句、一个表达式、也可能是一些变量的作用域，或者类似的区间。生命周期完全是Rust的编译期视图。在运行时引用只是一个地址，生命周期是它的类型的一部分，并没有运行时表示。
+
+这个例子中，我们需要搞清楚三个生命周期的关系。变量\texttt{r}和\texttt{x}都有一个生命周期，从它们被初始化一直持续到编译器可以证明它们不会再被使用为止。第三个生命周期是一个引用类型的：我们从\texttt{x}借用并存储到\texttt{r}中的引用。
+
+有一个规则应该非常明显：如果你有一个变量\texttt{x}，那么对\texttt{x}的引用不能比\texttt{x}的生命周期更长，如\hyperref[f5-3]{图5-3}所示。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f5-3.png}
+    \caption{\texttt{\&x}的合法生命周期}
+    \label{f5-3}
+\end{figure}
+
+当\texttt{x}离开作用域之后，引用将变为悬垂指针。因此我们说变量的生命周期必须\emph{包含}或\emph{包括}它的引用的生命周期。
+
+这里还有另一种约束：如果你把引用存储到变量\texttt{r}中，引用的生命周期必须覆盖变量的整个生命周期：从它初始化到最后一次使用它，如\hyperref[f5-4]{图5-4}所示。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f5-4.png}
+    \caption{存储在\texttt{r}中的引用的合法生命周期}
+    \label{f5-4}
+\end{figure}
+
+如果引用不能和变量生存的一样长，那么在某些区域内指针\texttt{r}会变成悬垂指针。因此我们说引用的生命周期必须包含或包括存储它的变量的生命周期。
+
+第一种约束限制了引用生命周期的上限，第二种约束限制了它的下限。Rust简单的尝试为每个引用找到一个满足这两个约束的生命周期。然而在我们的例子中，不存在这样的生命周期，如\hyperref[f5-5]{图5-5}所示。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f5-5.png}
+    \caption{一个引用的生命周期的限制互相矛盾}
+    \label{f5-5}
+\end{figure}
+
+让我们考虑一个可以正常工作的不同的例子。我们有相同的约束：引用的生命周期必须被\texttt{x}的生命周期包含，但又要包含\texttt{r}的生命周期。但因为现在\texttt{r}的生命周期变小了，所以存在这样一个满足约束的生命周期，如\hyperref[f5-6]{图5-6}所示。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f5-6.png}
+    \caption{一个引用的生命周期包括\texttt{r}的生命周期、但被\texttt{x}的生命周期包含}
+    \label{f5-6}
+\end{figure}
+
+当你借用一个更大的数据结构中的一部分的引用时这些规则也自然地生效，例如引用vector的一个元素：
+\begin{minted}{Rust}
+    let v = vec![1, 2, 3];
+    let r = &v[1];
+\end{minted}
+
+因为\texttt{v}拥有vector，vector又拥有它的元素，所以\texttt{v}的生命周期必须包含引用\texttt{\&v[1]}的生命周期。类似的，如果你把引用存储在了某些数据结构之中，那引用的生命周期必须包含这个数据结构的生命周期。例如，如果你创建了一个引用的vector，那么每个引用的生命周期都必须包含拥有这个vector的变量的生命周期。
+
+这是Rust对所有代码进行的实质的处理。如果考虑更多的语言特性——例如复杂的数据结构和函数调用，只是会引入新的约束，但核心原则是不变的：首先，理解程序使用引用的方式所带来的约束；然后，找到满足这些约束的生命周期。这与C和C++程序员给自己施加的限制没有太大区别，区别在于Rust自己知道这些规则并且强迫它们执行。
 
 
 
