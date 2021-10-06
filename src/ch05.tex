@@ -219,10 +219,33 @@ Rust会报错\texttt{table}不再可用：
 
 代码的行为似乎太过于简单而不值一提：显然\texttt{r}现在会指向\texttt{y}，因为我们把\texttt{\&y}赋给了它。但我们指出这一点是因为C++的引用与此差别很大：如之前展示的一样，在C++中对一个引用赋值会把值存储在引用指向的对象。一旦一个C++引用被初始化之后，将没有任何方法让它指向别的东西。
 
+\subsection{引用的引用}
+Rust允许引用的引用：
+\begin{minted}{Rust}
+    struct Point { x: i32, y: i32 }
+    let point = Point { x: 1000, y: 729 };
+    let r: &Point = &point;
+    let rr: &&Point &r;
+    let rrr: &&&Point = &rr;
+\end{minted}
 
+（我们写出引用的类型是为了看得更清楚，但你可以省略它们，Rust可以推导出这里的所有类型。）\texttt{.}运算符寻找目标时需要解引用多次：
+\begin{minted}{Rust}
+    assert_eq!(rrr.y, 729);
+\end{minted}
 
+在内存中，这些引用按照\hyperref[f5-2]{图5-2}的形式排布。
 
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f5-2.png}
+    \caption{引用的引用链}
+    \label{f5-2}
+\end{figure}
 
+因此表达式\texttt{rrr.y}，在\texttt{rrr}的类型的引导下，实际上进行了3次解引用才得到了\texttt{Point}值，然后才能获得它的\texttt{y}字段。
+
+\subsection{比较引用}
 
 
 
