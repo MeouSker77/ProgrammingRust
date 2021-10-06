@@ -496,11 +496,59 @@ Rust中的全局变量叫做\emph{静态变量}：它在程序开始时就被创
 这样会编译失败：引用\texttt{\&x}不能生存的比\texttt{x}更久，但传递给\texttt{f}时，我们约束它至少要和\texttt{'static}生存的一样久。没有办法同时满足所有约束，所以Rust会拒绝这段代码。
 
 \subsection{返回引用}
+一种很常见的场景是一个函数接受一些数据结构的引用，然后返回一个指向这个结构中部分数据的引用。例如，这里有一个函数返回一个切片中最小的元素的引用：
+\begin{minted}{Rust}
+    // v应该至少有一个元素
+    fn smallest(v: &[i32]) -> &i32 {
+        let mut s = &v[0];
+        for r in &v[1..] {
+            if *r < *s { s = r; }
+        }
+        s
+    }
+\end{minted}
 
+我们按照通常的方式省略了函数签名中的生命周期参数。当一个函数接收单个引用作为参数并返回单个引用时，Rust假设这两个引用一定有相同的生命周期。如果显式写出生命周期将是：
+\begin{minted}{Rust}
+    fn smallest<'a>(v: &'a [i32]) -> &'a i32 { ... }
+\end{minted}
 
+假设我们像这样调用\texttt{smallest}：
+\begin{minted}{Rust}
+    let s;
+    {
+        let parabola = [9, 4, 1, 0, 1, 4, 9];
+        s = smallest(&parabola);
+    }
+    assert_eq!(*s, 0);  // 错误：s指向的元素已经被drop
+\end{minted}
 
+通过\texttt{smallest}的签名，我们能看出它的参数和返回值必须有相同的生命周期\texttt{'a}。在我们的调用中，参数\texttt{\&parabola}不能比\texttt{parabola}生存的久，然而\texttt{smallest}的返回值又至少要和\texttt{s}生存的一样久。不存在生命周期\texttt{'a}可以同时满足这两个约束，因此Rust拒绝了代码：
+\begin{minted}{text}
+    error: `parabola` does not live long enough
+      --> references_lifetimes_propagated.rs:12:5
+       |
+    11 |         s = smallest(&parabola);
+       |                       -------- borrow occurs here
+    12 |     }
+       |     ^ `parabola` dropped here while still borrowed
+    13 |     assert_eq!(*s, 0); // bad: points to element of dropped array
+       |                 - borrowed value needs to live until here
+    14 | }
+\end{minted}
 
+移动对\texttt{s}的使用来保证它的生命周期被\texttt{parabola}的生命周期包含可以解决这个问题：
+\begin{minted}{Rust}
+    {
+        let parabola = [9, 4, 1, 0, 1, 4, 9];
+        let s = smallest(&parabola);
+        assert_eq!(*s, 0);  // fine: parabola still alive
+    }
+\end{minted}
 
+函数签名中的生命周期让Rust能获得传进函数的引用和函数返回的引用的关系，然后保证它们都被安全地使用。
+
+\subsection{包含引用的结构体}
 
 
 
