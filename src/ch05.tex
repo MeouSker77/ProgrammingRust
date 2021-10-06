@@ -774,6 +774,190 @@ Rust假设如果你要借用，那么你会从\texttt{self}借用。
 
 \section{共享 vs 可变}
 
+到目前为止，我们已经讨论了Rust如何保证没有引用会指向已经离开作用域的变量。但还有其它方法造成悬垂指针。这里有一个简单的例子：
+\begin{minted}{Rust}
+    let v = vec![4, 8, 19, 27, 34, 10];
+    let r = &v;
+    let aside = v;  // 将vector移动到aside
+    r[0];           // bad：使用了`v`，`v`未初始化
+\end{minted}
+
+对\texttt{aside}的赋值会移动vector，将\texttt{v}设为未初始化，因此\texttt{r}变成了一个悬垂指针。如\hyperref[f5-7]{图5-7}所示。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f5-7.png}
+    \caption{一个已经被移动的vector的引用}
+    \label{f5-7}
+\end{figure}
+
+尽管\texttt{r}的整个生命周期内\texttt{v}都还在作用于之内，但问题是\texttt{v}的值被移动走了，\texttt{v}变为了未初始化，而\texttt{r}仍然指向它。自然，Rust捕捉到了这个错误：
+\begin{minted}{text}
+    error[E0505]: cannot move out of `v` because it is borrowed
+      --> references_sharing_vs_mutation_1.rs:10:9
+       |
+    9  |     let r = &v;
+       |              _ borrow of `v` occurs here
+    10 |     let aside = v; // move vector to aside
+       |         ^^^^^ move out of `v` occurs here
+\end{minted}
+
+在一个共享引用的整个生命周期内，它会使它引用的值只读：你不能对引用的值赋值或者移动它的值。在这段代码中，\texttt{r}的生命周期包括尝试移动vector的语句，因此Rust拒绝了这段代码。如果你按照下面这样修改，就不会有问题了：
+\begin{minted}{Rust}
+    let v = vec![4, 8, 19, 27, 34, 10];
+    {
+        let r = &v;
+        r[0];   // ok: vector is still there
+    }
+    let aside = v;
+\end{minted}
+
+在这个版本中，\texttt{r}更早离开作用域，在\texttt{v}被移动之前引用的生命周期就结束了，因此没有任何问题。
+
+这里还有一种导致问题的方式。假设我们有一个函数用一个切片里的元素扩展一个vector：
+\begin{minted}{Rust}
+    fn extend(vec: &mut Vec<f64>, slice: &[f64]) {
+        for elt in slice {
+            vec.push(*elt);
+        }
+    }
+\end{minted}
+
+这是标准库里vector的\texttt{extend\_from\_slice}的一种不够灵活（也不够优化）的版本。我们可以使用它从其他vector或数组的切片构建vector：
+\begin{minted}{Rust}
+    let mut wave = Vec::new();
+    let head = vec![0.0, 1.0];
+    let tail = [0.0, -1.0];
+
+    extend(&mut wave, &head);   // 用另一个vector扩展wave
+    extend(&mut wave, &tail);   // 用一个数组扩展wave
+
+    assert_eq!(wave, vec![0.0, 1.0, 0.0, -1.0]);
+\end{minted}
+
+这里我们构建了正弦波的一个周期。如果我们想再添加一个周期，我们可以把vector附加给它自己吗？
+\begin{minted}{Rust}
+    extend(&mut wave, &wave);
+    assert_eq!(wave, vec![0.0, 1.0, 0.0, -1.0,
+                          0.0, 1.0, 0.0, -1.0]);
+\end{minted}
+
+粗略地检查一遍，感觉这好像没有问题。但记住当我们把元素添加到vector中时，如果缓冲区已经满了，它必须重新分配一个更大的缓冲区。假设\texttt{wave}一开始有4个元素，因此当\texttt{extend}尝试添加第5个元素时\texttt{wave}必须分配更大的缓冲区。此时内存布局看起来如\hyperref[f5-8]{图5-8}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f5-8.png}
+    \caption{vector重新分配内存导致一个切片变为悬垂指针}
+    \label{f5-8}
+\end{figure}
+
+\texttt{extend}函数的\texttt{vec}参数借用了\texttt{wave}，\texttt{wave}已经分配了一个有8个元素的缓冲区，而\texttt{slice}仍然指向旧的4个元素的缓冲区，但这个缓冲区已经被drop了。
+
+这种问题不是Rust独有的：在指向集合的同时修改集合在很多语言里都是很微妙的领域。在C++中，\texttt{std::vector}的规范提醒你“[vector的缓冲区的]重新分配会导致所有其中的元素的引用、指针、迭代器无效”。类似的，Java中有关修改\texttt{java.util.Hashtable}对象是这么说的：
+
+\hangafter 0
+\hangindent 1em
+\noindent
+\emph{如果创建了Hashtable的迭代器之后，Hashtable被修改了，除了迭代器自身的remove方法之外，任何操作都会导致迭代器抛出一个\texttt{ConcurrentModificationException}异常。}
+
+导致这种bug特别难解决的是它并不是总是发生。在测试中，你的vector可能总是恰好有足够的空间，缓冲区从来不重新分配，那这个问题可能一直都不会被曝光。
+
+然而Rust，会在编译期就汇报调用\texttt{extend}的问题：
+\begin{minted}{text}
+    error[E0502]: cannot borrow `wave` as immutable because it is also
+    borrowed as mutable
+     --> references_sharing_vs_mutation_2.rs:9:24
+      |
+    9 |     extend(&mut wave, &wave);
+      |                 ----   ^^^^ mutable borrow ends here
+      |                 |      |
+      |                 |      immutable borrow occurs here
+      |                 mutable borrow occurs here
+\end{minted}
+
+换句话说，我们可以借用vector的可变引用，也可以借用它的元素的共享引用，但这两种引用的生命周期不能有重叠的部分。在我们的例子中，两个引用的生命周期都包含\texttt{extend}的调用，所以Rust拒绝了这段代码。
+
+这些错误都违背了Rust关于可变和共享的核心规则：
+
+\begin{flushleft}
+    \emph{共享访问是只读的访问}
+\end{flushleft}
+
+\hangafter 0
+\hangindent 2em
+\noindent
+共享引用借用的值是制度的。在一个共享引用的生命周期中，不管是它引用的值，还是任何通过这个值可以访问的东西，都不能被\emph{任何东西}修改。如果一个结构体的所有者是只读的，将不允许指向结构体中任何内容的可变引用。它实际上被冻结了。
+
+\begin{flushleft}
+    \emph{可变访问是独占的访问}
+\end{flushleft}
+
+\hangafter 0
+\hangindent 2em
+\noindent
+可变引用借用的值只能通过这个引用访问。在一个可变引用的生命周期内，没有任何其他方法访问被引用的值或通过这个值可以访问到的值。唯一能与可变引用的生命周期出现重叠的引用就是那个可变引用自己。
+
+Rust会报告\texttt{extend}的例子违反了第二条规则：因为我们已经借用了\texttt{wave}的一个可变引用，这个可变引用必须是唯一访问vector和它的元素的方法。切片的共享引用是另一种访问元素的方式，因此违反了第二条规则。
+
+但Rust也可以把我们的bug当成违反了第一调规则：因为我们已经获取了\texttt{wave}的元素的共享引用，元素和\texttt{Vec}自身都变为只读，所以你不能再借用一个只读值得可变引用。
+
+每种引用都会影响我们可以对被引用的值，以及通过这个值可以访问的值进行的操作（\hyperref[f5-9]{图5-9}）。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f5-9.png}
+    \caption{借用一个引用会影响你可以对同一棵所有权树中的其他值进行的操作}
+    \label{f5-9}
+\end{figure}
+
+注意在两种情况下，在引用的生命周期内，所有权树中通往被引用值的路径都不可能被修改。对于共享引用，这个路径是只读的；对于一个可变引用，这个路径完全不可访问。因此一个程序没有任何方法让一个引用变的无效。
+
+将这些原则分解为最简单的示例：
+\begin{minted}{Rust}
+    let mut x = 10;
+    let r1 = &x;
+    let r2 = &x;    // ok：允许多个共享引用
+    x += 10;        // error：不能对`x`赋值因为它已经被借用了
+    let m = &mut x; // error：不能借用`x`的可变引用，
+                    // 因为它已经被借用了不可变引用
+    println!("{}, {}, {}", r1, r2, m); // 引用都在这里使用
+                                       // 因此它们的生命周期
+                                       // 都只到这里
+
+    let mut y = 20;
+    let m1 = &mut y;
+    let m2 = &mut y;    // error：不能再次借用可变引用
+    let z = y;          // error：不能使用`y`，因为它被借用了可变引用
+    println!("{}, {}, {}", m1, m2, z);  // 引用都在这里使用
+\end{minted}
+
+可以从一个共享引用借用一个共享引用：
+\begin{minted}{Rust}
+    let mut w = (107, 109);
+    let r = &w;
+    let r0 = &r.0;          // ok；从共享引用再次借用共享引用
+    let m1 = &mut r.1;      // error：不能从共享引用借用可变引用
+    println!("{}", r0);     // r0在这里使用
+\end{minted}
+
+也可以再次借用一个可变引用：
+\begin{minted}{Rust}
+    let mut v = (136, 139);
+    let m = &mut v;
+    let m0 = &mut m.0;      // ok：从可变引用重新借用可变引用
+    *m0 = 137;
+    let r1 = &m.1;          // ok：从可变引用重新借用共享引用
+                            // 并且和m0没有重叠部分
+    v.1;                    // error：通过其他路经访问仍然是禁止的
+    println!("{}", r1);     // r1在这里使用
+\end{minted}
+
+这些限制非常严格。回到我们调用\texttt{extend(\&mut wave, \&wave)}的地方，没有方便快速的方法修复代码让它按我们希望的方式运行。Rust在几乎所有地方应用这些规则：如果我们借用了一个\texttt{HashMap}里的一个键的共享引用，我们将不能借用整个\texttt{HashMap}的可变引用，直到共享引用的生命周期结束。
+
+但有足够的理由这么做：设计一个支持不严格的、可以同时迭代和修改的集合是非常困难的，并且通常没有简单高效的实现。Java的\texttt{Hashtable}和C++的\texttt{vector}并不考虑这些、Python的字典、JavaScript的对象也没有定义这种情况下的行为。JavaScript中的其它集合类型做到了这一点，但也导致了更加笨重的实现。C++的\texttt{std::map}承诺插入新的条目不会使指向map中其他条目的指针失效，但为了实现这个承诺，标准中排除了类似Rust中的\texttt{BTreeMap}的更加缓存高效的实现，这种实现在树中的每个节点存储多个条目。
+
+
+
 
 
 
