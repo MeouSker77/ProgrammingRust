@@ -143,8 +143,59 @@ Rust会报错\texttt{table}不再可用：
 
 \section{使用引用}
 
+上面的例子展示了引用的一个经典引用：允许函数在不获取所有权的情况下访问或者操作一个数据结构。但引用要更加灵活，让我们通过一些例子来进行更深入的了解。
 
+\subsection{Rust的引用 vs C++的引用}
+如果你熟悉C++的引用，你会发现它和Rust中的引用有很多相似之处。最重要的是，它们在机器层面都只是地址。但在实践中，Rust的引用使用起来有一种不同的感觉。
 
+在C++中，引用通常通过隐式转换来创建，然后隐式解引用：
+\begin{minted}{Rust}
+    // C++代码！
+    int x = 10;
+    int &r = x;         // 初始化时隐式创建引用
+    assert(r == 10);    // 隐式解引用r来访问x的值
+    r = 20;             // 把20存储到x中，r仍然指向x
+\end{minted}
+
+在Rust中，引用通过\texttt{\&}运算符显示创建，通过\texttt{\*}运算符显式解引用：
+\begin{minted}{Rust}
+    // 从现在开始回到Rust的代码。
+    let x = 10;
+    let r = &x;         // &x是一个x的共享引用
+    assert!(*r == 10);  // 显式解引用r
+\end{minted}
+
+要想创建可变引用，使用\texttt{\&mut}运算符：
+\begin{minted}{Rust}
+    let mut y = 32;
+    let m = &mut y;     // &mut y是y的一个可变引用
+    *m += 32;           // 显式解引用m来访问y的值
+    assert!(*m == 64);  // 查看y的新值
+\end{minted}
+
+但是你可能回想起来，我们修改\texttt{show}函数让它以引用获取艺术家的表格时，我们从来没有使用过\texttt{*}运算符。这是为什么呢？
+
+因为引用在Rust中使用如此广泛，所以如果需要的话，\texttt{.}运算符会隐式解引用它左侧的操作数：
+\begin{minted}{Rust}
+    struct Anime { name: &'static str, bechdel_pass: bool };
+    let aria = Anime { name: "Aria: The Animation", bechdel_pass: true };
+    let anime_ref = &aria;
+    assert_eq!(anime_ref.name, "Aria: The Animation");
+
+    // 等价于上面的代码，但显式写出了解引用
+    assert_eq!((*anime_ref).name, "Aria: The Animation");
+\end{minted}
+
+\texttt{show}函数里使用的\texttt{println!}宏会展开为使用\texttt{.}运算符的代码，因此它也利用了这种隐式解引用。
+
+如果方法调用需要的话，\texttt{.}运算符还会隐式借用左侧操作数的引用。例如，\texttt{Vec}的\texttt{sort}方法会获取vector的可变引用，因此下面的两个调用时等价的：
+\begin{minted}{Rust}
+    let mut v = vec![1973, 1968];
+    v.sort();           // 隐式借用v的可变引用
+    (&mut v).sort();    // 等价写法，不过更详细
+\end{minted}
+
+简而言之，C++在引用和左值（指向某个内存地址的表达式）之间隐式转换，如果需要这种转换会在任何地方出现；而在Rust中使用\texttt{\&}和\texttt{*}运算符来创建和解引用，除了\texttt{.}运算符是个例外，它会自动隐式借用和解引用。
 
 
 
