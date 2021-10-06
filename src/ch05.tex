@@ -247,6 +247,41 @@ Rust允许引用的引用：
 
 \subsection{比较引用}
 
+类似于\texttt{.}运算符，Rust比较运算符“看穿”任意数量的引用嵌套：
+\begin{minted}{Rust}
+    let x = 10;
+    let y = 10;
+
+    let rx = &x;
+    let ry = &y;
+
+    let rrx = &rx;
+    let rry = &ry;
+
+    assert!(rrx <= rry);
+    assert!(rrx == rry);
+\end{minted}
+
+这里，最后的断言会成功，尽管\texttt{rrx}和\texttt{rry}指向不同的值（\texttt{rx}和\texttt{ry}），但因为\texttt{==}运算符会解除所有的引用然后对最终的值\texttt{x}和\texttt{y}进行比较。这几乎总是你想要行为，尤其是编写泛型函数时。如果你实际上是想知道两个引用是否指向相同的内存位置，你可以使用\texttt{std::ptr::eq}，它会按照地址比较引用：
+\begin{minted}{Rust}
+    assert!(rx == ry);              // 它们指向的对象相等
+    assert!(!std::ptr:eq(rx, ry));  // 但是地址不同
+\end{minted}
+
+注意比较运算符的操作数的类型必须完全相同，包括引用：
+\begin{minted}{Rust}
+    assert!(rx == rrx);     // error：类型不匹配：`&i32` 和 `&&i32`
+    assert!(rx == *rrx);    // Ok
+\end{minted}
+
+
+
+
+
+
+
+
+
 
 
 
