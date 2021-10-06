@@ -398,6 +398,95 @@ Rust尝试给你的程序中的每一个引用赋予一个\emph{生命周期}，
 
 这是Rust对所有代码进行的实质的处理。如果考虑更多的语言特性——例如复杂的数据结构和函数调用，只是会引入新的约束，但核心原则是不变的：首先，理解程序使用引用的方式所带来的约束；然后，找到满足这些约束的生命周期。这与C和C++程序员给自己施加的限制没有太大区别，区别在于Rust自己知道这些规则并且强迫它们执行。
 
+\subsection{接受引用作为函数参数}
+
+我当我们向函数传递引用时，Rust怎么保证函数安全地使用它？假设我们有一个函数\texttt{f}，这个函数接受一个引用，然后把它存储到一个全局变量中。我们之后会进行一些修改，不过这里有一个最初的版本：
+\begin{minted}{Rust}
+    // 这段代码有几个问题，不能通过编译。
+    static mut STASH: &i32;
+    fn f(p: &i32) { STASH = p; }
+\end{minted}
+
+Rust中的全局变量叫做\emph{静态变量}：它在程序开始时就被创建，直到程序终止时才被销毁。（类似其他的声明，Rust的模块系统控制静态变量在哪些部分可见，它们的“全局”只体现在生命周期上，而不是在可见性上）我们将在\hyperref[ch08]{第8章}中介绍静态变量，但现在我们只列出几条代码没有遵守的规则：
+\begin{itemize}
+    \item 每一个静态变量必须被初始化
+    \item 可变的静态变量天然不是线程安全的（因为所有线程都可以在任何时间访问一个静态变量），即使在单线程程序中，它们也可能成为其它类型的重入问题的牺牲品。因为这些原因，你只能在\texttt{unsafe}块中使用可变的静态变量。在这个例子中我们并不关注那些特定的问题，我们只是把它放进\texttt{unsafe}块中，然后继续。
+\end{itemize}
+
+有了这些修改之后，我们有了下面的代码：
+\begin{minted}{Rust}
+    static mut STASH: &i32 = &128;
+    fn f(p: &i32) { // 仍然不行
+        unsafe {
+            STASH = p;
+        }
+    }
+\end{minted}
+
+只差一步了，为了看到剩余的问题，我们需要写出一些Rust帮我们省略的东西。这里写的\texttt{f}的签名实际上是如下签名的缩写：
+\begin{minted}{Rust}
+    fn f<'a>(p: &'a i32) { ... }
+\end{minted}
+
+这里，生命周期\texttt{'a}（读作“tick A”）是\texttt{f}的一个\emph{生命周期参数}。你可以将\texttt{<'a>}读作“对于任何生命周期\texttt{'a}”，因此当我们写\texttt{fn f<'a>(p: \&'a i32)}时，我们定义了一个接受一个\texttt{i32}类型且带有任何给定生命周期\texttt{'a}的参数的函数。
+
+尽管我们必须允许\texttt{'a}是任何生命周期，但如果它是最小的可能的生命周期的话会更好：例如恰好包含对\texttt{f}的调用。然后赋值语句就成了问题所在：
+\begin{minted}{Rust}
+    STASH = p;
+\end{minted}
+
+因为\texttt{STASH}在程序的整个执行过程中都存在，所以它持有的引用必须有相同长度的生命周期；Rust把这种生命周期称为\emph{\texttt{'static}生命周期}。但是\texttt{p}的生命周期是\texttt{'a}，意味着它可以是任意长度，只要包含对\texttt{f}的调用。因此，Rust拒绝了我们的代码：
+\begin{minted}{text}
+    error: explicit lifetime required in the type of `p`
+      |
+    5 | fn f(p: &i32) { // 仍然不行
+      |         ____ help: add explicit lifetime `'static`
+      |              to the type of `p`: `&'static i32`
+    6 |     unsafe {
+    7 |         STASH = p;
+      |                 ^ lifetime `'static` required
+\end{minted}
+
+到这里，已经很明显了，我们的函数不能接受任意引用作为参数。但正如Rust指出的一样，它应该能接受一个有\texttt{'static}生命周期的引用：把这样一个引用存储到\texttt{STASH}不会导致悬垂指针。并且确实，下面的代码可以编译：
+\begin{minted}{Rust}
+    static mut STASH: &i32 = &10;
+
+    fn f(p: &'static i32) {
+        unsafe {
+            STASH = p;
+        }
+    }
+\end{minted}
+
+这一次，\texttt{f}的签名指明了\texttt{p}必须是一个有\texttt{'static}生命周期的引用，因此将它存储在\texttt{STASH}中没有任何问题。我们只能将\texttt{f}用于其他静态变量的引用，但这是唯一一种保证\texttt{STASH}不会变为悬垂指针的方法。因此我们可以写：
+\begin{minted}{Rust}
+    static WORTH_POINTING_AT: i32 = 1000;
+    f(&WORTH_POINTING_AT);
+\end{minted}
+
+因为\texttt{WORTH\_POINTING\_AT}是一个静态变量，所以\texttt{\&WORTH\_POINTING\_AT}的类型是\texttt{\&'static i32}，可以安全地传递给\texttt{f}。
+
+稍微后退一步，注意一下我们这种修改的方式让\texttt{f}的签名发生了什么变化：原本的\texttt{f(p: \&i32)}变为了\texttt{f(p: \&'static i32)}。换句话说，如果不在函数签名中表明我们的意图，我们将不能写出一个把引用存储在全局变量中的函数。在Rust中，一个函数的签名总是暴露出函数体的行为。
+
+反过来说，如果我们看到了一个函数签名例如\texttt{g(p: \&i32)}（或者写出了生命周期的\texttt{g<'a>(p: &'a i32)}），我们将能辨别出它\emph{不会}把参数\texttt{p}存储在此次调用之外的变量中。我们不需要查看\texttt{g}的定义，\texttt{g}的签名已经告诉了我们它能做什么和不能做什么。当你想保持函数调用的安全性时，这一点会很有用。
+
+\subsection{向函数传递引用}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
