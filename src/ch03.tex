@@ -174,7 +174,7 @@ Rust中的整数字面量可以有一个后缀来指示类型：\texttt{42u8}是
 
 前缀\texttt{0x, 0o, 0b}分别表示十六进制、八进制、二进制字面量。
 
-为了让长数字更更读，你可以在数字中间插入下划线。例如，你可以把最大的\texttt{u32}值写作\texttt{4\_294\_967\_295}。下划线放置的位置并不重要，所以你可以每四位插入一个下划线来把十六进制和二进制数字分组，例如\texttt{0xffff\_ffff}或者在最后插入下划线分隔类型后缀，例如\texttt{127\_u8}。\hyperref[t3-5]{表3-5}给出了一些整数字面量的例子。
+为了让长数字更可读，你可以在数字中间插入下划线。例如，你可以把最大的\texttt{u32}值写作\texttt{4\_294\_967\_295}。下划线放置的位置并不重要，所以你可以每四位插入一个下划线来把十六进制和二进制数字分组，例如\texttt{0xffff\_ffff}或者在最后插入下划线分隔类型后缀，例如\texttt{127\_u8}。\hyperref[t3-5]{表3-5}给出了一些整数字面量的例子。
 \begin{table}[htbp]
     \centering
     \caption{整数字面量的例子}
@@ -194,7 +194,7 @@ Rust中的整数字面量可以有一个后缀来指示类型：\texttt{42u8}是
 
 尽管数值类型和\texttt{char}类型是不同的，Rust确实提供了\emph{字节字面量}：很像字符字面量的\texttt{u8}值：\texttt{b'X'}代表字符\texttt{X}的ASCII码值，但是是\texttt{u8}类型的值。例如，因为\texttt{A}的ASCII码值是65，字面量\texttt{b'A'}和\texttt{65u8}是等价的。只有ASCII字符可以出现在字节字面量中。
 
-这里有一些不能用单个字符表示的字符，因为它们要么会导致歧异要么很难看出来。\hyperref[t3-6]{表3-6}中的字符只能用反斜杠转移的方式写出来。
+这里有一些不能用单个字符表示的字符，因为它们要么会导致歧义要么很难看出来。\hyperref[t3-6]{表3-6}中的字符只能用反斜杠转移的方式写出来。
 \begin{table}[htbp]
     \centering
     \caption{需要转义的字符}
@@ -490,7 +490,7 @@ Rust使用\texttt{char}表示单个字符，但使用UTF-8编码字符串和文�
 
 如果你喜欢的话，你可以以十六进制的方式写出一个字符的Unicode编码：
 \begin{itemize}
-    \item 如果字符的码点在U+0000道U+007F之间（可以据此判断是否在ASCII字符集之中），那么你可以将字符写作\texttt{'\textbackslash xHH'}，\texttt{HH}是一个两位的十六进制数字。例如，字符字面量\texttt{'*'}和\texttt{'\textbackslash x2A'}是等价的，因为字符\texttt{*}的码点是42，十六进制是2A。
+    \item 如果字符的码点在U+0000到U+007F之间（可以据此判断是否在ASCII字符集之中），那么你可以将字符写作\texttt{'\textbackslash xHH'}，\texttt{HH}是一个两位的十六进制数字。例如，字符字面量\texttt{'*'}和\texttt{'\textbackslash x2A'}是等价的，因为字符\texttt{*}的码点是42，十六进制是2A。
     \item 你可以用\texttt{'\textbackslash u{HHHHHH}'}形式写出任何Unicode字符，\texttt{HHHHHH}是一个最长6位的十六进制数字，可以用下划线分隔。\footnote{译者注：此处原文中给了一个例子，但译者不知道该怎么打出卡纳达语里的字符，复制粘贴也不行，就省略了这个例子。}
 \end{itemize}
 
@@ -550,7 +550,7 @@ Rust代码中经常使用元组类型来返回多个值。例如，字符串切�
     { ... }
 \end{minted}
 
-参数\texttt{bounds}的类型是\texttt{(usize, usize)}，一个有两个\texttt{usize}值得元组。诚然，我们可以直接使用单独的\texttt{width}和\texttt{height}参数，生成的机器代码也会完全相同。这么写的目的只是想表明，我们把图片的大小看成一个值，而不是两个值，使用元组的写法可以清晰的表现出这一点。
+参数\texttt{bounds}的类型是\texttt{(usize, usize)}，一个有两个\texttt{usize}值的元组。诚然，我们可以直接使用单独的\texttt{width}和\texttt{height}参数，生成的机器代码也会完全相同。这么写的目的只是想表明，我们把图片的大小看成一个值，而不是两个值，使用元组的写法可以清晰的表现出这一点。
 
 元组的另一个常见用法是0元组\texttt{()}。这通常被称为\emph{单元类型}因为它只有一个取值，也写作\texttt{()}。Rust在上下文要求某种类型，但没有有意义的值要传递的情况下使用单元类型。
 
@@ -715,7 +715,7 @@ Rust有三种表示一系列值的类型：
 
 通常使用\texttt{collect}时你需要给出类型，因为它可以生成不同类型的集合，不只是vector。但指明了\texttt{v}的类型之后，我们需要的集合类型就没有歧义了。
 
-类似于数组，你也可以堆vector调用切片的方法：
+类似于数组，你也可以对vector调用切片的方法：
 \begin{minted}{Rust}
     // 回文
     let mut palindrome = vec!["a man", "a plan", "a canal", "panama"];
@@ -724,7 +724,7 @@ Rust有三种表示一系列值的类型：
     assert_eq!(palindrome, vec!["panama", "a canal", "a plan", "a man"]);
 \end{minted}
 
-这里，\texttt{reverse}方法实际上是为切片定义的，但这里调用隐式的借用了vector的\texttt{\&mut [\&str]}切片，然后对它调用了\texttt{reverse}。
+这里，\texttt{reverse}方法实际上是为切片定义的，但这里调用隐式地借用了vector的\texttt{\&mut [\&str]}切片，然后对它调用了\texttt{reverse}。
 
 \texttt{Vec}是Rust中不可或缺的一个类型——它被用在几乎所有需要动态大小列表的场景——所以有很多其他的方法创建构造新的vector或扩展现有的列表，我们将在\hyperref[ch16]{第16章}介绍它们。
 
@@ -1055,7 +1055,7 @@ Rust的方法是为这些场景提供一些类似字符串的类型：
 
 \section{基本类型之外}
 
-类型是Rust的一个核心部分。我们将在整本书中继续讨论类型并介绍新的类型。特别是，Rust 的用户定义类型赋予了语言很多自身的风格。有三种用户自定义的类型，我们将分别在三章中介绍它们：\hyperref[ch09]{第9章}介绍结构体，\hyperref[ch10]{第10章}介绍美枚举，\hyperref[ch11]{第11章}介绍trait。
+类型是Rust的一个核心部分。我们将在整本书中继续讨论类型并介绍新的类型。特别是，Rust 的用户定义类型赋予了语言很多自身的风格。有三种用户自定义的类型，我们将分别在三章中介绍它们：\hyperref[ch09]{第9章}介绍结构体，\hyperref[ch10]{第10章}介绍枚举，\hyperref[ch11]{第11章}介绍trait。
 
 函数和闭包有它们自己的类型，这将在\hyperref[ch14]{第14章}中介绍。标准库中的类型将在整本书中介绍。例如，\hyperref[ch16]{第16章}介绍标准集合类型。
 
