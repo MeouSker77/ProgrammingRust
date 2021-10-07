@@ -6,7 +6,7 @@ Rust给像本书一样的书籍的作者提出了一个挑战：赋予这门语�
 \begin{itemize}
     \item 作为热身，我们准备了一个简单的计算命令行参数的程序，以及相应的单元测试。这个程序展示了Rust的核心类型，并引入了\emph{trait}。
     \item 接下来，我们构建了一个web服务器。我们将会使用一个第三方库来处理HTTP的细节，并引入字符串处理、闭包、错误处理。
-    \item 我们的第三个程序绘制了一个漂亮的图形，讲计算分布到多个线程来提高速度。这一部分包括一个泛型函数的示例，阐明了怎么处理类似于一个像素的概念，并展示了Rust对并发的支持。
+    \item 我们的第三个程序绘制了一个漂亮的图形，将计算分布到多个线程来提高速度。这一部分包括一个泛型函数的示例，阐明了怎么处理类似于一个像素的概念，并展示了Rust对并发的支持。
     \item 最后，我们展示了一个使用正则表达式处理文件的健壮的命令行程序。这个程序展示了Rust标准库中处理文件的设施，和最常用的第三方正则表达式库。
 \end{itemize}
 
@@ -19,7 +19,7 @@ Rust保证在对代码的性能影响最小的情况下防止未定义行为，�
 
 或者，你可以访问\href{https://www.rust-lang.org/}{Rust网站}来获取预构建好的Linux、macOS、Windows上的包。一些操作系统发行版里也包含Rust。我们推荐\texttt{rustup}，因为它是专用于管理Rust安装的工具，就像Ruby的RVM和Node的NVM一样。例如，当一个新版本的Rust发布时，你只需要输入\texttt{rustup update}就可以完成更新。
 
-在任何情况下，完成了安装之后，你应该可以通过命令行访问以下三条新命令：
+无论如何，一旦你完成了安装，你就应该可以通过命令行访问以下三条新命令：
 \begin{minted}{text}
     $ cargo --version
     cargo 1.49.0 (d00d64df9 2020-12-05)
@@ -177,7 +177,7 @@ Rust语言内建有对测试的支持。为了测试我们的\texttt{gcd}函数�
     }
 \end{minted}
 
-这里我们定义了一个叫\texttt{test\_gcd}的函数，它调用了\texttt{gcd}函数并检查返回值是否正确。喊函数上方的\texttt{\#[test]}标记\texttt{test\_gcd}是一个测试函数，这种函数在正常编译时会被跳过，但在使用\texttt{cargo test}命令时会被编译并自动调用。我们可以在整个源码树的任何位置定义测试函数，\texttt{cargo test}会自动收集它们并运行。
+这里我们定义了一个叫\texttt{test\_gcd}的函数，它调用了\texttt{gcd}函数并检查返回值是否正确。函数上方的\texttt{\#[test]}标记\texttt{test\_gcd}是一个测试函数，这种函数在正常编译时会被跳过，但在使用\texttt{cargo test}命令时会被编译并自动调用。我们可以在整个源码树的任何位置定义测试函数，\texttt{cargo test}会自动收集它们并运行。
 
 \texttt{\#[test]}标记是\emph{属性}的是一个示例。属性是一种为函数和其他声明标记额外信息的开放式系统，类似于C++和C\#中的属性，或者Java中的注解。它们被用来控制编译器警告和代码风格检查、条件编译（类似于C和C++中的\texttt{\#ifdef}）、告诉Rust怎么和其它语言编写的代码交互等。随着继续深入我们将会看到更多使用属性的例子。
 
@@ -228,7 +228,7 @@ Rust语言内建有对测试的支持。为了测试我们的\texttt{gcd}函数�
     use std::env;
 \end{minted}
 
-第一个\texttt{use}声明引入了标准库中的\texttt{FromStr} \emph{trait}。一个\texttt{trait}就是一些可以被实现的方法的集合。任何实现了\texttt{FromStr} trait的类型都有一个\texttt{from\_str}方法，这个方法尝试把一个字符串解析为该类型。\texttt{u64}类型实现了\texttt{FromStr}，因此我们将调用\texttt{u64::from\_str}来解析命令行参数。尽管我们在程序中并没有使用到\texttt{FromStr}这个名字，但为了使用这个trait的方法，必须将它引入作用域。我们将会在第\hyperref[ch11]{第11章}讲解trait。
+第一个\texttt{use}声明引入了标准库中的\texttt{FromStr} \emph{trait}。一个\texttt{trait}就是一些可以被实现的方法的集合。任何实现了\texttt{FromStr} trait的类型都有一个\texttt{from\_str}方法，这个方法尝试把一个字符串解析为该类型。\texttt{u64}类型实现了\texttt{FromStr}，因此我们将调用\texttt{u64::from\_str}来解析命令行参数。尽管我们在程序中并没有使用到\texttt{FromStr}这个名字，但为了使用这个trait的方法，必须将它引入作用域。我们将会在\hyperref[ch11]{第11章}讲解trait。
 
 第二个\texttt{use}声明引入了\texttt{std::env}模块，它提供了一些和运行环境进行交互的函数和类型，包括\texttt{args}函数，它可以让我们获取到程序的命令行参数。
 
@@ -269,7 +269,7 @@ Rust语言内建有对测试的支持。为了测试我们的\texttt{gcd}函数�
     \item 另一个写作\texttt{Err(e)}，表示解析失败，\texttt{e}是解释失败的原因。
 \end{itemize}
 
-任何可能会失败的函数，例如输入输出或其他和操作系统交互的函数，都会返回\texttt{Result}值，\texttt{Ok}时会携带成功的结果——读写的字节数、打开的文件等等——\texttt{Err}时会携带错误码来指示错误的原因。和大多数现代编程语言不同，Rust没有异常：所有的错误都通过\texttt{Rust}或者panic来处理，这会在\hyperref[ch07]{第7章}中介绍。
+任何可能会失败的函数，例如输入输出或其他和操作系统交互的函数，都会返回\texttt{Result}值，\texttt{Ok}时会携带成功的结果——读写的字节数、打开的文件等等——\texttt{Err}时会携带错误码来指示错误的原因。和大多数现代编程语言不同，Rust没有异常：所有的错误都通过\texttt{Result}或者panic来处理，这会在\hyperref[ch07]{第7章}中介绍。
 
 我们使用Rust的\texttt{expect}方法来检查解析是否成功。如果结果是\texttt{Err(e)}，\texttt{expect}会打印出包含\texttt{e}的描述错误的消息。如果结果是\texttt{Ok(v)}，\texttt{expect}会简单的返回\texttt{v}，之后我们才能把它添加到vector的尾部。
 
@@ -447,7 +447,7 @@ crate有一些可选的特性：这些特性是有些用户可能用不到、但
 
 终于到了使用我们在\texttt{Cargo.toml}中列出的\texttt{serde} crate的时候了：它提供了一种帮助我们处理表单数据的简单方法。首先，我们需要在\texttt{src/main.rs}中添加如下\texttt{use}声明：
 \begin{minted}{Rust}
-    use serde::Deserialie;
+    use serde::Deserialize;
 \end{minted}
 
 Rust程序员通常会把\texttt{use}声明集中在文件开始处，但这并不是必须的：Rust允许\texttt{use}声明以任何顺序出现，只要它们出现在正确的嵌套层级。
@@ -465,7 +465,7 @@ Rust程序员通常会把\texttt{use}声明集中在文件开始处，但这并�
 
 \texttt{struct}定义上方的注解是一个属性，类似于我们之前用来标记为测试函数时使用的\texttt{\#[test]}属性。在一个类型定义前加上\texttt{\#[derive(Deserialize)]}属性可以告诉\texttt{serde} crate在程序编译时自动为该类型生成代码来把HTML \texttt{POST}请求的表单数据转为该类型的值。事实上，这个属性可以让你从几乎所有结构化的数据：JSON、YAML、TOML或其他文本或二进制格式中解析出一个\texttt{GcdParameters}类型的值。\texttt{serde} crate还提供一个\texttt{Serialize}属性来做相反的事，即把Rust值写成结构化的格式。
 
-有了上面的定义，我们可以简单的写出我们的处理函数：
+有了上面的定义，我们可以简单地写出我们的处理函数：
 \begin{minted}{Rust}
     fn post_gcd(form: web::Form<GcdParameters>) -> HttpResponse {
         if form.n == 0 || form.m == 0 {
@@ -555,7 +555,7 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
 在开始实现并行的曼德勃罗集之前，我们需要先描述一下我们准备实现的计算过程。
 
 \subsection{曼德勃罗集到底是什么}
-了解这一点可以帮我们在阅读代码时更加清楚它要做什么，因此首先让我们先探讨一些纯数学只是。我们将以一个简单的例子开始，并逐渐添加复杂的细节，直到我们讲到曼德勃罗集的核心。
+了解这一点可以帮我们在阅读代码时更加清楚它要做什么，因此首先让我们先探讨一些纯数学知识。我们将以一个简单的例子开始，并逐渐添加复杂的细节，直到我们讲到曼德勃罗集的核心。
 
 首先这里有一个无限循环，用Rust的语法来写的话就是一个\texttt{loop}语句：
 \begin{minted}{Rust}
@@ -1279,7 +1279,7 @@ Rust中版本到达了1.0以上的crate都遵循“语义版本”的规则：�
 这是一个很好的开始！参数被正确提取出来并存储到\texttt{Arguments}结构体中。
 
 \subsection{读写文件}
-接下来，我们需要一些方法来从文件系统中获取数据，处理之后再写回到文件系统中。Rust有健全的输入输出工具，但标准库的设计者知道都写文件是非常常见的，因此他们特意将这些工具设计得非常易用。我们需要的只是导入\texttt{std::fs}，这样我们就可以使用\texttt{read\_to\_string}和\texttt{write}函数：
+接下来，我们需要一些方法来从文件系统中获取数据，处理之后再写回到文件系统中。Rust有健全的输入输出工具，但标准库的设计者知道读写文件是非常常见的，因此他们特意将这些工具设计得非常易用。我们需要的只是导入\texttt{std::fs}，这样我们就可以使用\texttt{read\_to\_string}和\texttt{write}函数：
 \begin{minted}{Rust}
     use std::fs;
 \end{minted}
@@ -1404,4 +1404,4 @@ Rust中版本到达了1.0以上的crate都遵循“语义版本”的规则：�
 
 当然，这个简单的演示中却少了很多特性，但基础的功能都已经有了。你可以看到如何读写文件、传播和显示错误、使用彩色输出来提高用户的终端体验。
 
-后续的章节会介绍更多高级的应用开发的技术：从数据集合和使用迭代器的函数式编程到为了实现极致并发效率的异步编程。但首先，你需要在下一章中为Rust的基本数据类型打下坚持的基础。
+后续的章节会介绍更多高级的应用开发的技术：从数据集合和使用迭代器的函数式编程到为了实现极致并发效率的异步编程。但首先，你需要在下一章中为Rust的基本数据类型打下坚实的基础。
