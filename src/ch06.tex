@@ -212,5 +212,71 @@ C中的大部分控制流工具都是语句，在Rust中则全是表达式。
 
 \section{声明}
 
+除了表达式和分号之外，一个块中可能包含任意数量的声明。最常见的情况是\texttt{let}声明，它用来声明局部变量：
+\begin{minted}{Rust}
+    let name: type = expr;
+\end{minted}
 
-\label{cast}
+类型和初始值是可选的，分号是必须的。
+
+一个\texttt{let}声明可以在不初始化的情况下声明一个变量。这有时很有用，因为有时候一个变量需要在控制流的中途初始化：
+\begin{minted}{Rust}
+    let name;
+    if user.has_nickname() {
+        name = user.nickname();
+    } else {
+        name = generate_unique_name();
+        user.register(&name);
+    }
+\end{minted}
+
+局部变量\texttt{name}有两种不同的初始化路径，但两条路径上它都只会被初始化一次，所以\texttt{name}不需要声明为\texttt{mut}。
+
+在变量初始化之前使用它会导致错误（这和使用被移动的值的错误紧密相关，Rust希望你只在变量的值存在时使用它们！）。
+
+你有时可能会看到代码似乎重新声明一个已经存在的变量，例如：
+\begin{minted}{Rust}
+    for line in file.lines() {
+        let line = line?;
+        ...
+    }
+\end{minted}
+
+\texttt{let}声明创建了一个新的、类型不同的、第二个变量\texttt{line}。第一个\texttt{line}的类型是\texttt{Result<String, io::Error>}，第二个\texttt{line}是一个\texttt{String}。第二个声明在块的剩余部分会取代第一个。这被称为\emph{遮蔽(shadowing)}，在Rust程序中非常常见。上面的代码等价于：
+\begin{minted}{Rust}
+    for line_result in file.lines() {
+        let line = line_result?;
+        ...
+    }
+\end{minted}
+
+在这本书中，我们将坚持在这种场景中使用\texttt{\_result}后缀，来保证变量的名字不同。
+
+一个块还可以包含\emph{item declarations}。一个item是一个可以出现在全局或模块中的声明，例如\texttt{fn}、\texttt{struct}、\texttt{use}。
+
+后面的章节将会详细介绍item。现在，\texttt{fn}足够作为一个例子了。任何块都可以包含\texttt{fn}声明：
+\begin{minted}{Rust}
+    use std::io;
+    use std::cmp::Ordering;
+
+    fn show_files() -> io::Result<()> {
+        let mut v = vec![];
+        ...
+        fn cmp_by_timestamp_then_name(a: &FileInfo, b: &FileInfo) -> Ordering {
+            a.timestamp.cmp(&b.timestamp)   // 首先，比较时间戳 
+                .reverse()                  // 最新的文件优先
+                .then(a.path.cmp(&b.path))  // 比较路径
+        }
+
+        v.sort_by(cmp_by_timestamp_then_name);
+        ...
+    }
+\end{minted}
+
+当一个\texttt{fn}在块内声明的时候，它的作用域是整个块，它可以在整个块内\emph{使用}。但是一个嵌套的\texttt{fn}不能访问外围作用域的局部变量和参数。例如，函数\texttt{cmp\_by\_timestamp\_then\_name}不能使用\texttt{v}。（Rust还有闭包，闭包可以使用外层作用域的变量，见\hyperref[ch14]{第14章}。）
+
+一个块甚至可以包含整个模块。这听起来可能有些多余了：我们真的需要把语言的\emph{每一部分}嵌套在其他部分中的能力吗？——但程序员（尤其是使用宏的程序员）可以找到语言提供的每一个正交碎片的用法。
+
+\section{if与match}
+
+\section{类型转换}\label{cast}
