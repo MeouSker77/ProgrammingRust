@@ -154,7 +154,7 @@ Rust的整数类型的名字代表了它们的大小和符号性：\texttt{i32}�
     let t: u64 = m;
 \end{minted}
 
-Rsut有\texttt{return}语句，但是\texttt{gcd}函数并不需要。如果一个函数体以一个\emph{没有}分号结尾的表达式结尾，那么这个表达式的值就是函数的返回值。事实上，任何一个花括号包围的语法块都可以作为一个表达式。例如，这里有一个表达式打印出一条消息，然后返回\texttt{x.cos()}作为它的值：
+Rust有\texttt{return}语句，但是\texttt{gcd}函数并不需要。如果一个函数体以一个\emph{没有}分号结尾的表达式结尾，那么这个表达式的值就是函数的返回值。事实上，任何一个花括号包围的语法块都可以作为一个表达式。例如，这里有一个表达式打印出一条消息，然后返回\texttt{x.cos()}作为它的值：
 \begin{minted}{Rust}
     {
         println!("evaluating cos x");
