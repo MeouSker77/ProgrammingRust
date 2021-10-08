@@ -3,7 +3,7 @@
 \emph{LISP programmers know the value of everything, but the cost of nothing}
 
 \begin{flushright}
-    ——Alan Perlis, epigram #55
+    ——Alan Perlis, epigram \#55
 \end{flushright}
 
 在这一章中，我们将介绍Rust的\emph{表达式}，它是构成Rust函数体和大部分Rust代码的构建块。Rust中大部分都是表达式。在这一章中，我们将探索表达式的力量以及如何克服它的局限。我们还将介绍控制流，它在Rust中完全是以表达式为基础的，最后还要介绍Rust中的基本运算符如何单独和组合工作。
@@ -59,6 +59,103 @@ Rust是一种\emph{表达式语言}。这意味着它遵循了起源于Lisp的�
 
 C中的大部分控制流工具都是语句，在Rust中则全是表达式。
 
-\section{优先级和关联性}
+\section{优先级和结合性}
+
+\hyperref[t6-1]{表6-1}总结了Rust的表达式语法。我们将在这一章中介绍所有这些表达式。运算符按照优先级从高到低的顺序列出。（类似于大多数编程语言，Rust使用\emph{运算符优先级}来决定当表达式中含有多个运算符时的运算顺序。例如，在表达式\texttt{limit < 2 * broom.size + 1}中，\texttt{.}运算符优先级最高，因此会先访问字段。）
+
+\begin{longtable}{p{0.25\textwidth}p{0.35\textwidth}p{0.3\textwidth}}
+    \caption{表达式}
+    \label{t6-1} \\
+    \hline
+    \textbf{表达式类型} & \textbf{示例} & \textbf{相关trait} \\
+    \hline
+    数组字面量      & \texttt{[1, 2, 3]}         & \\
+    重复数组字面量  & \texttt{[0; 50]}           & \\
+    元组            & \texttt{(6, "crullers")}  & \\
+    \cline{1-2}
+    组合            & \texttt{(2 + 2)}             & \\
+    块              & \texttt{\{ f(); g() \}}      & \\
+    控制流表达式     & \texttt{if ok \{ f() \}}     & \\
+                    & \texttt{if ok \{ 1 \} else \{ 0 \}}                   & \\
+                    & \texttt{if let Some(x) = f() \{ x \} else \{ 0 \}}    & \\
+                    & \texttt{match x \{ None => 0, \_ => 1 \}}             & \\
+                    & \texttt{for v in e \{ f(v); \}}                       & \texttt{\hyperref[iter]{std::iter::IntoIterator}} \\
+                    & \texttt{while ok \{ ok = f(); \}}                     & \\
+                    & \texttt{while let Some(x) = it.next() \{ f(x); \}}    & \\
+                    & \texttt{loop \{ next\_event(); \}}                    & \\
+                    & \texttt{break}                  & \\
+                    & \texttt{continue}               & \\
+                    & \texttt{return 0}               & \\
+    宏调用          & \texttt{println!("ok")}         & \\
+    路径            & \texttt{std::f64::consts::PI}   & \\
+    \cline{1-2}
+    结构体字面量     & \texttt{Point \{x: 0, y: 0\}}     & \\
+    \cline{1-2}
+    元组字段访问    & \texttt{pair.0}   & \texttt{\hyperref[deref]{Deref}, \hyperref[deref]{DerefMut}} \\
+    结构体字段访问  & \texttt{point.x}  & \texttt{\hyperref[deref]{Deref}, \hyperref[deref]{DerefMut}} \\
+    方法调用       & \texttt{point.translate(50, 50)} & \texttt{\hyperref[deref]{Deref}, \hyperref[deref]{DerefMut}} \\
+    函数调用       & \texttt{stdin()}   & \texttt{\hyperref[fn]{Fn(Arg0, ...) -> T}, \hyperref[fn]{FnMut(Arg0, ...) -> T}, \hyperref[fn]{FnOnce(Arg0, ...) -> T}} \\
+    索引            & \texttt{arr[0]}   & \texttt{\hyperref[index]{Index}, \hyperref[index]{IndexMut}, \hyperref[deref]{Deref}, \hyperref[deref]{DerefMut}} \\
+    \cline{1-2}
+    错误检查        & \texttt{create\_dir("tmp")?}   & \\
+    逻辑/位 NOT     & \texttt{!ok}  & \texttt{\hyperref[unop]{Not}} \\
+    负             & \texttt{-num}  & \texttt{\hyperref[unop]{Neg}} \\
+    解引用          & \texttt{*ptr} & \texttt{\hyperref[deref]{Deref}, \hyperref[deref]{DerefMut}} \\
+    借用            & \texttt{\&val}    & \\
+    \cline{1-2}
+    类型转换    & \texttt{x as u32} \\
+    \cline{1-2}
+    乘法        & \texttt{n * 2}    & \texttt{\hyperref[biop]{Mul}} \\
+    除法        & \texttt{n / 2}    & \texttt{\hyperref[biop]{Div}} \\
+    余数（取模） & \texttt{n \% 2}   & \texttt{\hyperref[biop]{Rem}} \\
+    \cline{1-2}
+    加法        & \texttt{n + 1}    & \texttt{\hyperref[biop]{Add}} \\
+    减法        & \texttt{n - 1}    & \texttt{\hyperref[biop]{Sub}} \\
+    \cline{1-2}
+    左移        & \texttt{n << 1}   & \texttt{\hyperref[biop]{Shl}} \\
+    右移        & \texttt{n >> 1}   & \texttt{\hyperref[biop]{Shr}} \\
+    \cline{1-2}
+    位与        & \texttt{n \& 1}   & \texttt{\hyperref[biop]{BitAnd}} \\
+    \cline{1-2}
+    位异或      & \texttt{n \^ 1}   & \texttt{\hyperref[biop]{BitXor}} \\
+    \cline{1-2}
+    位或        & \texttt{n | 1}    & \texttt{\hyperref[biop]{BitOr}}  \\
+    \cline{1-2}
+    小于        & \texttt{n < 1}    & \texttt{\hyperref[cmp]{std::cmp::PartialOrd}} \\
+    小于等于    & \texttt{n <= 1}   & \texttt{\hyperref[cmp]{std::cmp::PartialOrd}} \\
+    大于        & \texttt{n > 1}    & \texttt{\hyperref[cmp]{std::cmp::PartialOrd}} \\
+    大于等于    & \texttt{n >= 1}   & \texttt{\hyperref[cmp]{std::cmp::PartialOrd}} \\
+    等于        & \texttt{n == 1}   & \texttt{\hyperref[equal]{std::cmp::PartialEq}} \\
+    不等于      & \texttt{n != 1}   & \texttt{\hyperref[equal]{std::cmp::PartialEq}} \\   
+    \cline{1-2}
+    逻辑与      & \texttt{x.ok \&\& y.ok}       & \\
+    \cline{1-2}
+    逻辑或      & \texttt{x.ok || backup.ok}    & \\
+    \cline{1-2}
+    左闭右开区间 & \texttt{start .. stop}   & \\
+    左闭右闭区间 & \texttt{start ..= stop}  & \\
+    \cline{1-2}
+    赋值        & \texttt{x = val}  & \\
+    复合赋值    & \texttt{x *= 1}   & \texttt{\hyperref[assign]{MulAssign}} \\
+                & \texttt{x /= 1}   & \texttt{\hyperref[assign]{DivAssign}} \\
+                & \texttt{x \%= 1}  & \texttt{\hyperref[assign]{RemAssign}} \\
+                & \texttt{x += 1}   & \texttt{\hyperref[assign]{AddAssign}} \\
+                & \texttt{x -= 1}   & \texttt{\hyperref[assign]{SubAssign}} \\
+                & \texttt{x <<= 1}  & \texttt{\hyperref[assign]{ShlAssign}} \\
+                & \texttt{x >>= 1}  & \texttt{\hyperref[assign]{ShrAssign}} \\
+                & \texttt{x \&= 1}  & \texttt{\hyperref[assign]{BitAndAssign}} \\
+                & \texttt{x \^= 1}  & \texttt{\hyperref[assign]{BitXorAssign}} \\
+                & \texttt{x |= 1}   & \texttt{\hyperref[assign]{BitOrAssign}} \\
+    \cline{1-2}
+    闭包        & \texttt{|x, y| x + y} & \\
+\end{longtable}
+
+所有可以链式使用的运算符都是左结合的。也就是说，一条运算链例如\texttt{a - b - c}被组合为\texttt{(a - b) - c}，而不是\texttt{a - (b - c)}。这些运算符可以被任意组合：
+\begin{minted}{text}
+    * / % + - << >> & ^ | && || as
+\end{minted}
+比较运算符、赋值运算符、范围运算符\texttt{.. }和\texttt{..=}不能被链式使用。
+
+\section{块和分号}
 
 \label{cast}
