@@ -98,36 +98,37 @@ C中的大部分控制流工具都是语句，在Rust中则全是表达式。
     索引            & \texttt{arr[0]}   & \texttt{\hyperref[index]{Index}, \hyperref[index]{IndexMut}, \hyperref[deref]{Deref}, \hyperref[deref]{DerefMut}} \\
     \cline{1-2}
     错误检查        & \texttt{create\_dir("tmp")?}   & \\
+    \cline{1-2}
     逻辑/位 NOT     & \texttt{!ok}  & \texttt{\hyperref[unop]{Not}} \\
     负             & \texttt{-num}  & \texttt{\hyperref[unop]{Neg}} \\
     解引用          & \texttt{*ptr} & \texttt{\hyperref[deref]{Deref}, \hyperref[deref]{DerefMut}} \\
     借用            & \texttt{\&val}    & \\
     \cline{1-2}
-    类型转换    & \texttt{x as u32} \\
+    类型转换    & \texttt{x as u32} & \\
     \cline{1-2}
     乘法        & \texttt{n * 2}    & \texttt{\hyperref[biop]{Mul}} \\
     除法        & \texttt{n / 2}    & \texttt{\hyperref[biop]{Div}} \\
     余数（取模） & \texttt{n \% 2}   & \texttt{\hyperref[biop]{Rem}} \\
-    \cline{1-2}
+    \hline
     加法        & \texttt{n + 1}    & \texttt{\hyperref[biop]{Add}} \\
     减法        & \texttt{n - 1}    & \texttt{\hyperref[biop]{Sub}} \\
-    \cline{1-2}
+    \hline
     左移        & \texttt{n << 1}   & \texttt{\hyperref[biop]{Shl}} \\
     右移        & \texttt{n >> 1}   & \texttt{\hyperref[biop]{Shr}} \\
-    \cline{1-2}
+    \hline
     位与        & \texttt{n \& 1}   & \texttt{\hyperref[biop]{BitAnd}} \\
-    \cline{1-2}
-    位异或      & \texttt{n \^ 1}   & \texttt{\hyperref[biop]{BitXor}} \\
-    \cline{1-2}
+    \hline
+    位异或      & \texttt{n \^{} 1} & \texttt{\hyperref[biop]{BitXor}} \\
+    \hline
     位或        & \texttt{n | 1}    & \texttt{\hyperref[biop]{BitOr}}  \\
-    \cline{1-2}
+    \hline
     小于        & \texttt{n < 1}    & \texttt{\hyperref[cmp]{std::cmp::PartialOrd}} \\
     小于等于    & \texttt{n <= 1}   & \texttt{\hyperref[cmp]{std::cmp::PartialOrd}} \\
     大于        & \texttt{n > 1}    & \texttt{\hyperref[cmp]{std::cmp::PartialOrd}} \\
     大于等于    & \texttt{n >= 1}   & \texttt{\hyperref[cmp]{std::cmp::PartialOrd}} \\
     等于        & \texttt{n == 1}   & \texttt{\hyperref[equal]{std::cmp::PartialEq}} \\
     不等于      & \texttt{n != 1}   & \texttt{\hyperref[equal]{std::cmp::PartialEq}} \\   
-    \cline{1-2}
+    \hline
     逻辑与      & \texttt{x.ok \&\& y.ok}       & \\
     \cline{1-2}
     逻辑或      & \texttt{x.ok || backup.ok}    & \\
@@ -144,7 +145,7 @@ C中的大部分控制流工具都是语句，在Rust中则全是表达式。
                 & \texttt{x <<= 1}  & \texttt{\hyperref[assign]{ShlAssign}} \\
                 & \texttt{x >>= 1}  & \texttt{\hyperref[assign]{ShrAssign}} \\
                 & \texttt{x \&= 1}  & \texttt{\hyperref[assign]{BitAndAssign}} \\
-                & \texttt{x \^= 1}  & \texttt{\hyperref[assign]{BitXorAssign}} \\
+                & \texttt{x \^{}= 1}& \texttt{\hyperref[assign]{BitXorAssign}} \\
                 & \texttt{x |= 1}   & \texttt{\hyperref[assign]{BitOrAssign}} \\
     \cline{1-2}
     闭包        & \texttt{|x, y| x + y} & \\
@@ -157,5 +158,59 @@ C中的大部分控制流工具都是语句，在Rust中则全是表达式。
 比较运算符、赋值运算符、范围运算符\texttt{.. }和\texttt{..=}不能被链式使用。
 
 \section{块和分号}
+
+块是最通用的表达式。一个块产生一个值，可以被用于任何需要一个值的地方：\begin{minted}{Rust}
+    let display_name = match post.author() {
+        Some(author) => author.name(),
+        None => {
+            let network_info = post.get_network_metadata()?;
+            let ip = network_info.client_address();
+            ip.to_string()
+        }
+    };
+\end{minted}
+\texttt{Some(author) =>}之后的代码是简单的表达式\texttt{author.name()}，\texttt{None =>}之后的代码则是一个块表达式。对Rust来种，两种表达式没有区别。块表达式的值是它的最后一条表达式的值，也就是\texttt{ip.to\_string()}。
+
+注意\texttt{ip.to\_string()}后面没有分号。Rust中的大部分代码行都以分号或者花括号结尾，类似于C和Java。如果一个块看起来像C代码一样在所有的表达式后边都有分号，那它的行为就和C块一样，它的值将是\texttt{()}。正如我们在\hyperref[ch02]{第2章}提到的，当你省略了块中最后一个表达式后边的分号，那么块的值将是最后一个表达式的值，而不是通常的\texttt{()}。
+
+在一些语言中，尤其是Javascript，你可以省略分号，语言会自动为你添加上——这样除了方便一点，并没有任何区别。然而在Rust中，分号通常是有实际意义的：
+\begin{minted}{Rust}
+    let msg = {
+        // let语句：总是需要分号
+        let dandelion_control = puffball.open();
+
+        // 表达式 + 分号：方法被调用，返回值被丢弃
+        dandelion_control.release_all_seeds(launch_codes);
+
+        // 没有分号的表达式：方法被调用，
+        // 返回值被存储到 `msg`
+        dandelion_control.get_status()
+    };
+\end{minted}
+
+语句块可以包含声明最后还能产生一个值的能力是一个很有用的特性，而且可以很快习惯。它的一个缺陷是如果你偶然忘记了分号会导致一条错误信息：
+\begin{minted}{Rust}
+    ...
+    if preferences.changed() {
+        page.compute_size()  // oops, 缺少分号
+    }
+\end{minted}
+
+如果你在C或者Java程序中犯了这种错误，编译器会简单地直接指出你少写了一个分号。然而这是Rust的报错：
+\begin{minted}{text}
+    error[E0308]: mismatched types
+    22 |         page.compute_size()  // oops, missing semicolon
+       |         ^^^^^^^^^^^^^^^^^^^- help: try adding a semicolon `;`
+       |         |
+       |         expected (), found tuple
+       |
+       = note: expected unit type `()`
+                  found tuple `(u32, u32)`
+\end{minted}
+
+在缺少分号的情况下，块的值将是\texttt{page.compute\_size()}返回的值，但一个没有\texttt{else}分支的\texttt{if}语句必须总是返回\texttt{()}。幸运的是，Rust知道这种类型的错误并建议加上分号。
+
+\section{声明}
+
 
 \label{cast}
