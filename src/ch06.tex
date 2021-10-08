@@ -1,3 +1,64 @@
 \chapter{表达式}\label{ch06}
 
+\emph{LISP programmers know the value of everything, but the cost of nothing}
+
+\begin{flushright}
+    ——Alan Perlis, epigram #55
+\end{flushright}
+
+在这一章中，我们将介绍Rust的\emph{表达式}，它是构成Rust函数体和大部分Rust代码的构建块。Rust中大部分都是表达式。在这一章中，我们将探索表达式的力量以及如何克服它的局限。我们还将介绍控制流，它在Rust中完全是以表达式为基础的，最后还要介绍Rust中的基本运算符如何单独和组合工作。
+
+还有一些从技术角度应该划入这一类的概念，例如闭包和迭代器，因为足够重要因此我们之后会用单独的章节介绍它们。现在，我们希望能用尽可能少的页数介绍尽可能多的语法。
+
+\section{表达式语言}
+
+Rust表面上看上去像C家族的语言，但这其实是一个误解。在C语言中，\emph{表达式}和\emph{语句}之间有很大的不同。表达式是一些像这样的代码：
+\begin{minted}{C}
+    5 * (fahr-32) / 9
+\end{minted}
+而语句则是像这样的：
+\begin{minted}{C}
+    for (; begin != end; ++begin) {
+        if (*begin == target)
+            break;
+    }
+\end{minted}
+表达式有值，但语句没有。
+
+Rust是一种\emph{表达式语言}。这意味着它遵循了起源于Lisp的传统，也就是表达式负责完成所有工作。
+
+在C中，\texttt{if}和\texttt{switch}是语句。它们并不产生值，也不能被用在表达式中间。在Rust中，\texttt{if}和\texttt{match}\emph{可以}产生值。我们已经在\hyperref[ch02]{第2章}中看到过一个产生数字值的\texttt{match}表达式：
+\begin{minted}{Rust}
+    pixels[r * bounds.0 + c] =
+        match escapes(Complex { re: point.0, im: point.1 }, 255) {
+            None => 0,
+            Some(count) => 255 - count as u8
+        };
+\end{minted}
+
+一个\texttt{if}表达式可以用于初始化一个变量：
+\begin{minted}{Rust}
+    let status =
+        if cpu.temperature <= MAX_TEMP {
+            HttpStatus::Ok
+        } else {
+            HttpStatus::ServerError  // server melted
+        };
+\end{minted}
+
+一个\texttt{match}表达式可以被用作函数参数或宏的参数：
+\begin{minted}{Rust}
+    println!("Inside the vat, you see {}.",
+        match vat.contents {
+            Some(brain) => brain.desc(),
+            None => "nothing of interest"
+        });
+\end{minted}
+
+这解释了Rust为什么没有C的三元运算符\texttt{(expr1 ? expr2 : expr3))}。在C中，它是一种类似\texttt{if}语句的表达式。在Rust中这种写法是多余的，因为\texttt{if}表达式可以同时实现这两种功能。
+
+C中的大部分控制流工具都是语句，在Rust中则全是表达式。
+
+\section{优先级和关联性}
+
 \label{cast}
