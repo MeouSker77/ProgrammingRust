@@ -464,4 +464,80 @@ Rust会从第一个分支开始，逐个检查\texttt{value}和给定的模式�
 
 \hyperref[ch15]{第15章}会更详细的介绍\texttt{for}循环并展示其他使用迭代器的方式。
 
+\section{循环中的控制流}
+
+\texttt{break}表达式用来跳出循环（Rust中\texttt{break}只能在循环中使用。\texttt{match}表达式中不需要它，这一点和\texttt{switch}语句不同）。
+
+在一个\texttt{loop}循环体内，你可以给\texttt{break}一个表达式，
+表达式的值就是整个循环的值：
+\begin{minted}{Rust}
+    // 每一次对`next_line`的调用返回`Some(line)`，其中`line`
+    // 是输入的一行；或者返回`None`，表示已经到达输入结尾。
+    // 返回第一个以"answer: "开头的行。
+    // 如果没有，就返回"answer: nothing"。
+    let answer = loop {
+        if let Some(line) = next_line() {
+            if line.starts_with("answer: ") {
+                break line;
+            }
+        } else {
+            break "answer: nothing";
+        }
+    };
+\end{minted}
+
+自然，\texttt{loop}表达式中的所有\texttt{break}表达式必须产生相同类型的值，这个类型也会成为\texttt{loop}本身的类型。
+
+一个\texttt{continue}表达式跳转到下一次迭代：
+\begin{minted}{Rust}
+    // 读取一些数据，一次读取一行
+    for line in input_lines {
+        let trimmed = trim_comments_and_whitespace(line);
+        if trimmed.is_empty() {
+            // 跳转到loop的开头并
+            // 移动到下一行输入
+            continue;
+        }
+        ...
+    }
+\end{minted}
+
+在一个\texttt{for}循环中，\texttt{continue}会跳转到集合中的下一个值，如果没有值了，循环会停止。类似的，在一个\texttt{while}循环中\texttt{continue}会重新检查循环条件，如果现在是false，循环会停止。
+
+一个循环可以用一个生命周期\emph{标记}。在下面的例子中，\texttt{'search}是一个外层\texttt{for}循环的标签。因此\texttt{break 'search}会退出外层循环，而不是内层循环：
+\begin{minted}{Rust}
+    'search
+    for room in apartment {
+        for spot in room.hiding_spots() {
+            if spot.contains(keys) {
+                println!("Your keys are {} in the {}.", spot, room);
+                break 'search;
+            }
+        }
+    }
+\end{minted}
+
+一个\texttt{break}可以同时带有一个标签和一个值表达式：
+\begin{minted}{Rust}
+    // 寻找一列数中的第一个完全平方
+    let sqrt = 'outer: loop {
+        let n = next_number();
+        for i in 1.. {
+            let square = i * i;
+            if square == n {
+                // 找到了一个平方根
+                break 'outer i;
+            }
+            if square > n {
+                // `n`不是完全平方，尝试下一个数
+                break;
+            }
+        }
+    };
+\end{minted}
+
+标签也可以和\texttt{continue}一起使用。
+
+\section{return表达式}
+
 \section{类型转换}\label{cast}
