@@ -279,4 +279,84 @@ C中的大部分控制流工具都是语句，在Rust中则全是表达式。
 
 \section{if与match}
 
+\texttt{if}表达式的形式大家都很熟悉：
+\begin{minted}{Rust}
+    if condition1 {
+        block1
+    } else if condition2 {
+        block2
+    } else {
+        block_n
+    }
+\end{minted}
+
+每一个\texttt{condition}都必须是\texttt{bool}类型的表达式，Rust不会隐式地将数字或者指针类型转换为布尔值。
+
+和C不同的是条件表达式不需要括号，事实上如果有不必要的括号的话，\texttt{rustc}会发出警告。然而，花括号是必须的。
+
+\texttt{else if}块，和最后的\texttt{else}都是可选的。一个没有\texttt{else}块的\texttt{if}表达式类似于一个\texttt{else}块为空的\texttt{if}表达式。
+
+\texttt{match}表达式有些类似于C的\texttt{switch}语句，但是更加灵活。一个简单的例子如下：
+\begin{minted}{Rust}
+    match code {
+        0 => println!("OK"),
+        1 => println!("Wires Tangled"),
+        2 => println!("User Asleep"),
+        _ => println!("Unrecognized Error {}", code)
+    }
+\end{minted}
+这类似于一个\texttt{switch}语句，\texttt{match}表达式的四条分支里只有一条会执行，取决于\texttt{code}的值。通配符模式\texttt{\_}可以匹配任何情况，类似于\texttt{switch}语句中的\texttt{default:}标签，不过它会覆盖之后的所有模式，它之后的模式将永远不会匹配到任何东西（出现这种情况时编译器也会警告你）。
+
+编译器可以使用跳转表来优化这种\texttt{match}表达式，就类似于C++中的\texttt{switch}语句。当\texttt{match}的每个分支都返回常量值时还会有一个类似的优化，这种情况下，编译器会用那些值构建一个数组，然后\texttt{match}会被编译为一次数组访问，这种情况下除了边界检查之外，编译出的代码将不会有任何条件分支。
+
+每个分支中\texttt{=>}左侧支持多种\emph{模式}，这是\texttt{match}功能强大的根源。上边的例子中，每种模式都只是一个简单的整数。我们还展示过区分\texttt{Option}的两种值的\texttt{match}表达式：
+\begin{minted}{Rust}
+    match params.get("name") {
+        Some(name) => println!("Hello, {}!", name);
+        None => println!("Greetings, stranger.");
+    }
+\end{minted}
+
+这只是模式的一个小应用，一个模式可以匹配很多值。它可以解包元组，可以匹配结构体中的每个字段，可以解引用，借用一个值的一部分，等等。Rust的模式是一种专门的mini语言。我们将在\hyperref[ch10]{第10章}中介绍它们。
+
+\texttt{match}表达式的通用形式是：
+\begin{minted}{Rust}
+    match value {
+        pattern => expr,
+        ...
+    }
+\end{minted}
+如果\texttt{expr}是一个块的话，分支最后的逗号可以省略。
+
+Rust会从第一个分支开始，逐个检查\texttt{value}和给定的模式是否匹配。当有一个模式匹配时，相应的\texttt{expr}将会被求值，整个\texttt{match}表达式将完成执行，不会再检查别的模式。必须至少有一个模式可以匹配，Rust会禁止没有覆盖所有可能情况的\texttt{match}表达式：
+\begin{minted}{Rust}
+    let score = match card.rank {
+        Jack => 10,
+        Queen => 10,
+        Ace => 11
+    };  // 错误：没有穷尽所有模式
+\end{minted}
+
+\texttt{if}表达式的所有块必须产生相同类型的值：
+\begin{minted}{Rust}
+    let suggested_pet = 
+        if with_wings { Pet::Buzzard } else { Pet::Hyena }; // ok
+    let favorite_number =
+        if user.is_hobbit() { "eleventy-one" } else { 9 };  // error
+    let best_sports_team = 
+        if is_hockey_season() { "Predators" };  // error
+\end{minted}
+（最后一个例子会导致错误，因为在7月结果将是\texttt{()}。）\footnote{译者注：7月不是曲棍球赛季？}
+
+类似的，\texttt{match}表达式的分支也必须有相同的类型：
+\begin{minted}{Rust}
+    let suggested_pet =
+        match favorite.element {
+            Fire => Pet::RedPanda,
+            Air => Pet::Buffalo,
+            Water => Pet::Orca,
+            _ => None   // 错误：类型不一致
+        }
+\end{minted}
+
 \section{类型转换}\label{cast}
