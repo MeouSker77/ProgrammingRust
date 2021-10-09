@@ -359,4 +359,39 @@ Rust会从第一个分支开始，逐个检查\texttt{value}和给定的模式�
         }
 \end{minted}
 
+\section{if let}
+
+\texttt{if}表达式还有一种形式：\texttt{if let}表达式：
+\begin{minted}{Rust}
+    if let pattern = expr {
+        block1
+    } else {
+        block2
+    }
+\end{minted}
+
+\texttt{expr}如果能匹配\texttt{pattern}，则执行\texttt{block1}，如果不能匹配，则执行\texttt{block2}。有时这是一种获取\texttt{Option}或\texttt{Result}的值的好方法：
+\begin{minted}{Rust}
+    if let Some(cookie) = request.session_cookie {
+        return restore_session(cookie);
+    }
+
+    if let Err(err) = show_cheesy_anti_robot_task() {
+        log_robot_attempt(err);
+        politely_accuse_user_of_being_a_robot();
+    } else {
+        session.mark_as_human();
+    }
+\end{minted}
+
+没有任何场景\emph{必须}使用\texttt{if let}，因为\texttt{match}可以做到任何\texttt{if let}可以做的事。\texttt{if let}表达式类似于如下只有一个模式的\texttt{match}表达式的缩写：
+\begin{minted}{Rust}
+    match expr {
+        pattern => { block1 }
+        _ => { block2 }
+    }
+\end{minted}
+
+\section{循环}
+
 \section{类型转换}\label{cast}
