@@ -623,4 +623,57 @@ Rust的类型系统也会被控制流影响。之前我们说过\texttt{if}表�
 
 \section{函数和方法调用}
 
+在Rust中调用函数的方法的语法和许多其它语言一样：
+\begin{minted}{Rust}
+    let x = gcd(1302, 462);         // 函数调用
+    let room = player.location();   // 方法调用
+\end{minted}
+
+在第二个例子中，\texttt{player}是一个编造的\texttt{Player}类型的变量，它有一个\texttt{.location()}方法。（我们将在\hyperref[ch09]{第9章}中讨论自定义类型时展示如何定义自己的方法。）
+
+Rust通常会严格区分引用和它指向的值。如果你向接收\texttt{i32}的函数传递\texttt{\&i32}，将会引发类型错误。不过你会注意到\texttt{.}运算符放宽了这个限制，在方法调用\texttt{player.location()}中，\texttt{player}可以是一个\texttt{Player}、也可以是一个引用类型\text{\&Player}、也可以是智能指针类型\texttt{Box<Player>}或者\texttt{Rc<Player>}。\texttt{.location()}方法可能会以值也可能会以引用获取参数，同样的\texttt{.location()}语法可以适用于所有情况，因为Rust的\texttt{.}运算符会根据需要自动解引用\texttt{player}或者获取它的引用。
+
+第三种语法用于调用类型关联函数，例如\texttt{Vec::new()}：
+\begin{minted}{Rust}
+    let mut numbers = Vec::new();   // 类型关联函数调用
+\end{minted}
+
+这类似于面向对象语言中的静态方法：方法在值上调用（例如\texttt{my\_vec.len()}），而类型关联函数在类型上调用（例如\texttt{Vec::new()}）。
+
+当然，方法调用可以被串联起来：
+\begin{minted}{Rust}
+    // 取自于第二章的Actix-based web server
+    server
+        .bind("127.0.0.1:3000").expect("error binding server to address")
+        .run().expect("error running server");
+\end{minted}
+
+Rust语法中的一个怪异之处是，不能按照泛型类型的通常语法例如\texttt{Vec<T>}来调用函数或者方法：
+\begin{minted}{Rust}
+    return Vec<i32>::with_capacity(1000);   // error: something about chained comparisons
+    let ramp = (0 .. n).collect<Vec<i32>>();    // 同样的错误
+\end{minted}
+
+问题在于这个表达式中的\texttt{<}被当作小于运算符。Rust编译器会建议使用\texttt{::<T>}来代替\texttt{<T>}，这样可以解决这个问题：
+\begin{minted}{Rust}
+    return Vec::<i32>::with_capacity(1000); // ok, using ::<
+
+    let ramp = (0 .. n).collect::<Vec<i32>>(); // ok, using ::<
+\end{minted}
+
+符号\texttt{::<...>}在Rust中被亲切地称为\emph{turbofish}。
+
+另外，通常也可以省略类型参数，让Rust推断它们：
+\begin{minted}{Rust}
+    return Vec::with_capacity(10);  // ok, if the fn return type is Vec<i32>
+
+    let ramp: Vec<i32> = (0 .. n).collect(); // ok, variable's type is given
+\end{minted}
+
+在可以推断出类型时省略类型是一种好的风格。
+
+\section{字段和元素}
+
+
+
 \section{类型转换}\label{cast}
