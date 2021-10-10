@@ -631,7 +631,7 @@ Rust的类型系统也会被控制流影响。之前我们说过\texttt{if}表�
 
 在第二个例子中，\texttt{player}是一个编造的\texttt{Player}类型的变量，它有一个\texttt{.location()}方法。（我们将在\hyperref[ch09]{第9章}中讨论自定义类型时展示如何定义自己的方法。）
 
-Rust通常会严格区分引用和它指向的值。如果你向接收\texttt{i32}的函数传递\texttt{\&i32}，将会引发类型错误。不过你会注意到\texttt{.}运算符放宽了这个限制，在方法调用\texttt{player.location()}中，\texttt{player}可以是一个\texttt{Player}、也可以是一个引用类型\text{\&Player}、也可以是智能指针类型\texttt{Box<Player>}或者\texttt{Rc<Player>}。\texttt{.location()}方法可能会以值也可能会以引用获取参数，同样的\texttt{.location()}语法可以适用于所有情况，因为Rust的\texttt{.}运算符会根据需要自动解引用\texttt{player}或者获取它的引用。
+Rust通常会严格区分引用和它指向的值。如果你向接收\texttt{i32}的函数传递\texttt{\&i32}，将会引发类型错误。不过你会注意到\texttt{.}运算符放宽了这个限制，在方法调用\texttt{player.location()}中，\texttt{player}可以是一个\texttt{Player}、也可以是一个引用类型\texttt{\&Player}、也可以是智能指针类型\texttt{Box<Player>}或者\texttt{Rc<Player>}。\texttt{.location()}方法可能会以值也可能会以引用获取参数，同样的\texttt{.location()}语法可以适用于所有情况，因为Rust的\texttt{.}运算符会根据需要自动解引用\texttt{player}或者获取它的引用。
 
 第三种语法用于调用类型关联函数，例如\texttt{Vec::new()}：
 \begin{minted}{Rust}
@@ -673,6 +673,80 @@ Rust语法中的一个怪异之处是，不能按照泛型类型的通常语法�
 在可以推断出类型时省略类型是一种好的风格。
 
 \section{字段和元素}
+
+访问结构体中字段的语法大家都很熟悉，元组也一样，不过元组中的字段是数字而不是名称：
+\begin{minted}{Rust}
+    game.black_pawns    // 结构体字段
+    coords.1            // 元组元素
+\end{minted}
+
+如果点左边的值是引用或者智能指针类型，它也会像方法调用一样自动解引用。
+
+方括号可以访问数组、切片或vector中的元素：
+\begin{minted}{Rust}
+    pieces[i]           // 数组元素
+\end{minted}
+
+方括号左侧的值也会自动解引用。
+
+类似于这三种的表达式被称为\emph{左值}，因为它们可以出现在赋值表达式的左边：
+\begin{minted}{Rust}
+    game.black_pawns = 0x00ff0000_00000000_u64;
+    coords.1 = 0;
+    pieces[2] = Some(Piece::new(Black, Knight, coords));
+\end{minted}
+
+当然，只有当\texttt{game}、\texttt{coords}和\texttt{pieces}被声明为\texttt{mut}变量时才可以这么做。
+
+从一个数组或者vector中提取切片非常直观：
+\begin{minted}{Rust}
+    let second_half = &game_moves[midpoint .. end];
+\end{minted}
+
+这里\texttt{game\_moves}可能是一个数组、切片或者是vector，结果将是一个长度为\texttt{end - midpoint}的切片，在\texttt{second\_half}的生命周期内\texttt{game\_moves}将被认为是被借用的。
+
+\texttt{..}运算符允许任意一边的操作数被省略，根据两边是否有操作数，它可以被划分为四种形式：
+\begin{minted}{Rust}
+    ..      // 全部范围
+    a ..    // 起点范围 { start: a }
+    .. b    // 终点范围 { end: b }
+    a .. b  // 范围 { start: a, end: b }
+\end{minted}
+
+后两种形式是\emph{end-exclusive(右开区间)}：终点值将不会被包含。例如，范围\texttt{0 .. 3}包括数字\texttt{0}、\texttt{1}、\texttt{2}。
+
+\texttt{..=}运算符产生\emph{end-inclusive(闭区间)}范围，它会包含终点值：
+\begin{minted}{Rust}
+    ..= b       // RangeToInclusive { end: b }
+    a ..= b     // RangeInclusive::new(a, b)
+\end{minted}
+
+例如，范围\texttt{0 ..= 3}包含数字\texttt{0}、\texttt{1}、\texttt{2}、\texttt{3}。
+
+只有包含start值的范围才可以迭代，因为一个循环必须有开始的地方。但在数组切片中，所有的六种形式都是有用的。如果起始值或终点值被省略了，将默认包含数组从起点开始的元素或者直到终点的元素。
+
+因此快速排序的一个实现，经典的分而治之排序算法，将类似于这样：
+\begin{minted}{Rust}
+    fn quicksort<T: Ord>(slice: &mut [T]) {
+        if slice.len() <= 1 {
+            return; // 切片为空，不需要排序
+        }
+
+        // 将切片分为两个部分，前半部分和后半部分
+        let pivot_index = partition(slice);
+
+        // 递归排序`slice`的前半部分
+        quicksort(&mut slice[.. pivot_index]);
+
+        // 再排序后半部分
+        quicksort(&mut slice[pivot_index + 1 ..]);
+    }
+\end{minted}
+
+\section{引用运算符}
+
+取地址运算符\texttt{\&}和\texttt{\&mut}，将在\hyperref[ch05]{第5章}中介绍。
+
 
 
 
