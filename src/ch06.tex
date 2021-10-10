@@ -569,6 +569,58 @@ Rust会从第一个分支开始，逐个检查\texttt{value}和给定的模式�
 
 我们将在“\hyperref[properror]{传播错误}”一节中详细介绍\texttt{?}运算符。
 
-\section{Rust为什么会有循环}
+\section{Rust为什么会有loop循环}
+
+Rust编译器的几个部分会检查整个程序中的控制流：
+\begin{itemize}
+    \item Rust会检查一个函数里的所有返回路径是否返回相同类型的值。为了做到这一点，它需要知道控制流是否能到达函数结尾。
+    \item Rust会检查未初始化的局部变量是否绝不会被使用。这需要检查程序中的每一条路径来确保没有路径会到达未初始化的变量被使用的情况。
+    \item Rust会警告不可达的代码。函数中\emph{没有}路径可以到达的代码就是不可达的代码。
+\end{itemize}
+
+这些被称为\emph{控制流敏感(flow-sensitive)}分析。这并不是新的概念，Java很多年前就有一个“确定性赋值(definite assignment)”的分析，和Rust的检查很相似。
+
+当强迫执行这种规则时，一门语言（的编译器）必须在简洁和智能之间权衡。简洁可以让程序员更容易地理解编译器在说什么；智能则可以帮助消除错误警告和程序完全正确但编译器却报错的情况。Rust倾向于简洁，它的控制流敏感分析根本就不检查循环条件，而是假设程序中的所有条件都既可能是真又可能是假。
+
+这导致Rust会拒绝编译这样的安全程序：
+\begin{minted}{Rust}
+    fn wait_for_process(process: &mut Process) -> i32 {
+        while true {
+            if process.wait() {
+                return process.exit_code();
+            }
+        }
+    }   // 错误：不匹配的类型：期望i32，得到()
+\end{minted}
+
+这里的错误是假的。函数只可能通过\texttt{return}表达式返回，因此\texttt{while}循环不会产生\texttt{i32}值是无关紧要的。
+
+而\texttt{loop}表达式作为一种“告诉编译器你的意思”的解决方案来解决这个问题。
+
+Rust的类型系统也会被控制流影响。之前我们说过\texttt{if}表达式中的所有分支都必须有相同的类型。但如果在以\texttt{break}、\texttt{return}、\texttt{loop}表达式或对\texttt{panic!()}、\texttt{std::process::exit()}的调用作为结尾的块中强迫这个规则就会显得很愚蠢。这些表达式的共同点就是它们永远不会像正常的方式一样产生一个值：\texttt{break}或\texttt{return}会中断并退出当前的块、无限的\texttt{loop}循环则永远不会结束，等等。
+
+因此在Rust中，这些表达式并没有通常的类型。不会正常结束的表达式会被赋予特殊类型\texttt{!}，并且它们不受类型必须匹配的规则的约束。 你可以在\texttt{std::process::exit()}的函数签名中看到\texttt{!}：
+\begin{minted}{Rust}
+    fn exit(code: i32) -> !
+\end{minted}
+
+\texttt{!}意味着\texttt{exit()}永远不会返回，它是一个\emph{发散函数(divergent function)}。
+
+你可以用相同的语法编写自己的发散函数，在某些情况下这会显得非常自然：
+\begin{minted}{Rust}
+    fn serve_forever(socket: ServerSocket, handler: ServerHandler) -> ! {
+        socket.listen();
+        loop {
+            let s = socket.accept();
+            handler.handle(s);
+        }
+    }
+\end{minted}
+
+当然，如果函数能正常返回的话，Rust会认为这是一个错误。
+
+有了这些大规模控制流的构建块之后，我们可以继续分析常用的更细粒度的表达式，例如函数调用和算术运算。
+
+\section{函数和方法调用}
 
 \section{类型转换}\label{cast}
