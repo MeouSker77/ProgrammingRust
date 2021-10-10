@@ -761,7 +761,40 @@ Rust语法中的一个怪异之处是，不能按照泛型类型的通常语法�
 
 \section{算术、位运算、比较、逻辑运算符}
 
+Rust的二元运算符和其他语言中的很像。为了节省时间，我们假设你熟悉这些语言中的一种，并只专注于Rust中背离传统的点。
 
+Rust有通常的算术运算符\texttt{+, -, *, /, \%}。正如在\hyperref[ch03]{第3章}中说过的一样，整数溢出会被检测到，并在debug模式下造成panic。标准库提供类似\texttt{a.wrapping\_add(b)}的方法来执行不检查溢出的算术。
 
+整数除法会向0舍入，并且整数除以0时即使在release模式也会导致panic。整数有一个\texttt{a.checked\_div(b)}方法会返回\texttt{Option}(如果\texttt{b}是0时为\texttt{None})，而不会panic。
+
+一元的\texttt{-}运算符用于求负数，它支持除无符号整数外所有的数字类型。没有一元的\texttt{+}运算符：
+\begin{minted}{Rust}
+    println!("{}", -100);       // -100
+    println!("{}", -100u32);    // 错误：一元`-`不能用于类型`u32`
+    println!("{}", +100);       // 错误：期望表达式，发现`+`
+\end{minted}
+
+和在C中一样，\texttt{a \% b}会计算有符号的余数，或者叫取模。结果和左侧的操作数符号一致。注意\texttt{\%}也可以像整数一样用于浮点数：
+\begin{minted}{Rust}
+    let x = 1234.567 % 10.0;    // 约为4.567
+\end{minted}
+
+Rust还继承了C的整数的位运算符\texttt{\&, |, \^{}, <<, >>}。然而，Rust使用\texttt{!}而不是\texttt{~}来表示按位取反：
+\begin{minted}{Rust}
+    let hi: u8 = 0xe0;
+    let lo = !hi;   // 0x1f
+\end{minted}
+
+这意味着\texttt{!n}不能用来判断\texttt{n}是否为0，必须使用\texttt{n == 0}。
+
+有符号整数的位移总是符号扩展，无符号整数的位移的位移总是0扩展。因为Rust有无符号整数，所以不需要像Java中的\texttt{>>>}一样的无符号移位运算符。
+
+和C语言不同的是，位运算符比比较运算的优先级更高，因此如果你写\texttt{x \& BIT != 0}，意味着\texttt{(x \& BIT) != 0}。这比C中的含义更有用，C中将是\texttt{x \& (BIT != 0)}。
+
+Rust的比较运算符是\texttt{==, !=, <, <=, >, >=}。比较的两个值类型必须相同。
+
+Rust也有短路求值的\texttt{\&\&}和\texttt{||}运算符，所有的操作数必须都是\texttt{bool}类型。
+
+\section{赋值}
 
 \section{类型转换}\label{cast}
