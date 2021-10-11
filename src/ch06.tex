@@ -797,4 +797,20 @@ Rust也有短路求值的\texttt{\&\&}和\texttt{||}运算符，所有的操作�
 
 \section{赋值}
 
+\texttt{=}运算符可以用于给\texttt{mut}变量或它们的字段或元素赋值。但在Rust中赋值行为并不像在其他语言中那么普遍，因为变量默认是不可变的。
+
+正如在\hyperref[ch04]{第4章}介绍的那样，如果变量是non-\texttt{Copy}类型，赋值行为将会把它的值\emph{移动}到目标变量。值的所有权从源对象移动到目的对象，目的对象之前的值会被丢弃。
+
+也可以使用复合赋值：
+\begin{minted}{Rust}
+    total += item.price;
+\end{minted}
+
+这等价于\texttt{total = total + item.price;}。还支持其他的运算符例如：\texttt{-=, *=}等。完整的运算符支持在\hyperref[t6-1]{表6-1}中列出。
+
+和C不同，Rust不支持链式赋值：你不能写\texttt{a = b = 3}来把\texttt{3}同时赋给\texttt{a}和\texttt{b}。在Rust中赋值很罕见，所以你不会怀念这种缩写的。
+
+Rust不支持C的自增和自减运算符\texttt{++}和\texttt{--}。
+
 \section{类型转换}\label{cast}
+
