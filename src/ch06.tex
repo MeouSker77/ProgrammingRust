@@ -815,6 +815,24 @@ Rust不支持C的自增和自减运算符\texttt{++}和\texttt{--}。
 \section{类型转换}\label{cast}
 
 \section{闭包}
+Rust支持\emph{闭包}：一种轻量的类似函数的值。一个闭包通常由被竖线包围的参数列表和一个表达式组成：
+\begin{minted}{Rust}
+    let is_even = |x| x % 2 == 0;
+\end{minted}
+
+Rust会自动推导参数类型和返回值类型。你可以显式写出它们，就像写函数签名一样。如果你指定了返回值类型，那么为了语法的健全，闭包的主体必须是一个块：
+\begin{minted}{Rust}
+    let is_even = |x: u64| -> bool x % 2 == 0;  // error
+    
+    let is_even = |x: u64| -> bool { x % 2 == 0 };  // ok
+\end{minted}
+
+调用一个闭包和调用函数的语法相同：
+\begin{minted}{Rust}
+    assert_eq!(is_even(14), true);
+\end{minted}
+
+闭包是Rust中最令人愉快的特性之一，关于它有很多内容可以说，我们将在\hyperref[ch14]{第14章}中介绍。
 
 \section{继续}
 
