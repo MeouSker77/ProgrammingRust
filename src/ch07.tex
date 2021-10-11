@@ -70,7 +70,13 @@ panic是以线程为单位。一个线程可以panic，而其他线程继续处�
 理想情况下，我们希望没有bug并且永远不会panic的代码。但没有完美的事物，你可以使用线程和\texttt{catch\_unwind()}来处理panic，让你的程序更加健壮。一个重要的警告是这些工具只会捕获展开堆栈的panic。不是所有的panic都以这种方式处理。
 
 \subsection{中止}
+栈展开是默认的panic行为，但还有两种情况下Rust不会尝试展开堆栈。
 
+如果在Rust尝试清理时一个\texttt{.drop()}方法触发了第二次panic，Rust会认为这是致命错误，它会停止栈展开并中止整个进程。
+
+还有，Rust的panic行为可以自定义。如果你以参数\texttt{-C panic=abort}编译，程序中的\emph{第一个}panic会立即中止进程。（这个选项下，Rust不需要知道如何展开堆栈，因此可以减小编译出的代码的体积。）
+
+最后总结一下关于Rust中panic的讨论。没有更多要说的了，因为普通的Rust代码没有义务处理panic。即使你使用了线程或\texttt{catch\_unwind()}，所有处理panic的代码很可能会集中在少数部分。没有理由检查程序中的每一个函数然后预测并处理里面的bug。其他因素导致的错误则是另一码事。
 
 \section{Result}
 
