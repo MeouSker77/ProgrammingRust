@@ -1,5 +1,77 @@
 \chapter{错误处理}\label{ch07}
 
+\emph{I knew if I stayed around long enough, something like this would happen.}
+
+\begin{flushright}
+    ——George Bernard Shaw on dying
+\end{flushright}
+
+Rust的错误处理不同寻常，无法用很短的一个章节来介绍它。其实它里面并没有什么困难的概念，只有一些可能对你来说可能很新的概念。这一章将覆盖Rust中两种不同的错误处理：panic和\texttt{Result}。
+
+一般的错误使用\texttt{Result}类型来处理，\texttt{Result}通常代表程序之外的东西引起的问题，例如错误的输入、网络中断、权限问题等。这种情况的出现不由我们决定，即使是一个完全没有bug的程序也可能随时遇到它们。这一章中的大部分内容都是在讨论这种错误。我们将首先介绍panic，因为它比较简单。
+
+panic是另一种错误，一种\emph{永远不应该发生}的错误。
+
+\section{panic}
+
+当程序遇到一些由程序自身的bug导致的非常糟糕的事情时它会panic。例如：
+\begin{itemize}
+    \item 数组访问越界
+    \item 整数除以0
+    \item 在值为\texttt{Err}的\texttt{Result}上调用\texttt{.expect()}方法
+    \item 断言失败
+\end{itemize}
+
+（还有一个宏\texttt{panic!()}，用于当你的代码自己发现了错误，想要直接触发panic的情况。\texttt{panic!()}接受可选的\texttt{println!()}-风格的参数，用于构建错误信息。）
+
+这些条件的共同之处在于——它们都是程序员的错。一条好的经验法则是：“不要panic”。
+
+但是我们都有犯错误的时候。当这些不该发生的错误发生了的时候，该怎么办？值得注意的是，Rust给了你一个选择：Rust可以展开堆栈或者中止进程。栈展开是默认行为。
+
+\subsection{栈展开}
+当海盗们瓜分抢来的战利品时，船长将得到一半的战利品。普通的船员们均分剩下的一半。（海盗们讨厌分数，因此如果均分时不能除尽，结果会向下取整，余数将分给船上的鹦鹉。）
+\begin{minted}{Rust}
+    fn pirate_share(total: u64, crew_size: usize) -> u64 {
+        let half = total / 2;
+        half / crew_size as u64
+    }
+\end{minted}
+
+这段代码也许可以工作几个世纪，直到有一天船长是抢劫之后唯一的幸存者。如果我们传递的\texttt{crew\_size}为0，它将会除以0。在C++中，这将是未定义行为。在Rust中，它会触发panic，panic通常会按照如下方式继续：
+\begin{itemize}
+    \item 打印一条错误消息到终端：
+    \begin{minted}{text}
+    thread 'main' panicked at 'attempt to divide by zero',
+    pirates.rs:3780
+    note: Run with `RUST_BACKTRACE=1` for a backtrace.
+    \end{minted}
+
+    如果你设置了\texttt{RUST\_BACKTRACE}环境变量，Rust还会打印出此时的堆栈信息。
+
+    \item 堆栈被展开。这和C++中的异常处理很像。
+    
+    任何当前函数内的临时值、局部变量、或者参数都会按照与它们创建时相反的顺序被drop掉。
+
+    drop一个值意味着清理它：函数使用过的任何\texttt{String}或\texttt{Vec}都会被释放，任何打开的\texttt{File}都会被关闭，等等。用户自定义的\texttt{drop}方法也会被调用，见“\hyperref[drop]{Drop}”一节。在\texttt{pirate\_share()}的例子中，没有要清理的内容。
+
+    一旦当前的函数调用被清理完毕，我们会移动到它的调用者，以同样的方式drop它的变量和参数。然后我们移动到\emph{那个}函数的调用者，以此类推。
+
+    \item 最后，线程退出。如果panic的线程是主线程，整个进程会退出（退出代码不为0）。
+\end{itemize}
+
+对这种有序的处理，也许\emph{panic}是一个有误导性的名字。panic并不是崩溃，也不是未定义行为，它更类似于Java中的\texttt{RuntimeException}或C++中的\texttt{std::logic\_error}。它的行为都是良定义的，它只是不应该发生。
+
+panic是安全的。它不违背Rust中的任何安全规则，即使你设法在一个标准库的方法中引起panic，它也用于不会导致悬垂指针或者初始化到一半的值。关键在于Rust在任何错误的事情发生之前就捕捉到了无效的数组访问或者类似的情况。如果继续下去将是不安全的，所以Rust会展开堆栈。但进程的其他部分可以继续运行。
+
+panic是以线程为单位。一个线程可以panic，而其他线程继续处理它们的业务。在\hyperref[ch19]{第19章}中，我们会展示一个父线程怎么查明一个子线程是否panic并优雅地处理错误。
+
+还有一种方式\emph{捕获}栈展开，允许线程存活并继续运行。标准库函数\texttt{std::panic::catch\_unwind()}可以做到这一点。我们不会解释如何使用它，但Rust的测试工具使用了这个机制，用于在测试时断言失败的情况下恢复执行（当编写可以在C或C++中调用的Rust代码时这也是必须的，因为在非Rust代码中的栈展开是未定义行为，见\hyperref[ch22]{第22章}）。
+
+理想情况下，我们希望没有bug并且永远不会panic的代码。但没有完美的事物，你可以使用线程和\texttt{catch\_unwind()}来处理panic，让你的程序更加健壮。一个重要的警告是这些工具只会捕获展开堆栈的panic。不是所有的panic都以这种方式处理。
+
+\subsection{中止}
+
+
 \section{Result}
 
 \subsection{捕捉错误}
