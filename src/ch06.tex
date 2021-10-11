@@ -814,6 +814,42 @@ Rust不支持C的自增和自减运算符\texttt{++}和\texttt{--}。
 
 \section{类型转换}\label{cast}
 
+在Rust中把一个类型转换为另一个类型通常需要显式的转换。使用\texttt{as}关键字来进行转换：
+\begin{minted}{Rust}
+    let x = 17;             // x是i32类型
+    let index = x as usize; // 转换为usize
+\end{minted}
+
+Rust允许以下几种转换：
+\begin{itemize}
+    \item 任何内建的数字类型可以彼此转换。
+    
+    将一个整数转换为另一个整数总是良定义的。转换为更小的类型会导致截断，有符号数转换为更大的类型会进行符号扩展，无符号数是0扩展，等等。总而言之，没有意外的行为。
+
+    浮点数转换为整数会向0舍入：值\texttt{-1.99}转换为\texttt{i32}是\texttt{-1}。如果值太大不能用整数类型表示，转换会返回整数类型能表示的最接近真实值的值：值\texttt{1e6}转换为\texttt{u8}是\texttt{255}。
+
+    \item \texttt{bool}、\texttt{char}、或者类似C的\texttt{enum}类型可以转换为任意整数类型（我们将在\hyperref[ch10]{第10章}中介绍枚举）。
+    
+    其他方向的转换是不允许的，因为\texttt{bool}、\texttt{char}和\texttt{enum}都对它们的值有严格的要求，必须要进行运行时检查。例如，将一个\texttt{u16}数字转换为\texttt{char}类型是禁止的，因为一些\texttt{u16}值例如\texttt{0xd800}，对应Unicode的代理码点，因此不是有效的\texttt{char}类型值。有一个标准的方法\texttt{std::char::from\_u32()}来进行运行时检查并返回\texttt{Option<char>}。但需要指出的是，这种转换的需求非常少见。我们通常一次转换整个字符串或流，有关Unicode文本的算法通常是非平凡的，最好留给库来实现。
+
+    一个例外是，\texttt{u8}可以转换为\texttt{char}类型，因为0到255之间的所有整数都是有效的Unicode码点。
+
+    \item 一些涉及unsafe指针类型的转换也是允许的。见“\hyperref[rawp]{原始指针}”一节。
+\end{itemize}
+
+我们说转换\emph{通常}需要显式的转换。但少数涉及引用类型的转换非常直观以至于语言可以自动完成而不需要显式转换。一个小例子是把\texttt{mut}引用转换为non-\texttt{mut}引用。
+
+还有一些更重要的自动转换可能发生：
+\begin{itemize}
+    \item \texttt{\&String}类型的值可以自动转换为\texttt{\&str}类型。
+    \item \texttt{\&Vec<i32>}类型的值可以自动转换为\texttt{\&[i32]}。
+    \item \texttt{\&Box<Chessboard>}类型的值可以自动转换为\texttt{\&Chessboard}。
+\end{itemize}
+
+这些被称为\emph{强制解引用(deref coercions)}，因为它们适用于实现了内建的\texttt{Deref} trait的类型。\texttt{Deref}是为了智能指针类型设计的，例如\texttt{Box}，它的行为尽量和和底层的值类型保持一致。得益于\texttt{Deref}，使用\texttt{Box<Chessboard>}非常像在使用一个普通的\texttt{Chessboard}。
+
+用户自定义的类型也可以实现\texttt{Deref} trait。当你需要编写自己的智能指针类型时，见“\hyperref[deref]{Deref和DerefMut}”一节。
+
 \section{闭包}
 Rust支持\emph{闭包}：一种轻量的类似函数的值。一个闭包通常由被竖线包围的参数列表和一个表达式组成：
 \begin{minted}{Rust}
