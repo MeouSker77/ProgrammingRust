@@ -80,9 +80,87 @@ panic是以线程为单位。一个线程可以panic，而其他线程继续处�
 
 \section{Result}
 
+Rust里没有异常，可能会失败的函数可以通过返回\texttt{Result}来表达类似的含义：
+\begin{minted}{Rust}
+    fn get_weather(location: LatLng) -> Result<WeatherReport, io::Error>
+\end{minted}
+\texttt{Result}类型表明可能会失败。当调用\texttt{get\_weather()}函数时，它可能会返回\emph{成功的结果}\texttt{Ok(weather)}，其中\texttt{weather}是一个新的\texttt{WeatherReport}值；或者返回一个\emph{错误的结果}\texttt{Err(error\_value)}，其中\texttt{error\_value}是一个解释错误的\texttt{io::Error}。
+
+Rust要求我们每次调用这个函数时都要进行一些错误处理。我们必须对返回的\texttt{Result}做\emph{一些处理}，才能得到\texttt{WeatherReport}值。如果\texttt{Result}值没有被使用的话编译器也会警告。
+
+在\hyperref[ch10]{第10章}中，我们将看到标准库是怎么定义\texttt{Result}的、以及你该怎么自己定义类似的类型。现在，我们将专注于如何使用\texttt{Result}来进行错误处理。我们将看到如何捕捉、传播和报告错误，以及一些组织和使用\texttt{Result}类型的常见模式。
+
 \subsection{捕捉错误}
+最通用的处理\texttt{Result}的方法就是我们在\hyperref[ch02]{第2章}中展示的：使用\texttt{match}表达式。
+\begin{minted}{Rust}
+    match get_weather(hometown) {
+        Ok(report) => {
+            display_weather(hometown, &report);
+        }
+        Err(err) => {
+            println!("error querying the weather: {}", err);
+            schedule_weather_retry();
+        }
+    }
+\end{minted}
+
+这在Rust中等价于其它语言的\texttt{try/catch}。当你想要自己处理错误，不把错误传递给调用者时你可以使用这种方式。
+
+\texttt{match}有些繁琐，所以\texttt{Result<T, E>}提供了一些在常见场景下很有用的方法。这些方法中的每一个的内部实现都用到了\texttt{match}表达式。（\texttt{Result}的全部方法可以查询在线文档。这里列出的方法是我们最常使用的。）
+
+\codeentry{result.is\_ok(), result.is\_err()}
+\hangparagraph{返回一个\texttt{bool}值表示\texttt{result}是成功还是错误。}
+
+\codeentry{result.ok()}
+\hangparagraph{以\texttt{Option<T>}类型返回成功的结果。如果\texttt{result}是一个成功的结果，会返回\texttt{Some(success\_value)}；否则会返回\texttt{None}，丢弃错误的值。}
+
+\codeentry{result.err()}
+\hangparagraph{以\texttt{Option<E>}类型返回错误的值。}
+
+\codeentry{result.unwrap\_or(fallback)}
+\hangparagraph{如果\texttt{result}是成功的结果的话，返回成功的值。否则，返回\texttt{fallback}，丢弃错误的值。}
+
+\begin{minted}{Rust}
+    // 南加州通常的天气情况。
+    const THE_USUAL: WeatherReport = WeatherReport::Sunny(72);
+
+    // 获取真实的天气预报。
+    // 如果失败，倒退到通常的情况。
+    let report = get_weather(los_angeles).unwrap_or(THE_USUAL);
+
+    display_weather(los_angeles, &report);
+\end{minted}
+
+\hangparagraph{这是\texttt{.ok()}的一个漂亮的替代，因为返回的类型是\texttt{T}而不是\texttt{Option<T>}。当然，只有当存在有意义的fallback值时这么写才有用。}
+
+\codeentry{result.unwrap\_or\_else(fallback\_fn)}
+\hangparagraph{这和上一个类似，但不再是直接传递fallback值，而是传递一个函数或者闭包。这通常用于计算fallback时会很浪费时间的情况，因为只有当结果是错误时，\texttt{fallback\_fn}才会被调用。}
+
+\begin{minted}{Rust}
+    let report =
+        get_weather(hometown)
+        .unwrap_or_else(|_err| vague_prediction(hometown));
+\end{minted}
+
+\hangparagraph{\hyperref[ch14]{第14章}会详细介绍闭包。}
+
+\codeentry{result.unwrap()}
+\hangparagraph{如果\texttt{result}是成功的结果，会返回成功的值。然而，如果\texttt{result}是错误的结果，这个方法会panic。这个方法有它的用途，我们将在之后讨论。}
+
+\codeentry{result.expect(message)}
+\hangparagraph{和\texttt{.unwrap()}基本相同，不过你可以提供一条panic时打印的错误信息。}
+
+最后，还有一些和引用相关的方法：
+\codeentry{result.as\_ref()}
+\hangparagraph{把一个\texttt{Result<T, E>}转换为\texttt{Result<\&T, \&E>}。}
+
+\codeentry{result.as\_mut()}
+\hangparagraph{和上面类似，但借用可变引用。返回类型是\texttt{Result<\&mut T, \&mut E>}。}
+
+最后两个方法很有用的一个原因是这里列出的其他所有方法，除了\texttt{.is\_ok()}和\texttt{.is\_err()}之外，都会\emph{消耗}操作的\texttt{result}值。也就是说，它们以值获取\texttt{self}参数。有时如果能访问\texttt{result}里的值而不破坏它也会带来便利，这正是\texttt{.as\_ref()}和\texttt{.as\_mut()}做的事情。例如，假设你想调用\texttt{result.ok()}，但你需要\texttt{result}保持完好。你可以写\texttt{result.as\_ref().ok()}，它只会借用\texttt{result}，返回\texttt{Option<\&T>}而不是\texttt{Option<T>}。
 
 \subsection{Result类型别名}
+
 
 \subsection{打印错误}
 
