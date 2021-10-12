@@ -160,7 +160,20 @@ Rust要求我们每次调用这个函数时都要进行一些错误处理。我�
 最后两个方法很有用的一个原因是这里列出的其他所有方法，除了\texttt{.is\_ok()}和\texttt{.is\_err()}之外，都会\emph{消耗}操作的\texttt{result}值。也就是说，它们以值获取\texttt{self}参数。有时如果能访问\texttt{result}里的值而不破坏它也会带来便利，这正是\texttt{.as\_ref()}和\texttt{.as\_mut()}做的事情。例如，假设你想调用\texttt{result.ok()}，但你需要\texttt{result}保持完好。你可以写\texttt{result.as\_ref().ok()}，它只会借用\texttt{result}，返回\texttt{Option<\&T>}而不是\texttt{Option<T>}。
 
 \subsection{Result类型别名}
+有时你会看到Rust的文档中看起来像是省略了\texttt{Result}的错误类型：
+\begin{minted}{Rust}
+    fn remove_file(path: &Path) -> Result<()>
+\end{minted}
+这意味着这里使用了一个\texttt{Result}类型的别名。
 
+类型别名是一种缩写的类型名。模块通常会定义一个\texttt{Result}类型的类型别名来避免在模块内几乎每个函数中都重复书写相同的错误类型。例如，标准库的\texttt{std::io}模块就包含这样一行代码：
+\begin{minted}{Rust}
+    pub type Result<T> = result::Result<T, Error>;
+\end{minted}
+
+这里定义了一个公有类型\texttt{std::io::Result<T>}。它是\texttt{Result<T, E>}的一个别名，把\texttt{std::io::Error}硬编码为错误类型。在实践中，这意味着如果你写了\texttt{use std::io}，Rust将会把\texttt{io::Result<String>}看作\texttt{Result<String, io::Error>}的缩写。
+
+当类似于\texttt{Result<()>}的东西出现在在线文档里的时候，你可以点击标识符\texttt{Result}来查看使用了哪个类型别名和具体的错误类型。在实践中，通常能从上下文中明显地推断出错误类型。
 
 \subsection{打印错误}
 
