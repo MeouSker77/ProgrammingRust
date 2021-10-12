@@ -176,5 +176,51 @@ Rust要求我们每次调用这个函数时都要进行一些错误处理。我�
 当类似于\texttt{Result<()>}的东西出现在在线文档里的时候，你可以点击标识符\texttt{Result}来查看使用了哪个类型别名和具体的错误类型。在实践中，通常能从上下文中明显地推断出错误类型。
 
 \subsection{打印错误}
+有时处理错误的唯一方法就是把它打印到终端然后继续运行程序。我们已经展示了一种这样做的方法：
+\begin{minted}{Rust}
+    println!("error querying the weather: {}", err);
+\end{minted}
+
+标准库定义了几个错误类型：\texttt{std::io::Error}、\texttt{std::fmt::Error}、\texttt{std::str::Utf8Error}等等。它们全都实现了一个公共接口\texttt{std::error::Error} trait，这意味着它们共享下面的特性和方法：
+
+\codeentry{println!()}
+\hangparagraph{所有的错误类型都可以用它来打印。使用\texttt{\{\}}格式说明符只会显式一条简短的错误消息。作为替代，你可以使用\texttt{\{:?\}}格式说明符来获取错误的\texttt{Debug}视图。这对用户不是很友好，但包含更多的额外信息。}
+\begin{minted}{text}
+    // result of `println!("error: {}", err);`
+    error: failed to lookup address information: No address associated with hostname
+
+    // result of `println!("error: {:?}", err);`
+    error: Error { repr: Custom(Custom { kind: Other, error: StringError("failed to lookup address information: No address associated with hostname") }) }
+\end{minted}
+
+\codeentry{err.to\_string()}
+\hangparagraph{返回一个\texttt{String}类型的错误消息。}
+
+\codeentry{err.source()}
+\hangparagraph{返回一个导致\texttt{err}的底层错误，如果有的话。例如，一个网络错误可能会导致一次银行交易失败，这可能反过来导致你的船被收回。如果\texttt{err.to\_string()}是\texttt{"boat was repossessed"}，那么\texttt{err.source()}可能返回一个有关失败的交易的错误。那个错误的\texttt{.to\_string()}可能是\texttt{"failed to transfer \$300 to United Yacht Supply"}，它的\texttt{.source()}可能是一个有关网络中断导致错误的详情的\texttt{io::Error}。第三个错误就是根源，因此它的\texttt{.source()}方法会返回\texttt{None}。因为标准库只包含低级的特性，所以标准库中的错误的来源通常都是\texttt{None}。}
+
+打印一个错误值并不会打印出它的来源。如果你想要打印出所有可用的信息，使用这个函数：
+\begin{minted}{Rust}
+    use std::error::Error;
+    use std::io::{Write, stderr};
+
+    /// Dump an error message to `stderr`
+    ///
+    /// If another error happens while building the error message or
+    /// writing to `stderr`, it is ignored.
+    fn print_error(mut err: &dyn Error) {
+        let _ = writeln!(stderr(), "error: {}", err);
+        while let Some(source) = err.source() {
+            let _ = writeln!(stderr(), "caused by: {}", source);
+            err = source;
+        }
+    }
+\end{minted}
+
+\texttt{writeln!}宏类似于\texttt{println!}宏，除了它把数据写入你指定的流。这里，我们将错误消息写入到了标准错误流\texttt{std::io::stderr}。我们也可以使用\texttt{eprintln!}宏来做同样的事，不过如果中途出错\text{eprintln!}会panic。在\texttt{print\_error}中，我们希望忽略写入消息时出现的错误；我们会在这一章中的“\hyperref[ignoreerr]{忽略错误}”一节中解释原因。
+
+标准库的错误类型不包含堆栈追踪，不过当使用unstable版本的Rust编译器时，流行的\texttt{anyhow} crate提供了一个现成的有堆栈跟踪的错误类型（Rust 1.50版本中，标准库中捕获堆栈追踪的函数还没有被稳定化）。
 
 \subsection{传播错误}\label{properror}
+
+\subsection{忽略错误}\label{ignoreerr}
