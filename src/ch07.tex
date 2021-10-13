@@ -345,6 +345,50 @@ Rust会报一个编译时错误：
 许多语言都有类似这样的内建语法，但它们通常极少被用到。Rust使用一个方法来完成这件事。
 
 \subsection{处理“不可能发生”的错误}
+有时我们\emph{知道}有一些错误不可能发生。例如，假设我们正在编写一个解析配置文件的函数，并且我们发现中文件接下来的内容是一串数字的字符串：
+\begin{minted}{Rust}
+    if next_char.is_digit(10) {
+        let start = current_index;
+        current_index = skip_digits(&line, current_index);
+        let digits = &line[start..current_index];
+        ...
+\end{minted}
+
+我们想把这一串数字转换为一个真正的数字。有一个标准的方法可以做到这一点：
+\begin{minted}{Rust}
+    let num = digits.parse::<u64>();
+\end{minted}
+
+现在的问题是：\texttt{str.parse::<u64>()}方法并不返回\texttt{u64}。它返回一个\texttt{Result}。它可能失败，因为一些字符串不能转换为数字：
+\begin{minted}{Rust}
+    "bleen".parse::<u64>()  // ParseIntError: invalid digit
+\end{minted}
+
+但我们确切的知道，在我们的例子中，\texttt{digits}只包含一串数字。我们应该怎么做？
+
+如果我们写的代码返回一个\texttt{GenericResult}，我们可以在后边加上一个\texttt{?}然后忘记它。否则，我们就必须为不可能发生的错误编写错误处理的代码。此时最佳的选择将是使用\texttt{.unwrap()}，如果结果是\texttt{Err}的话这个方法会panic，但如果是\texttt{Ok}的话则直接返回成功的值：
+\begin{minted}{Rust}
+    let num = digits.parse::<u64>.unwrap();
+\end{minted}
+
+这和使用\texttt{?}很像，不同之处在于如果我们判断错误，这个错误\emph{可能}发生，那么当它发生时会panic。
+
+事实上，在某些特殊情况下这个例子也可能出错。如果输入包含足够长的数字串，那么数字将会过大不能存储在\texttt{u64}中：
+\begin{minted}{Rust}
+    "99999999999999999999".parse::<u64>()   // 溢出错误
+\end{minted}
+在这个特殊情况下使用\texttt{.unwrap()}将会是一个bug。错误的输入不应该导致panic。
+
+也就是说，确实有可能出现\texttt{Result}值一定不是错误的情况。例如，在\hyperref[ch18]{第18章}中，你会看到\texttt{Write} trait为文本和二进制输出定义了一组通用的方法（\texttt{.write()等}）。所有这些方法返回\texttt{io::Result}，但如果你要写入到一个\texttt{Vec<u8>}，那么它们不可能失败。在这种情况下，使用\texttt{.unwrap()}或者\texttt{.expect(message)}来处理\texttt{Result}是可以接受的。
+
+如果当错误发生时说明出现了非常奇怪的情况，以至于你确实想直接panic，那么这些方法也很有用：
+\begin{minted}{Rust}
+    fn print_file_age(filename: &Path, last_modified: SystemTime) {
+        let age = last_modified.elapsed().expect("system clock drift");
+    }
+\end{minted}
+
+这里，\texttt{.elapsed()}方法只在当前系统时间比文件创建的时间\emph{更早}的情况下才会失败。如果文件是新创建的，并且在我们的程序运行期间系统的始终被往后调了，就有可能出现这种情况。取决于代码如何使被使用，在这种情况下panic，而不是处理错误或者传播给调用者，是一个合理的判断。
 
 \subsection{忽略错误}\label{ignoreerr}
 
