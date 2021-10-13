@@ -274,6 +274,75 @@ Rust有一个\texttt{?}运算符来做这个工作。你可以在任何产生\te
 \end{minted}
 
 \subsection{处理多种错误类型}
+通常，可能会出错的不止一件事情。假设我们要从文本文件中读取一个数字：
+\begin{minted}{Rust}
+    use std::io::{self, BufRead};
+
+    /// 从文本文件中读取一个证书。
+    /// 文件中应该每行一个数字。
+    fn read_numbers(file: &mut dyn BufRead) -> Result<Vec<i64>, io::Error> {
+        let mut numbers = vec![];
+        for line_result in file.lines() {
+            let line = line_result?;     // 读取一行可能失败
+            numbers.push(line.parse()?); // 解析整数可能失败
+        }
+        Ok(numbers)
+    }
+\end{minted}
+
+Rust会报一个编译时错误：
+\begin{minted}{text}
+    error: `?` couldn't convert the error to `std::io::Error`
+
+      numbers.push(line.parse()?);  // 解析整数可能失败
+                               ^
+                the trait `std::convert::From<std::num::ParseIntError>`
+                is not implemented for `std::io::Error`
+
+    note: the question mark operation (`?`) implicitly performs a conversion
+    on the error value using the `From` trait
+\end{minted}
+
+当我们接触到\hyperref[ch11]{第11章}中有关trait的内容时才能明白错误消息中的术语。到现在为止，只要知道Rust是在说\texttt{?}运算符不能把\texttt{std::num::ParseIntError}转换为\texttt{std::io::Error}类型就够了。
+
+这里的问题在于从文件中读取一行和解析整数会产生两种不同的错误类型。\texttt{line\_result}的类型是\texttt{Result<String, std::io::Error>}。\texttt{line.parse()}的类型是\texttt{Result<i64, std::num::ParseIntError>}。我们的\texttt{read\_numbers()}函数的返回类型只能容乃\texttt{io::Error}。Rust尝试把\texttt{ParseIntError}转换为\texttt{io::Error}，但这样的转换并不存在，所以向我们汇报了一个错误。
+
+有几种处理这个错误的方法。例如，我们在\hyperref[ch02]{第2章}中用于创建曼德勃罗集的图片文件的\texttt{image} crate中就定义了它自己的错误类型\texttt{ImageError}，并实现了从\texttt{io::Error}和几种其他错误类型到\texttt{ImageError}的转换。如果你想要走这条路，可以尝试\texttt{thiserror} crate，它被设计的目的就是帮你只用少量代码定义良好的错误类型。
+
+一个更简单的方法是使用Rust内建的机制。所有标准库里的错误类型都可以转换为类型\texttt{Box<dyn std::error::Error + Send + Sync + 'static>}。这有一些复杂，不过\texttt{dyn std::error::Error}代表“任何错误”，而\texttt{Send + Sync + 'static}使它可以安全地在线程间传递，这通常也是你想要的\footnote{你也可以考虑使用流行的\texttt{anyhow} crate，它提供类似于我们的\texttt{GenericError}和\texttt{GenericResult}的类型，不过还带有一些其他的有用的特性。}。为了方便，你可以定义类型别名：
+\begin{minted}{Rust}
+    type GenericError = Box<dyn std::error::Error + Send + Sync + 'static>;
+    type GenericResult<T> = Result<T, GenericError>;
+\end{minted}
+
+然后，把\texttt{read\_numbers()}的返回类型修改为\texttt{GenericResult<Vec<i64>>}。修改之后，函数就可以编译了。\texttt{?}运算符会在需要的时候把任何错误类型转换为\texttt{GenericError}。
+
+顺带，\texttt{?}运算符通过一个标准库方法来完成自动转换，你也可以手动使用这个方法。可以调用\texttt{GenericError::from()}来将任何错误转换为\texttt{GenericError}类型：
+\begin{minted}{Rust}
+    let io_error = io::Error::new(      // 创建一个我们自己的io::Error
+        io::ErrorKind::Other, "timed out");
+    return Err(GenericError::from(io_error)); // 手动转换为GenericError
+\end{minted}
+
+我们将在\hyperref[ch13]{第13章}中详细介绍\texttt{From} trait和它的\texttt{from()}方法。
+
+用\texttt{GenericError}方法处理的缺点是返回类型将不能精确地告诉调用者到底发生了什么类型的错误。如果你要调用一个返回\texttt{GenericResult}的函数并且向处理某一种特性类型的错误，然而继续传播其它所有类型的错误，可以使用泛型方法\texttt{error.downcast\_ref::<ErrorType>()}。\emph{如果}这个错误正好是你指定的错误类型：
+\begin{minted}{Rust}
+    loop {
+        match compile_project() {
+            Ok(()) => return Ok(()),
+            Err(err) => {
+                if let Some(mse) = err.downcast_ref::<MissingSemicolonError>() {
+                    insert_semicolon_in_source_code(mse.file(), mse.line())?;
+                    continue;   // try again!
+                }
+                return Err(err);
+            }
+        }
+    }
+\end{minted}
+
+许多语言都有类似这样的内建语法，但它们通常极少被用到。Rust使用一个方法来完成这件事。
 
 \subsection{处理“不可能发生”的错误}
 
