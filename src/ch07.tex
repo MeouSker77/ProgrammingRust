@@ -175,7 +175,7 @@ Rust要求我们每次调用这个函数时都要进行一些错误处理。我�
 
 当类似于\texttt{Result<()>}的东西出现在在线文档里的时候，你可以点击标识符\texttt{Result}来查看使用了哪个类型别名和具体的错误类型。在实践中，通常能从上下文中明显地推断出错误类型。
 
-\subsection{打印错误}
+\subsection{打印错误}\label{printerror}
 有时处理错误的唯一方法就是把它打印到终端然后继续运行程序。我们已经展示了一种这样做的方法：
 \begin{minted}{Rust}
     println!("error querying the weather: {}", err);
@@ -402,6 +402,64 @@ Rust会报一个编译时错误：
 \end{minted}
 
 \subsection{在main()中处理错误}
+在大多数产生\texttt{Result}的场景中，将错误向上传递给调用者是正确的行为。这也是为什么\texttt{?}在Rust中是单个字符。正如我们所见，在一些程序中它被用于很多行代码。
+
+但如果你把一个错误传播的够长了，已经到达了\texttt{main()}，必须要对它做些处理了。通常情况下，\texttt{main()}不能使用\texttt{?}因为它的返回类型不是\texttt{Result}：
+\begin{minted}{Rust}
+    fn main() {
+        calculate_tides()?; // error: can't pass the buck any further
+    }
+\end{minted}
+
+在\texttt{main()}中处理错误的最简单方法就是使用\texttt{.expect()}：
+\begin{minted}{Rust}
+    fn main() {
+        calculate_tides().expect("error");  // the buck stops here
+    }
+\end{minted}
+
+如果\texttt{calculate\_tides()}返回一个错误结果，那么\texttt{.expect()}方法会panic。在主线程中panic会打印一条错误消息并以非0的退出码退出程序。我们将会在小程序中一直使用这种写法。这是开始。
+
+错误消息有一点吓人：
+\begin{minted}{text}
+    $ tidecalc --planet mercury
+    thread 'main' panicked at 'error: "moon not found"', src/main.rs:2:23
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+\end{minted}
+错误消息在干扰中丢失。\texttt{RUST\_BACKTRACE=1}也是一个错误的建议。
+
+然而，你可以修改\texttt{main()}的类型签名，让它返回一个\texttt{Result}类型，这样你可以使用\texttt{?}：
+\begin{minted}{Rust}
+    fn main() -> Result<(), TideCalcError> {
+        let tides = calculate_tides()?;
+        print_tides(tides);
+        Ok(())
+    }
+\end{minted}
+
+这可以用于任何可以以\texttt{{:?}}格式符打印的错误类型，所有的标准错误类型例如\texttt{std::io::Error}都满足条件。这种方法易于使用并且给出更好的错误消息，但并不是理想的方案：
+\begin{minted}{text}
+    $ tidecalc --planet mercury
+    Error: TideCalcError { error_type: NoMoon, message: "moon not found" }
+\end{minted}
+
+如果你要处理更复杂的错误类型或者想在信息中包含更多信息，那你可以自己打印错误信息：
+\begin{minted}{Rust}
+    fn main() {
+        lf let Err(err) = calculate_tides() {
+            print_error(&err);
+            std::process::exit(1);
+        }
+    }
+\end{minted}
+
+这段代码使用了\texttt{if let}表达式来打印错误消息，只有当\texttt{calculate\_tides()}的调用返回错误结果时才会打印消息。更多有关\texttt{if let}表达式的细节，见\hyperref[ch10]{第10章}。\texttt{print\_error}函数在“\hyperref[printerror]{打印错误}”中列出。
+
+现在输出变得漂亮整洁：
+\begin{minted}{text}
+    $ tidecalc --planet mercury
+    error: moon not found
+\end{minted}
 
 \subsection{声明自定义错误类型}
 
