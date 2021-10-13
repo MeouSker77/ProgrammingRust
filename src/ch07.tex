@@ -391,6 +391,15 @@ Rust会报一个编译时错误：
 这里，\texttt{.elapsed()}方法只在当前系统时间比文件创建的时间\emph{更早}的情况下才会失败。如果文件是新创建的，并且在我们的程序运行期间系统的始终被往后调了，就有可能出现这种情况。取决于代码如何使被使用，在这种情况下panic，而不是处理错误或者传播给调用者，是一个合理的判断。
 
 \subsection{忽略错误}\label{ignoreerr}
+偶尔我们只是想忽略一个错误。例如，在我们的\texttt{print\_error}函数中，我们必须处理打印一个错误时触发另一个错误的罕见场景。这有可能发生，例如，如果\texttt{stderr}通过管道连接到其他进程，并且那个进程被杀死了。我们原本尝试汇报的错误可能更重要，需要传播；而\texttt{stderr}的错误我们想直接忽略，但Rust编译器会警告有未使用的\texttt{Result}值：
+\begin{minted}{Rust}
+    writeln!(stderr(), "error: {}", err);   // 警告：未使用的结果
+\end{minted}
+
+惯用写法\texttt{let \_ = ...}可以用来消除这个警告：
+\begin{minted}{Rust}
+    let _ = writeln!(stderr(), "error: {}", err);   // ok，忽略结果
+\end{minted}
 
 \subsection{在main()中处理错误}
 
