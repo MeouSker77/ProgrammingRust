@@ -462,5 +462,62 @@ Rust会报一个编译时错误：
 \end{minted}
 
 \subsection{声明自定义错误类型}
+假设你在编写一个新的JSON解析器，而且你想让它有自己的自定义错误类型。（我们还没有介绍如何自定义类型，不过再过几章就会介绍了。错误类型很方便，因此我们将在此处提供一些先睹为快的预览。）
+
+你需要编写的最少的代码如下：
+\begin{minted}{Rust}
+    // json/src/error.rs
+
+    #[derive(Debug, Clone)]
+    pub struct JsonError {
+        pub message: String,
+        pub line: usize,
+        pub column: usize,
+    }
+\end{minted}
+
+这个结构体将被称作\texttt{json::error::JsonError}，当你需要返回一个这种类型的错误时，你可以这么写：
+\begin{minted}{Rust}
+    return Err(JsonError {
+        "message": "expected ']' at end of array".to_string(),
+        line: current_line,
+        column: current_column
+    });
+\end{minted}
+
+这没有任何问题。然而，如果你想让你的错误类型能像标准错误类型一样工作，这可能也是你的库的使用者希望的，那么你需要再多做一些工作：
+\begin{minted}{Rust}
+    use std::fmt;
+
+    // 错误需要能打印。
+    impl fmt::Display for JsonError {
+        fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+            write!(f, "{} ({}:{})", self.message, self.line, self.column)
+        }
+    }
+
+    // 错误需要实现std::error::Error trait，
+    // 但Error的方法的默认实现已经足够了。
+    impl std::error::Error for JsonError { }
+\end{minted}
+
+\texttt{impl}关键字、\texttt{self}和其它内容将会在几章之后解释。
+
+和Rust语言中的其它很多方面一样，有一些crate可以让错误处理变得更加易用和和简洁。有很多选择，但其中使用最广泛的是\texttt{thiserror}，它帮你完成上述所有的工作，让你可以像这样定义错误：
+\begin{minted}{Rust}
+    use thiserror::Error;
+    #[derive(Error, Debug)]
+    #[error("{message:} ({line:}, {column})")]
+    pub struct JsonError {
+        message: String,
+        line: usize,
+        column: usize,
+    }
+\end{minted}
+
+\texttt{\#[derive(Error)]}指示会告诉\texttt{thiserror}生成之前展示的代码，这可以节省很多时间和工作。
 
 \subsection{为什么选择Result}
+现在我们已经知道足够多，可以理解Rust为什么选择\texttt{Result}而不是异常了。这是这个设计的关键点：
+
+
