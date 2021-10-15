@@ -939,7 +939,7 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
     初学者的一个常见错误是尝试在\texttt{main}函数中使用\texttt{?}。然而，因为\texttt{main}函数自身不返回值，所以这种写法是错误的。正确的做法是使用\texttt{match}表达式或者类似于\texttt{unwrap}或\texttt{expect}这样的缩写方法。还有一种方式是把\texttt{main}改为返回\texttt{Result}，我们之后会介绍这种方式。
 \end{note}
 
-\section{一个并发的曼德勃罗集程序}
+\section{一个并发的曼德勃罗集程序}\label{mandelbrot}
 所有的部分都已经就位，我们将在\texttt{main}函数中加入并发的部分。首先，一个简单的无并发版本如下：
 \begin{minted}{Rust}
     use std::env;
