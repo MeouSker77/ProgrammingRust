@@ -124,3 +124,31 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
 如果你有一个用更旧版本的Rust编写的crate，\texttt{cargo fix}命令也许可以帮你自动把代码更新到更新的版本。Rust版本指南详细解释了\texttt{cargo fix}命令。
 
 \subsection{构建配置}
+有几个\texttt{Cargo.toml}中的配置选项可以影响到\texttt{cargo}生成的\texttt{rustc}命令行（\hyperref[t8-1]{表8-1}）。
+
+\begin{table}[htbp]
+    \caption{Cargo.toml配置节}
+    \centering
+    \begin{tabular}{ll}
+        \hline
+        \textbf{命令行}     & \texttt{使用到的Cargo.toml节}   \\
+        \hline
+        \texttt{cargo build} & \texttt{[profile.dev]}   \\
+        \rowcolor{tablecolor}
+        \texttt{cargo build --release} & \texttt{[profile.release]} \\
+        \texttt{cargo test}  & \texttt{[profile.test]}  \\
+    \end{tabular}
+\end{table}
+
+通常默认的行为就足够了，但我们会发现一个例外是你想使用一个profiler——一个用于测量程序使用CPU时间情况的工具。为了从profiler获取最准确的数据，你将同时需要优化（通常只在release构建中可用）和调试符号（通常只在debug构建中可用）。为了同时启用两者，在\texttt{Cargo.toml}中添加：
+\begin{minted}{toml}
+    [profile.release]
+    debug = true    # 允许在release构建中启用调试符号
+\end{minted}
+
+\texttt{debug}设置控制是否给\texttt{rustc}传递\texttt{-g}选项。有了这个配置，当你输入\texttt{cargo build --release}时，你将会得到一个带有调试符号的二进制文件。优化的设置将不会被影响。
+
+\hyperref[https://doc.rust-lang.org/cargo/reference/manifest.html]{Cargo文档}中列出了很多其他你可以在\texttt{Cargo.toml}中调整的设置。
+
+
+
