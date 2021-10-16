@@ -496,7 +496,18 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
 模块和文件的概念并不相同，但模块和Unix文件系统中的文件和目录存在自然的类比关系。\texttt{use}关键字创建别名，就像\texttt{ln}命令创建链接。路径类似于文件名，有绝对路径和相对路径两种形式。\texttt{self}和\texttt{super}类似于\texttt{.}和\texttt{..}这两个特殊的目录。
 
 \subsection{标准prelude}
+我们之前说每个模块都以“空白的状态”开始，但事实上并不是\emph{完全}空白的状态。
 
+其中一点是，标准库\texttt{std}被自动链接到每个项目。这意味着你总是可以使用\texttt{std::whatever}这种方式来引用\texttt{std}里的item，例如\texttt{std::mem::swap()}。还有，一些特殊的常见名称，例如\texttt{Vec}和\texttt{Result}也被包含在\emph{标准prelude}中并且被自动导入。具体的行为就好像是包括跟模块在内的每个模块都以如下导入开始：
+\begin{minted}{Rust}
+    use std::prelude::v1::*;
+\end{minted}
+
+标注的prelude包含一些通用的trait和类型。
+
+在\hyperref[ch02]{第2章}中时，我们提到了库有时会提供叫\texttt{prelude}的模块。但\texttt{std::prelude::v1}是唯一一个自动导入的。将一个模块命名为\texttt{prelude}只会一个约定，告诉用户他应该导入\texttt{*}。
+
+\subsection{pub use声明}
 
 
 
