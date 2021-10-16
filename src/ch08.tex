@@ -185,7 +185,7 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
     }
 \end{minted}
 
-一个模块是\emph{item}的集合，\texttt{item}是命名的特性例如例子中的\texttt{Spore}结构体和两个函数。\texttt{pub}关键字将item设为共有的，因此可以从模块外边访问。
+一个模块是\emph{item}的集合，\texttt{item}是命名的特性例如例子中的\texttt{Spore}结构体和两个函数。\texttt{pub}关键字将item设为公有的，因此可以从模块外边访问。
 
 一个函数被标记为\texttt{pub(crate)}，意味着它在这个crate中任何地方都可以访问，但不作为外部接口的一部分公开。它不能被其他crate使用，也不会在crate的文档中显示。
 
@@ -295,7 +295,7 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
 
 \texttt{spores.rs}只包含组成模块的item。它并不需要任何说明来表明它是一个模块。
 
-这个\texttt{spores}模块和我们在上一节中展示的版本的\emph{唯一}不同就是代码的位置。有关共有性和私有性的规则和之前完全相同。Rust从来不会单独编译模块，即使它们在单独的文件里。当你构建一个Rust的crate的时候，你总是要重新编译它里面所有的模块。
+这个\texttt{spores}模块和我们在上一节中展示的版本的\emph{唯一}不同就是代码的位置。有关公有性和私有性的规则和之前完全相同。Rust从来不会单独编译模块，即使它们在单独的文件里。当你构建一个Rust的crate的时候，你总是要重新编译它里面所有的模块。
 
 一个模块也可以有自己的目录。当Rust看到\texttt{mod spores;}时，它会检查\texttt{spores.rs}和\texttt{spores/mod.rs}，如果这两个文件都不存在或者都存在就会报错。这个例子中我们使用了\texttt{spores.rs}，因为\texttt{spores}模块没有任何子模块。但考虑一下我们之前写的\texttt{plant\_structures}模块。如果我们决定将那个模块和它的三个字模块分割在单独的文件中，最终的项目看起来就是这样：
 \begin{minted}{text}
@@ -508,7 +508,7 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
 在\hyperref[ch02]{第2章}中时，我们提到了库有时会提供叫\texttt{prelude}的模块。但\texttt{std::prelude::v1}是唯一一个自动导入的。将一个模块命名为\texttt{prelude}只会一个约定，告诉用户他应该导入\texttt{*}。
 
 \subsection{pub use声明}
-即使\texttt{use}声明只是别名，它们也可以是共有的：
+即使\texttt{use}声明只是别名，它们也可以是公有的：
 \begin{minted}{Rust}
     // in plant_structures/mod.rs
     ...
@@ -521,11 +521,21 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
 标准的prelude就是以一系列\texttt{pub}导入的方式实现的。
 
 \subsection{pub结构体字段}
+一个模块可以包含用户用\texttt{struct}关键字定义的自定义结构体类型。我们将在\hyperref[ch09]{第9章}中介绍细节，但这是一个了解模块如何和结构体字段的可见性交互的好时机。
 
+一个简单的结构体类似这样：
+\begin{minted}{Rust}
+    pub struct Fern {
+        pub roots: RootSet,
+        pub stems: StemSet
+    }
+\end{minted}
 
+一个结构体的字段，包括私有字段，都可以在struct定义的整个模块及其子模块中访问，在模块之外，只有公有的字段才可以被访问。
 
+事实证明通过模块来实现访问控制，而不是像Java和C++那样通过类来实现，对于程序设计将是很大的帮助。不仅能减少重复“getter”和“setter”方法，还能消除类似C++中\texttt{friend}声明的需求。一个模块可以定义几个紧密结合的类型，例如\texttt{frond::LeafMap}和\texttt{frond::LeafMapIter}，让它们能按需互相访问彼此的私有字段，同时对程序中的其他部分隐藏实现的细节。
 
-
+\subsection{静态量和常量}
 
 
 
