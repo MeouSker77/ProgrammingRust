@@ -531,16 +531,36 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
     }
 \end{minted}
 
-一个结构体的字段，包括私有字段，都可以在struct定义的整个模块及其子模块中访问，在模块之外，只有公有的字段才可以被访问。
+一个结构体的所有字段，包括私有字段，都可以在定义结构体的整个模块及其子模块中访问，在模块之外，只有公有的字段才可以被访问。
 
 事实证明通过模块来实现访问控制，而不是像Java和C++那样通过类来实现，对于程序设计将是很大的帮助。不仅能减少重复“getter”和“setter”方法，还能消除类似C++中\texttt{friend}声明的需求。一个模块可以定义几个紧密结合的类型，例如\texttt{frond::LeafMap}和\texttt{frond::LeafMapIter}，让它们能按需互相访问彼此的私有字段，同时对程序中的其他部分隐藏实现的细节。
 
 \subsection{静态量和常量}
 
+除了函数、类型和嵌套模块之外，模块里还可以定义\emph{常量}和\emph{静态量}。
 
+\texttt{const}关键字定义常量，语法类似于\texttt{let}，除了它必须被标记为\texttt{pub}以及要显式写出类型。还有，为了方便，常量一般都用\texttt{UPPERCASE\_NAMES}：
+\begin{minted}{Rust}
+    pub const ROOM_TEMPERATURE: f64 = 20.0;     // 摄氏度
+\end{minted}
 
+\texttt{static}关键字定义静态量，和\texttt{const}的用法几乎一样：
+\begin{minted}{Rust}
+    pub static ROOM_TEMPERATURE: f64 = 68.0;    // 华氏温度
+\end{minted}
 
+常量有些类似于C++中的\texttt{\#define}，值被编译进代码中每一个使用它的地方。一个静态量就是一个在程序开始之前就初始化并持续到程序退出的变量。在代码中使用常量表示幻数和字符串。使用静态量表示更大规模的数据，或者用于需要借用全局常量的引用时。
 
+没有\texttt{mut}常量。静态量可以被标记为\texttt{mut}，但就像我们在\hyperref[ch05]{第5章}中讨论的一样，Rust没有任何方法强制实现\texttt{mut}静态量的独占访问。因此，这种变量天生的线程不安全，safe代码完全不能使用它们：
+\begin{minted}{Rust}
+    static mut PACKETS_SERVED: usize = 0;
+
+    println!("{} served", PACKETS_SERVED);  // 错误：使用了可变的静态量
+\end{minted}
+
+Rust不鼓励全局可变的状态。关于替代方案的讨论，见“\nameref{globalvar}”一节。
+
+\section{将程序变为库}
 
 
 
