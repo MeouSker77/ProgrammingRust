@@ -353,6 +353,158 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
 这三种方式——模块在自己单独的文件中、模块在自己同名的目录中的\texttt{mod.rs}中，模块在自己单独的文件中并有一个同名的目录包含子模块——给了模块系统足够的灵活性来支撑你需要的任何程序结构。
 
 \subsection{路径和导入}
+\texttt{::}运算符用于访问模块中的特性。你的项目中任何地方的代码都可以通过路径来引用任何标准库的特性：
+\begin{minted}{Rust}
+    if s1 > s2 {
+        std::mem::swap(&mut s1, &mut s2);
+    }
+\end{minted}
+
+\texttt{std}是标准库的名称。路径\texttt{std}指向标准库的顶级模块。\texttt{std::mem}是在标准库中的一个子模块，\texttt{std::mem::swap}是\texttt{std::mem}模块中的一个public函数。
+
+你可以始终用这方式编写所有的代码，每当你需要圆或字典时都写出\texttt{std::f64::consts::PI}和\texttt{std::collections::HashMap::new}，但这样太过繁琐，而且难以阅读。替代方案是把一些特性\emph{导入}用到它们的模块：
+\begin{minted}{Rust}
+    use std::mem;
+
+    if s1 > s2 {
+        mem::swap(&mut s1, &mut s2);
+    }
+\end{minted}
+
+\texttt{use}声明会导致\texttt{mem}变为\texttt{std::mem}在整个块或模块中的一个局部别名。
+
+你也可以编写\texttt{std::mem::swap}来导入\texttt{swap}函数本身，而不是\texttt{mem}模块。然而，我们之前的方式被认为是最佳的风格：引入类型、trait和模块（例如\texttt{std::mem}）然后使用相对路径访问函数、常量和其他成员。
+
+可以依次导入若干个名字：
+\begin{minted}{Rust}
+    use std::collections::{HashMap, HashSet};   // 导入两个
+    
+    use std::fs::{self, File};  // 导入`std::fs`和`std::fs::File`
+    
+    use std::io::prelude::*;    // 导入所有内容
+\end{minted}
+
+这是写出所有单独导入的方式的缩写：
+\begin{minted}{Rust}
+    use std::collections::HashMap;
+    use std::collections::HashSet;
+
+    use std::fs;
+    use std::fs::File;
+
+    // std::io::prelude中的所有public item：
+    use std::io::prelude::Read;
+    use std::io::prelude::Write;
+    use std::io::prelude::BufRead;
+    use std::io::prelude::Seek;
+\end{minted}
+
+你可以使用\texttt{as}导入一个item并同时给它一个不同的局部名称：
+\begin{minted}{Rust}
+    use std::io::Result as IOResult;
+
+    // 返回类型等价于`std::io::Result<()>`
+    fn save_spore(spore: &Spore) -> IOResult<()>
+    ...
+\end{minted}
+
+模块并不会\emph{自动}从父模块中继承名称。例如，假设我们的\texttt{proteins/mod.rs}有如下内容：
+\begin{minted}{Rust}
+    // proteins/mod.rs
+    pub enum AminoAcid { ... }
+    pub mod synthesis;
+\end{minted}
+
+那么\texttt{synthesis.rs}里的代码并不会自动导入类型\texttt{AminoAcid}：
+\begin{minted}{Rust}
+    // proteins/synthesis.rs
+    pub fn synthesis(seq: &[AminoAcid]) // 错误：找不到类型`AminoAcid`
+        ...
+\end{minted}
+
+每一个模块都会以空白的状态开始，必须导入它使用的名称：
+\begin{minted}{Rust}
+    // proteins/synthesis.rs
+    use super::AminoAcid;   // 显式地从父模块中导入
+    pub fn synthesize(seq: &[AminoAcid]) // ok
+        ...
+\end{minted}
+
+默认情况下，路径是相对于当前模块的：
+\begin{minted}{Rust}
+    // 在proteins/mod.rs中
+
+    // 从子模块中导入
+    use synthesis::synthesize;
+\end{minted}
+
+\texttt{self}也是当前模块的同义词，因此我们可以写：
+\begin{minted}{Rust}
+    // 在proteins/mod.rs中
+
+    // 导入一个枚举中的名字
+    // 这样我们可以用`Lys`来表示赖氨酸，而不是`AminoAcid::Lys`
+    use self::AminoAcid::*;
+\end{minted}
+
+或者简写为：
+\begin{minted}{Rust}
+    // 在proteins/mod.rs中
+
+    use AminoAcid::*;
+\end{minted}
+
+（这里的\texttt{AminoAcid}的例子，有些违背我们之前提到的只导入类型、trait和模块的风格。如果我们的程序包含很长的氨基酸序列，那么根据奥威尔的第六原则：“Break any of these rules sooner than say anything outright barbarous.”（绝不要用粗俗语言，为此可以打破上面任一规则。）这么做也是有道理的。
+
+路径中的\texttt{super}和\texttt{crate}关键字有特殊的含义：\texttt{super}指代父模块，\texttt{crate}指代包含当前模块的crate。
+
+使用相对于crate根的路径而不是相对于当前模块的路径可以使在项目中移动代码变得更容易，因为这样的话计算当前模块的路径变了，导入也不会出错。例如，我们可以使用\texttt{crate}来写\texttt{synthesis.rs}：
+\begin{minted}{Rust}
+    // proteins/synthesis.rs
+    use crate::proteins::AminoAcid; // 显式的相对于crate根的导入
+
+    pub fn synthesize(seq: &[AminoAcid]) // ok
+        ...
+\end{minted}
+
+子模块可以通过\texttt{use super::*}访问父模块中的私有item。
+
+如果你有一个模块和当前正在使用的某一个模块同名，那么引用它们的时候就要小心了。例如，如果你的程序在\texttt{Cargo.toml}列出了\texttt{image} crate依赖，同时还有一个模块叫\texttt{image}，那么以\texttt{image}开头的路径将会导致歧义：
+\begin{minted}{Rust}
+    mod image {
+        pub struct Sampler {
+            ...
+        }
+    }
+
+    // 错误：这是指向`imaeg`模块，还是`image` crate？
+    use image::Pixels;
+\end{minted}
+
+即使\texttt{image}模块没有\texttt{Pixels}类型，这个歧义也会被认为是错误：如果之后又添加了\texttt{Pixels}的定义，那么可能会改变路径指向的内容，这可能会令人迷惑。
+
+为了解决歧义，Rust有一种特殊的路径称为\emph{绝对路径}，它们以\texttt{::}开头，将总是指向一个外部的crate。为了指向\texttt{image} crate中的\texttt{Pixels}类型，你可以写：
+\begin{minted}{Rust}
+    use ::image::Pixels;    // `image` crate的`Pixels`
+\end{minted}
+
+为了指向你自己的模块中的`Sampler`类型，你可以写：
+\begin{minted}{Rust}
+    use self::image::Sampler;   // `image`模块的`Sampler`
+\end{minted}
+
+模块和文件的概念并不相同，但模块和Unix文件系统中的文件和目录存在自然的类比关系。\texttt{use}关键字创建别名，就像\texttt{ln}命令创建链接。路径类似于文件名，有绝对路径和相对路径两种形式。\texttt{self}和\texttt{super}类似于\texttt{.}和\texttt{..}这两个特殊的目录。
+
+\subsection{标准prelude}
+
+
+
+
+
+
+
+
+
 
 
 
