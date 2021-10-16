@@ -508,8 +508,19 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
 在\hyperref[ch02]{第2章}中时，我们提到了库有时会提供叫\texttt{prelude}的模块。但\texttt{std::prelude::v1}是唯一一个自动导入的。将一个模块命名为\texttt{prelude}只会一个约定，告诉用户他应该导入\texttt{*}。
 
 \subsection{pub use声明}
+即使\texttt{use}声明只是别名，它们也可以是共有的：
+\begin{minted}{Rust}
+    // in plant_structures/mod.rs
+    ...
+    pub use self::leaves::Leaf;
+    pub use self::roots::Root;
+\end{minted}
 
+这意味着\texttt{Leaf}和\texttt{Root}是\texttt{plant\_structures}模块里的public item。它们实际上只是\texttt{plant\_structures::leaves::Leaf}和\texttt{plant\_structures::roots::Root}的别名。
 
+标准的prelude就是以一系列\texttt{pub}导入的方式实现的。
+
+\subsection{pub结构体字段}
 
 
 
