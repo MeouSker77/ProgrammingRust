@@ -641,9 +641,63 @@ Rust不鼓励全局可变的状态。关于替代方案的讨论，见“\namere
 
 \section{src/bin目录}
 
+想让原本的\texttt{fern\_sim}程序再次工作也非常简单：Cargo有一些内建的支持，可以让较小的程序和库存在同一个crate中。
 
+事实上，Cargo自身就是用这种方式编写的。它的大部分代码都在一个Rust库里。我们在本书中至今为止用过的\texttt{cargo}命令行程序只是一个简单的包装程序，它会调用库来完成真正的工作。库和命令行程序\hyperref[https://github.com/rust-lang/cargo]{在同一个源代码仓库中}。
 
+我们也可以把程序和库放在同一个crate中。将这些代码放入一个叫做\texttt{src/bin/efern.rs}的文件中：
+\begin{minted}{Rust}
+    use fern_sim::{Fern, run_simulation};
 
+    fn main() {
+        let mut fern = Fern {
+            size: 1.0,
+            growth_rate: 0.001
+        };
+        run_simulation(&mut fern, 1000);
+        println!("final fern size: {}", fern.size);
+    }
+\end{minted}
+
+这个\texttt{main}函数就是我们之前放在一边的那个。我们添加了\texttt{use}声明来使用\texttt{fern\_sim} crate里的一些item：\texttt{Fern}和\texttt{run\_simulation}。也就是说，我们像使用库一样使用了那个crate。
+
+因为我们把这个文件放在了\texttt{src/bin}里，所以当我们下次运行\texttt{cargo build}时，Cargo将会同时编译\texttt{fren\_sim}库和这个程序。我们可以使用\texttt{cargo run --bin efern}来运行\texttt{efern}程序。可以通过使用\texttt{--verbose}参数来查看Cargo运行的命令，大概是这样：
+\begin{minted}{text}
+    $ cargo build --verbose
+       Compiling fern_sim v0.1.0 (file:///.../fern_sim)
+         Running `rustc src/lib.rs --crate-name fern_sim --crate-type lib ...`
+         Running `rustc src/bin/efern.rs --crate-name efern --crate-type bin ...`
+    $ cargo run --bin efern --verbose
+           Fresh fern_sim v0.1.0 (file:///.../fern_sim)
+         Running `target/debug/efern`
+    final fern size: 2.7169239322355985
+\end{minted}
+
+我们仍然不需要修改\texttt{Cargo.toml}中的任何内容，Cargo的默认行为是查看源文件然后进行判断。它会自动把\texttt{src/bin}里的\texttt{.rs}文件当作额外的程序来构建。
+
+我们也可以在\texttt{src/bin}目录下通过子目录来构建更大的程序。假设我们想要提供另一个程序在屏幕上绘制蕨类植物，但绘制代码比较多而且是模块化的，因此它应该有自己的文件。我们可以将第二个程序放在单独的子目录中：
+\begin{minted}{text}
+    fern_sim/
+    |—— Cargo.toml
+    |—— src/
+        |—— bin/
+            |—— efern.rs
+            |—— draw_fern/
+                |—— main.rs
+                |—— draw.rs
+\end{minted}
+
+把更大的可执行程序存放在自己的目录中的优势是不会打乱库代码和\texttt{src/bin}目录。
+
+当然，既然现在\texttt{fern\_sim}是一个库，那么我们还有另一种选择。我们可以把这个程序放入单独的项目中，在一个完全独立的目录中，在它的\texttt{Cargo.toml}中列出\texttt{fern\_sim}作为依赖：
+\begin{minted}{toml}
+    [dependencies]
+    fern_sim = { path = "../fern_sim" }
+\end{minted}
+
+可能这正是你之后编写其他蕨类模拟程序时采用的方法。\texttt{src/bin}目录只适合像\texttt{efern}和\texttt{draw\_fern}这样的简单程序。
+
+\section{属性}
 
 
 
