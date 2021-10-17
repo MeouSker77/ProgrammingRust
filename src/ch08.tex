@@ -562,11 +562,84 @@ Rust不鼓励全局可变的状态。关于替代方案的讨论，见“\namere
 
 \section{将程序变为库}
 
+当你的蕨类模拟器完成之后，你决定你需要不止一个程序。假设你还有一个命令行程序运行这个模拟器并把结果保存到文件中。现在，你想要编写其他程序来对保存的结果进行科学分析、实时渲染成长中的植物、渲染逼真的植物等等。所有这些程序都要共享基本的蕨类模拟器的代码。你需要创建一个库。
 
+第一步是将你现有的项目分解为两部分：一个库crate和一个可执行文件。前者包含所有的共享代码，后者包含只有命令行程序才需要的代码。
 
+为了展示怎么做到这一点，让我们给出一个简单粗暴的示例程序：
+\begin{minted}{Rust}
+    struct Fern {
+        size: f64,
+        growth_rate: f64
+    }
 
+    impl Fern {
+        /// 模拟一个蕨类植物一天地成长
+        fn grow(&mut self) {
+            self.size *= 1.0 + self.growth_rate;
+        }
+    }
 
+    /// 运行蕨类模拟器模拟几天的变化
+    fn run_simulation(fern: &mut Fern, days: usize) {
+        for _ in 0 .. days {
+            fern.grow();
+        }
+    }
 
+    fn main() {
+        let mut fern = Fern {
+            size: 1.0,
+            growth_rate: 0.001
+        };
+        run_simulation(&mut fern, 1000);
+        println!("final fern size: {}", fern.size);
+    }
+\end{minted}
+
+我们假设这个程序有一个普通的\texttt{Cargo.toml}文件：
+\begin{minted}{toml}
+    [package]
+    name = "fern_sim"
+    version = "0.1.0"
+    authors = ["You <you@example.com>"]
+    edition = "2018"
+\end{minted}
+
+将这个程序变为库是很简单的。只需要如下步骤：
+\begin{enumerate}
+    \item 将文件\texttt{src/main.rs}重命名为\texttt{src/lib.rs}
+    \item 给\texttt{src/lib.rs}里将作为库的公开特性的item添加\texttt{pub}关键字
+    \item 暂时把\texttt{main}函数移动到一个别的临时文件中。我们将很快回来处理它。
+\end{enumerate}
+
+最后的\texttt{src/lib.rs}文件看起来像这样：
+\begin{minted}{Rust}
+    pub struct Fern {
+        pub size: f64,
+        pub growth_rate: f64
+    }
+
+    impl Fern {
+        /// 模拟一个蕨类植物一天地成长
+        pub fn grow(&mut self) {
+            self.size *= 1.0 + self.growth_rate;
+        }
+    }
+
+    /// 运行蕨类模拟器模拟几天的变化
+    pub fn run_simulation(fern: &mut Fern, days: usize) {
+        for _ in 0 .. days {
+            fern.grow();
+        }
+    }
+\end{minted}
+
+注意我们不需要更改\texttt{Cargo.toml}中的任何内容。这是因为我们最简的\texttt{Cargo.toml}会保持Cargo的默认行为。默认情况下，\texttt{cargo build}会查看源代码目录下的文件然后判断要构建什么。当它看到\texttt{src/lib.rs}文件，它就知道要构建一个库。
+
+\texttt{src/lib.rs}里的代码组成了库的\emph{根模块}。其他使用我们库的crate可以访问跟模块里的公有item。
+
+\section{src/bin目录}
 
 
 
