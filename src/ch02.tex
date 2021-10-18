@@ -164,7 +164,7 @@ Rust有\texttt{return}语句，但是\texttt{gcd}函数并不需要。如果一�
 
 在Rust中当控制流到达函数底部时利用这种形式返回值是一种很典型的做法，只有当在函数的中途显式地返回时才会使用\texttt{return}语句。
 
-\section{编写并运行单元测试}
+\section{编写并运行单元测试}\label{test}
 Rust语言内建有对测试的支持。为了测试我们的\texttt{gcd}函数，我们可以在\texttt{src/main.rs}的最后添加下列代码：
 \begin{minted}{Rust}
     #[test]

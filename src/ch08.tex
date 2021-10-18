@@ -798,6 +798,147 @@ Rust程序中的任何item都可以用\emph{属性}修饰。属性是Rust中向�
 
 \section{测试和文档}
 
+正如我们在“\nameref{test}”一节中看到的一样，Rust中内建了一个简单的单元测试框架。测试是用\texttt{\#[test]}属性标记的普通函数：
+\begin{minted}{Rust}
+    #[test]
+    fn math_works() {
+        let x: i32 = 1;
+        assert!(x.is_positive());
+        assert_eq!(x + 1, 2);
+    }
+\end{minted}
+
+\texttt{cargo test}会运行项目中的所有测试：
+\begin{minted}{text}
+    $ cargo test
+       Compiling math_test v0.1.0 (file:///.../math_test)
+         Running target/release/math_test-e31ed91ae51ebf22
+    
+    running 1 test
+    test math_works ... ok
+
+    test result: ok. 1 passed; 0 failed; 0 ignored; 0 measuerd; 0 filtered out
+\end{minted}
+（你也可能会看到一些有关“doc-tests”的输出，我们将在稍后讨论它。）
+
+测试的行为和你的crate是可执行程序还是库没有关系。你可以通过向Cargo传递参数来运行指定的测试：\texttt{cargo test math}会运行名称中包含\texttt{math}的所有测试。
+
+测试通常使用Rust标准库里的\texttt{assert!}和\texttt{assert\_eq!}宏。如果\texttt{expr}为真，\texttt{assert!(expr)}断言会成功。否则，它会panic，并导致测试失败。\texttt{assert\_eq!(v1, v2)}类似于\texttt{assert!(v1 == v2)}，除了当断言失败时，它会同时打印出两个操作数的值。
+
+你也可以在普通的代码中使用这两个宏，但注意即使是release构建\texttt{assert!}和\texttt{assert\_eq!}也会被包含进去。使用\texttt{debug\_assert!}和\texttt{debug\_assert\_dq!}来编写只在debug构建时才会检查的断言。
+
+为了测试错误的情况，需要向测试添加\texttt{\#[should\_panic]}属性：
+\begin{minted}{Rust}
+    /// 正如我们在上一章中说的一样，
+    /// 只有当除0会导致panic时这个测试才能通过
+    #[test]
+    #[allow(unconditional_panic, unused_must_use)]
+    #[should_panic(expected="divide by zero")]
+    fn test_divide_by_zero_error() {
+        1 / 0;  // 应该panic！
+    }
+\end{minted}
+
+在这个例子中，我们需要添加\texttt{allow}属性来告诉编译器允许我们写一些可以静态证明一定会panic的代码，然后进行除法并丢弃结果值。因为通常情况下，编译器会阻止这种愚蠢的行为。
+
+你也可以在测试中返回\texttt{Result<(), E>}。只要错误类型实现了\texttt{Debug} trait（这是通常的情况），你就可以使用\texttt{?}略过\texttt{Ok}的情况返回一个\texttt{Result}：
+\begin{minted}{Rust}
+    use std::num::ParseIntError;
+
+    /// 只有当"1204"是个有效的数字时这个测试才能通过
+    #[test]
+    fn main() -> Result<(), ParseIntError> {
+        i32::from_str_radix("1024", 10)?;
+        Ok(())
+    }
+\end{minted}
+
+用\texttt{\#[test]}标记的函数会条件编译。普通的\texttt{cargo build}或者\texttt{cargo build --release}会跳过测试代码。但当你运行\texttt{cargo test}时，Cargo会编译程序两次：一次是用普通方式编译，另一次是在启用测试和测试工具的情况下编译。这意味着如果需要的话，你的单元测试可以和要测试的代码放在一起，这样可以访问内部的实现细节，并且没有运行时开销。然而，这可能会导致一些警告。例如：
+\begin{minted}{Rust}
+    fn roughly_equal(a: f64, b: f64) -> bool {
+        (a - b).abs() < 1e-6
+    }
+
+    #[test]
+    fn trig_works() {
+        use std::f64::const::PI;
+        assert!(roughly_equal(PI.sin(), 0.0));
+    }
+\end{minted}
+
+在省略测试代码的构建中，\texttt{roughly\_equal}可能未被使用，Rust会警告：
+\begin{minted}{text}
+    $ cargo build
+       Compiling math_test v0.1.0 (file:///.../math_test)
+    warning: function is never used: `roughly_equal`
+     --> src/crates_unused_testing_function.rs:7:1
+      |
+    7 | / fn roughly_equal(a: f64, b: f64) -> bool {
+    8 | |     (a - b).abs() < 1e-6    
+    9 | | }
+      | |_^
+      |
+       = note: #[warn(dead_code)] on by default
+\end{minted}
+
+因此，当你的测试足够复杂需要支持的代码的时候，将它们放在一个\texttt{tests}模块中并使用\texttt{\#[cfg]}属性将整个模块声明为测试模式特定：
+\begin{minted}{Rust}
+    #[cfg(test)]    // 只有在测试时才包含这个模块
+    mod tests {
+        fn roughly_equal(a: f64, b: f64) -> bool {
+            (a - b).abs() < 1e-6
+        }
+
+        #[test]
+        fn trig_works() {
+            use std::f64::const::PI;
+            assert!(roughly_equal(PI.sin(), 0.0));
+        }
+    }
+\end{minted}
+
+Rust的测试工具默认会使用多线程同时运行多个测试，这是你的Rust代码线程安全的一个附带的好处。为了禁用并行测试，运行\texttt{test -- --test-threads 1}。（第一个\texttt{--}确保\texttt{cargo test}会把\texttt{--test-threads}选项传递给测试的可执行程序）如果想运行单个测试，运行\texttt{cargo test testname}。这意味着从技术上讲，我们在\hyperref[ch02]{第2章}中展示的曼德勃罗程序并不是那一章中的第二个多线程程序，而是第三个！“\nameref{test}”一节中运行的\texttt{cargo test}才是第一个。
+
+通常来说，测试工具只会显示失败的测试的输出。为了显示通过的测试的输出，可以运行\texttt{cargo test -- --no-capture}。
+
+\subsection{集成测试}
+你的蕨类模拟器的规模仍然在增长。你决定将所有主要的代码放进一个库里，这样可以被很多可执行程序使用。模拟最终使用\texttt{fern\_sim.rlib}库的用户使用它的方式对它进行一些测试将是一个好主意。另外，你还有一些首先从二进制文件中加载保存的模拟器的测试，将这些很大的测试文件保存在\texttt{src}目录中是很尴尬的。集成测试可以帮忙解决这两个问题。
+
+集成测试是\texttt{src}目录下的\texttt{tests}目录中的\texttt{.rs}文件。当你运行\texttt{cargo test}时，Cargo会将每一个集成测试编译成独立的crate，然后和你的库以及Rust的测试工具链接。这里有一个例子：
+\begin{minted}{Rust}
+    // tests/unfurl.rs - Fiddleheads unfurl in sunlight
+
+    use fern_sim::Terrarium;
+    use std::time::Duration;
+
+    #[test]
+    fn test_fiddlehead_unfurling() {
+        let mut world = Terrarium::load("tests/unfurl_files/fiddlehead.tm");
+        assert!(world.fern(0).is_furled());
+        let one_hour = Duration::from_secs(60 * 60);
+        world.apply_sunlight(one_hour);
+        assert!(world.fern(0).is_fully_unfurled());
+    }
+\end{minted}
+
+集成测试之所以有价值，部分原因是它们从crate外部看待你的crate，就像一个用户一样。它们测试crate的public API。
+
+\texttt{cargo test}会同时运行单元测试和集成测试。为了只运行特定文件中的集成测试——例如\texttt{tests/unfurl.rs}——使用命令\texttt{cargo test --test unfurl}。
+
+\subsection{文档}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
