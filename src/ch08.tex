@@ -1107,7 +1107,7 @@ Rust中的文档注释的一个特殊特性是Markdown链接可以使用Rust的i
 
 如果甚至不希望代码编译，可以将\texttt{no\_run}替换为\texttt{ignore}。使用\texttt{ignore}标记的块将不会出现在\texttt{cargo test}的输出中，但\texttt{no\_run}标记的块会出现在测试的输出中，如果能编译就能通过测试。如果代码块完全不是Rust代码，那么使用语言的名字来标记。例如\texttt{c++}或\texttt{sh}，或者普通文本时用\texttt{text}。\texttt{rustdoc}并不知道几百种编程语言的名字，因此，它将所有不认识的注解都当作非Rust的代码块，这样会禁用代码高亮和文档测试。
 
-\section{指定依赖}
+\section{指定依赖}\label{depend}
 
 我们已经看到过一种方式来告诉Cargo你的项目依赖的crate：版本号。
 \begin{minted}{toml}
@@ -1196,7 +1196,76 @@ Cargo也有一个内建的机制来解决这个问题。当你第一次构建项
 
 \section{把crate发布到crates.io}
 
+你已经决定了将你的蕨类模拟器库作为开源软件发布。祝贺你！这个过程非常的简单。
 
+首先，确保Cargo可以为你打包crate。
+
+\begin{minted}{text}
+    $ cargo package
+    warning: manifest has no description, license, license-file, documentation,
+    homepage or repository. See http://doc.crates.io/manifest.html#package-metadata
+    for more info.
+       Packaging fern_sim v0.1.0 (file:///.../fern_sim)
+       Verifying fern_sim v0.1.0 (file:///.../fern_sim)
+       Compiling fern_sim v0.1.0 (file:///.../fern_sim/target/package/fern_sim-0.1.0)
+\end{minted}
+
+\texttt{cargo package}命令会产生一个文件（在这个例子中是\texttt{target/package/fern\_sim-0.1.0.crate}，这个文件包含你库里的所有源文件，包括\texttt{Cargo.toml}。这是你将要上传到crates.io与全世界分享的文件。（你可以使用\texttt{cargo package --list}来查看包含了哪些文件。）Cargo会进行二次检查，像你的最终用户一样从\texttt{.crate}文件构建你的库，来确保它能正常工作。
+
+Cargo警告说\texttt{Cargo.toml}的\texttt{[package]}节缺少了一些对下游用户来说很重要的信息，例如你分发代码所依据的许可证。警告中的URL是非常优秀的资源，因此我们不会在这里详细解释所有的字段。简单来说，你可以通过在\texttt{Cargo.toml}中添加几行内容来修复警告：
+\begin{minted}{toml}
+    [package]
+    name = "fern_sim"
+    version = "0.1.0"
+    edition = "2018"
+    authors = ["You <you@example.com>"]
+    license = "MIT"
+    homepage = "https://fernsim.example.com/"
+    repository = "https://gitlair.com/sporeador/fern_sim"
+    documentation = "http://fernsim.example.com/docs"
+    description = """
+    Fern simulation, from the cellular level up.
+    """
+\end{minted}
+
+\begin{note}
+    一旦你在crates.io上发布了这个crate，任何下载了你的crate的人都可以看到\texttt{Cargo.toml}文件。因此如果\texttt{authors}字段包含了一个你想保持私有的电子邮箱地址，现在是时候修改它了。
+\end{note}
+
+这个阶段有时会出现的另一个问题是你的\texttt{Cargo.toml}文件中可能通过\texttt{path}指定了别的crate的位置，正如“\nameref{depend}”中展示的一样：
+\begin{minted}{toml}
+    image = { path = "vendor/image" }
+\end{minted}
+
+对你和你的队伍来说，这可能能正常工作。但显然当其他人下载了\texttt{fern\_sim}库之后，他们的计算机上不会有和你的计算机上一样的文件和目录。因此Cargo会\emph{忽略}自动下载的库中的\texttt{path}字段，这可能会导致构建错误。然而解决方案也是很直观的：如果你打算在crates.io上发布你的库，那么它的依赖也应该发布在crates.io上。将\texttt{path}替换为版本号来指定依赖：
+\begin{minted}{toml}
+    image = "0.13.0"
+\end{minted}
+
+如果你喜欢的话，你可以既指定一个\texttt{path}用于你自己本地的构建，同时为其它用户指定一个\texttt{version}：
+\begin{minted}{toml}
+    image = { path = "vendor/image", version = "0.13.0" }
+\end{minted}
+
+当然，这种情况下保持两种版本的同步是你自己的责任。
+
+最后，在发布一个crate之前，你需要登录进crates.io并获取一个API key。这一步也很直观：当你在crates.io上创建了账号之后，你的“Account Settings”页面将会显示一个\texttt{cargo login}命令，像这样：
+\begin{minted}{text}
+    $ cargo login 5j0dV54BjlXBpUUbfIj7G9DvNl1vsWW1
+\end{minted}
+
+Cargo会把key保存在一个配置文件中，API key应该像密码一样保持私密。因此最好只在你自己的计算机上运行这个命令。
+
+这些都完成之后，最后的步骤是运行\texttt{cargo publish}：
+\begin{minted}{text}
+    $ cargo publish
+        Updating registry `https://github.com/rust-lang/crates.io-index`
+       Uploading fern_sim v0.1.0 (file:///.../fern_sim)
+\end{minted}
+
+完成之后，你的库就加入了crates.io上的其他数以千计的crate中。
+
+\section{工作空间}
 
 
 
