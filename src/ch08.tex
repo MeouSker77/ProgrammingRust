@@ -1169,10 +1169,32 @@ Rust中的文档注释的一个特殊特性是Markdown链接可以使用Rust的i
 注意兼容性规则意味着不能纯粹出于营销原因选择版本号。它们必须有真实的含义。这是crate的维护者和用户之间的约定。如果你正在维护一个1.7版本的crate，并且你决定删除一个函数或者做出其他不能完全向后兼容的更改，你必须将版本号提升到2.0。如果你把版本号更新到1.8，那么你就等于是在宣称新版本和1.7版本兼容，你的用户可能会发现他们构建时出现错误。
 
 \subsection{Cargo.lock}
+\texttt{Cargo.toml}中的版本号故意设计的比较灵活，然而我们并不需要每次构建时都让Cargo把库更新到最新版本。想象一下你正在一个紧张的调试会话中，突然\texttt{cargo build}把库更新到了最新的版本。这可能会造成很大的破坏。在调试途中任何的改变都会导致问题。事实上，任何时候更新库都不是一个好时机。
 
+Cargo也有一个内建的机制来解决这个问题。当你第一次构建项目时，Cargo会输出一个\texttt{Cargo.lock}文件记录下它使用的每一个crate的精确版本。之后的构建将会查询这个文件并继续使用相同的版本。只有当你告诉Cargo更新版本时它才会这么做，你可以手动更改\texttt{Cargo.toml}文件中的版本号或者运行\texttt{cargo update}：
+\begin{minted}{text}
+    $ cargo update
+        Updating registry `https://github.com/rust-lang/crates.io-index`
+        Updating libc v0.2.7 -> v0.2.11
+        Updating png v0.4.2 -> v0.4.3
+\end{minted}
 
+\texttt{cargo update}只会更新到和你在\texttt{Cargo.toml}中指定的版本兼容的最新版本。如够你指定了\texttt{image = "0.6.1"}，然后你想更新到0.10.0，那你必须在\texttt{Cargo.toml}中更改版本号。当你下一次构建时，Cargo会更新到\texttt{image}库的新版本，然后把新的版本号存储在\texttt{Cargo.lock}中。
 
+上面的示例展示了Cargo更新了两个crates.io上的crate。存储在Git中的依赖也会发生类似的事情。假设我们的\texttt{Cargo.toml}文件包含如下内容：
+\begin{minted}{toml}
+    image = { git = "https://github.com/Piston/image.git", branch = "master" }
+\end{minted}
 
+如果已经有了\texttt{Cargo.lock}文件，那么\texttt{cargo build}将不会从Git仓库pull新的更改。它会读取\texttt{Cargo.lock}并且每次都使用和上次相同的版本。但\texttt{cargo update}将会pull最新的master分支，因此我们的下一次更新将会使用最新的版本。
+
+\texttt{Cargo.lock}是自动生成的，通常你不需要手动编辑它。尽管如此，如果你的项目是可执行程序，你应该把\texttt{Cargo.lock}提交到版本控制系统。这样，任何构建你的项目的人都会使用完全相同的版本。你的\texttt{Cargo.lock}文件的历史将会记录依赖的更新。
+
+如果你的项目是普通的Rust库，不要提交\texttt{Cargo.lock}。你的库的下游用户将会有自己的包含整个依赖图的版本信息的\texttt{Cargo.lock}文件，他们会忽略你的库中的\texttt{Cargo.lock}文件。在少数情况下，你的项目可能是一个共享库（即输出是\texttt{.dll}、\texttt{.dylib}、\texttt{.so}文件），这时将不会有这种下游的游湖，因此你应该提交\texttt{Cargo.lock}。
+
+\texttt{Cargo.toml}的弹性版本声明让你可以更容易的在自己的项目中使用Rust库，并能最大化库之间的兼容性。\texttt{Cargo.lock}的记录可以保持一致性，在不同机器之间复现相同的构建。它们通过协作能有效地帮助你避免依赖地狱。
+
+\section{把crate发布到crates.io}
 
 
 
