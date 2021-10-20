@@ -131,6 +131,42 @@ Rust有三种类型的结构体：\emph{命名字段(name-field)}、\emph{类元
 
 \section{类元组结构体}
 
+第二种结构体类型称为\emph{类元组结构体}，因为它类似一个元组：
+\begin{minted}{Rust}
+    struct Bounds(usize, usize);
+\end{minted}
+
+你可以像构建元组一样构造一个这种类型的值，除了必须要包含结构体的名字：
+\begin{minted}{Rust}
+    let image_bounds = Bounds(1024, 768);
+\end{minted}
+
+类元组结构体持有的值被称为\emph{元素}，就像元组持有的值一样。你可以像访问元组的元素一样访问它们：
+\begin{minted}{Rust}
+    assert_eq!(image_bounds.0 * image_bounds.1, 786432);
+\end{minted}
+
+每一个类元组结构体的元素都可以是公有的或者私有的：
+\begin{minted}{Rust}
+    pub struct Bounds(pub usize, pub usize);
+\end{minted}
+
+表达式\texttt{Bounds(1024, 768)}看起来像一个函数调用，实际上它就是：定义这个类型也会隐式地定义一个同名函数：
+\begin{minted}{Rust}
+    fn Bounds(elem0: usize, elem1: usize) -> Bounds { ... }
+\end{minted}
+
+在底层，命名字段结构体和类元组结构体非常相似。到底用哪一个取决于可读性、二义性和简洁性。如果你将频繁使用\texttt{.}运算符来获取值的组成部分，那么通过名称来标识字段会增强可读性，也更不容易写错。如果你通常用模式匹配来获取元素，那么类元组结构体可以漂亮地完成工作。
+
+类元组结构体常用于\emph{新类型}，这种结构体只有单个组件，可以用来获得更严格的类型检查。例如如果你在处理只有ASCII的文本，你可以定义一个这样的新类型：
+\begin{minted}{Rust}
+    struct Ascii(Vec<u8>);
+\end{minted}
+
+使用这种类型表示ASCII字符串比简单的传递\texttt{Vec<u8>}缓冲区好得多，还可以在注释中表明这个类型到底是什么含义。新类型可以帮助Rust捕获其他字节缓冲区被传给期望ASCII文本的函数的错误。我们将在\hyperref[ch22]{第22章}中给出一个使用新类型来实现高效的类型转换的例子。
+
+\section{类单元结构体}
+
 \section{使用impl定义方法}\label{method}
 
 \section{内部可变性}\label{intermut}
