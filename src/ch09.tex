@@ -181,6 +181,28 @@ Rust有三种类型的结构体：\emph{命名字段(name-field)}、\emph{类元
 
 当和trait一起使用时，类单元结构体会变得很有用。我们将在\hyperref[ch11]{第11章}中介绍trait。
 
+\section{结构体布局}
+
+在内存中，命名字段结构体和类元组结构体是同样的东西：一些可能不同类型的值的集合，以一种特殊的方式分布在内存中。例如，我们之前在这一章中定义的这个结构体：
+\begin{minted}{Rust}
+    struct GrayscaleMap {
+        pixels: Vec<u8>,
+        size: (usize, usize)
+    }
+\end{minted}
+
+一个\texttt{GrayscaleMap}按照如\hyperref[f9-1]{图9-1}的布局分布在内存中。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphicswidth=0.8\textwidth]{../img/f9-1.png}
+    \caption{一个\texttt{GrayscaleMap}结构体的内存布局}
+    \label{f9-1}
+\end{figure}
+
+与C和C++不同，Rust对于如何在内存中布局结构体字段或元素没有任何确切的保证，这里的图只是展示了其中一种可能的排列。然而，Rust确实保证了直接在结构体的内存块里存储字段的值。JavaScript、Python和Java将会把\texttt{pixels}和\texttt{size}值分别放在它们自己的堆上分配的内存块中，然后让\texttt{GrayscaleMap}的字段指向他们。而Rust会直接把\texttt{pixels}和\texttt{size}嵌入到\texttt{GrayscaleMap}值里。只有\texttt{pixels} vector持有的堆上分配的缓冲区保留着自己的块。
+
+你可以使用\texttt{\#[repr(C)]}属性来要求Rust用一种与C和C++兼容的方式布局结构体。我们将会在\hyperref[ch23]{第23章}中详细介绍这些。
 
 \section{使用impl定义方法}\label{method}
 
