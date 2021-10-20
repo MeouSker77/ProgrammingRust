@@ -195,7 +195,7 @@ Rust有三种类型的结构体：\emph{命名字段(name-field)}、\emph{类元
 
 \begin{figure}[htbp]
     \centering
-    \includegraphicswidth=0.8\textwidth]{../img/f9-1.png}
+    \includegraphics[width=0.8\textwidth]{../img/f9-1.png}
     \caption{一个\texttt{GrayscaleMap}结构体的内存布局}
     \label{f9-1}
 \end{figure}
@@ -205,5 +205,197 @@ Rust有三种类型的结构体：\emph{命名字段(name-field)}、\emph{类元
 你可以使用\texttt{\#[repr(C)]}属性来要求Rust用一种与C和C++兼容的方式布局结构体。我们将会在\hyperref[ch23]{第23章}中详细介绍这些。
 
 \section{使用impl定义方法}\label{method}
+
+整本书中，我们已经在很多类型的值上调用过方法。我们使用\texttt{v.push(e)}把元素添加进vector，使用\texttt{v.len()}获取它的长度，使用\texttt{r.expect("msg")}检查\texttt{Result}的值是否是错误值，等等。你可以为你自己的结构体类型定义方法。与C++或Java那种直接出现在结构体定义内部的方式不同，Rust的方法在一个单独的\texttt{impl}块中定义。
+
+一个\texttt{impl}块就是一些\texttt{fn}定义的结合，每一个函数都将成为这个结构体的一个方法。例如，这里，我们定义了一个共有的结构体\texttt{Queue}，然后为它定义了两个公有的方法：\texttt{push}和\texttt{pop}：
+\begin{minted}{Rust}
+    /// 一个先进先出的字符队列
+    pub struct Queue {
+        older: Vec<char>,   // 旧的元素，越旧越靠后
+        younger: Vec<char>  // 新的元素，越新越靠后
+    }
+
+    impl Queue {
+        /// 将一个字符添加到队列的尾部。
+        pub fn push(&mut self, c: char) {
+            self.younger.push(c);
+        }
+
+        /// 移出队列最前端的元素，如果有字符被移出就返回`Some(c)`，
+        /// 否则如果队列为空就返回`None`。
+        pub fn pop(&mut self) -> Option<char> {
+            if self.older.is_empty() {
+                if self.younger.is_empty() {
+                    return None;
+                }
+
+                // 将新的元素都移动到旧的元素里，
+                // 并且反转顺序。
+                use std::mem::swap;
+                swap(&mut self.older, &mut self.younger);
+                self.older.reverse();
+            }
+
+            // 现在旧的元素保证不为空。Vec的pop方法
+            // 已经返回了一个Option，因此不用再处理
+            self.older.pop()
+        }
+    }
+\end{minted}
+
+在\emph{impl}块中定义的函数被称为\emph{关联函数}，因为它们被关联到特定的类型。与之相反的是\emph{自由函数}，也就是不在\texttt{impl}块中定义的函数。
+
+Rust将调用方法的值作为第一个参数传给方法，它的参数名必须是\texttt{self}。因为\texttt{self}的类型很明显是\texttt{impl}块外面的结构体类型，或者是其引用，所以Rust允许你省略类型，用\texttt{self}、\texttt{\&self}、\texttt{\&mut self}分别作为\texttt{self: Queue}、\texttt{self: \&Queue}、\texttt{self: \&mut Queue}的缩写。如果你喜欢的话也可以使用非缩写的形式，但几乎所有的Rust都是用缩写形式。
+
+在我们的示例中，\texttt{push}和\texttt{pop}方法中通过\texttt{self.older}和\texttt{self.younger}引用了\texttt{Queue}的字段。与C++或Java中“this”对象的成员直接在方法内可见不同，Rust方法中必须显式使用\texttt{self}来引用字段，这和Python方法中\texttt{self}的用法、JavaScript方法中\texttt{this}的用法类似。
+
+因为\texttt{push}和\texttt{pop}需要修改\texttt{Queue}，所以它们都以\texttt{\&mut self}传参。然而，当你调用这两个方法时，你不需要手动借用可变引用，普通的方法调用语法会自动进行隐式转换。因此有了这些定义之后，你可以像这样使用\texttt{Queue}：
+\begin{minted}{Rust}
+    let mut q = Queue { older: Vec::new(), younger: Vec::new() };
+
+    q.push('0');
+    q.push('1');
+    assert_eq!(q.pop(), Some('0'));
+
+    q.push('=');
+    assert_eq!(q.pop(), Some('1'));
+    assert_eq!(q.pop(), Some('='));
+    assert_eq!(q.pop(), None);
+\end{minted}
+
+为了满足\texttt{push}方法的\texttt{self}参数要求，直接写\texttt{q.push(...)}会借用\texttt{q}的可变引用，就像你写了\texttt{(\&mut q).push(...)}一样。
+
+如果一个方法不需要修改\texttt{self}，那么你可以以共享引用获取参数。例如：
+\begin{minted}{Rust}
+    impl Queue {
+        pub fn is_empty(&self) -> bool {
+            self.older.is_empty() && self.younger.is_empty()
+        }
+    }
+\end{minted}
+
+方法调用表达式知道要借用哪一种引用：
+\begin{minted}{Rust}
+    assert!(q.is_empty());
+    q.push('☉');
+    assert!(!q.is_empty());
+\end{minted}
+
+或者，如果一个方法想获取\texttt{self}的所有权，它可以以值传递\texttt{self}：
+\begin{minted}{Rust}
+    impl Queue {
+        pub fn split(self) -> (Vec<char>, Vec<char>) {
+            (self.older, self.younger)
+        }
+    }
+\end{minted}
+
+调用这个\texttt{split}方法看起来和调用其他方法一样：
+\begin{minted}{Rust}
+    let mut q = Queue { older: Vec::new(), younger: Vec::new() };
+
+    q.push('P');
+    q.push('D');
+    assert_eq!(q.pop(), Some('P'));
+    q.push('X');
+
+    let (older, younger) = q.split();
+    // q现在是未初始化状态
+    assert_eq!(older, vec!['D']);
+    assert_eq!(younger, vec!['X']);
+\end{minted}
+
+但是注意，因为\texttt{split}以值获取\texttt{self}，这回把\texttt{q}中的\texttt{Queue}值\emph{移动}走，导致\texttt{q}变为未初始化。因为\texttt{split}的\texttt{self}现在拥有了这个队列，因此它可以把两个单独的vector移动出来并返回给调用者。
+
+有时，像这样以值传递\texttt{self}，或者以引用传递都不能满足我们的需求，因此Rust还允许你通过智能指针类型传递\texttt{self}。
+
+\subsection{以\texttt{Box}、\texttt{Rc}、\texttt{Arc}传递\texttt{Self}}
+
+一个方法的\texttt{self}参数还可以是\texttt{Box<Self>}、\texttt{Rc<Self>}、\texttt{Arc<Self>}。这些方法只能在相应指针类型上调用。调用这些方法会传递指针的所有权。
+
+你通常不需要这么做。一个以引用传递\texttt{self}的方法可以在任何智能指针类型上正常调用：
+\begin{minted}{Rust}
+    let mut bq = Box::new(Queue::new());
+
+    // `Queue::push`接受一个`&mut Queue`，但`bq`是`Box<Queue>`。
+    // 这没有问题：Rust在调用期间从`Box`借用了一个`&mut Queue`
+    bq.push('■');
+\end{minted}
+
+对于方法调用和字段访问，Rust自动从智能指针类型例如\texttt{Box}、\texttt{Rc}和\texttt{Arc}借用一个引用，因此\texttt{\&self}和\texttt{\&mut self}通常总是正确的方法签名，再加上偶尔用到的\texttt{self}。
+
+但如果这个方法的意图涉及管理指针的所有权呢？假设我们有一个像这样的节点组成的树，类似某种彻底简化的XML：
+\begin{minted}{Rust}
+    use std::rc::Rc;
+
+    struct Node {
+        tag: String,
+        children: Vec<Rc<Node>>
+    }
+
+    impl Node {
+        fn new(tag: &str) -> Node {
+            Node {
+                tag: tag.to_string(),
+                children: vec![],
+            }
+        }
+    }
+\end{minted}
+
+每一个节点都有一个tag来指示它是什么类型的节点，还有一个子节点的vector通过引用计数指针来允许共享，并让生命周期变得更有弹性。
+
+通常，标记节点有一个方法可以向自己的列表中添加一个子节点，但此时让我们先保留这个规则，然后给\texttt{Node}实现一个把它自己添加到别的\texttt{Node}的子节点中的方法。我们可以写：
+\begin{minted}{Rust}
+    impl Node {
+        fn append(self, parent: &mut Node) {
+            parent.children.push(Rc::new(self));
+        }
+    }
+\end{minted}
+
+但这个方法并不能让人满意。这个方法调用了\texttt{Rc::new}来分配新的堆空间并且把\texttt{self}移动进去，但如果调用者已经有了一个\texttt{Rc<Node>}，这些操作就都不是必须的：我们应该只递增引用计数然后把指针加到vector里。\texttt{Rc}的全部意义不就是实现共享吗？
+
+我们可以这样写：
+\begin{minted}{Rust}
+    impl Node {
+        fn append_to(self: Rc<Self>, parent: &mut Node) {
+            parent.children.push(self);
+        }
+    }
+\end{minted}
+
+如果调用者已经是\texttt{Rc<Node>}类型，那它可以直接调用\texttt{append\_to}，以值传递\texttt{Rc}：
+\begin{minted}{Rust}
+    let shared_node = Rc::new(Node::new("first"));
+    shared_node.append_to(&mut parent);
+\end{minted}
+
+这会把\texttt{shared\_node}的所有权传递给方法：引用计数不会发生变化，也不会有新的内存分配。
+
+如果调用者需要保留节点的指针以便之后使用，它可以首先克隆\texttt{Rc}再调用：
+\begin{minted}{Rust}
+    shared_node.clone().append_to(&mut parent);
+\end{minted}
+
+克隆\texttt{Rc}只会递增引用计数：仍然没有堆分配或者拷贝。但当调用返回时，\texttt{shared\_node}和\texttt{parent}的子节点的vector现在指向同一个\texttt{Node}。
+
+最后，如果调用者现在拥有一个\texttt{Node}，那么它必须先创建一个\texttt{Rc}再调用方法：
+\begin{minted}{Rust}
+    let owned = Node::new("owned directly");
+    Rc::new(owned).append_to(&mut parent);
+\end{minted}
+
+把\texttt{append\_to}方法的签名设为\texttt{Rc<Self>}可以让调用者知道\texttt{Node}的需求。然后调用者可以用最小化内存分配和引用计数调整的方式来调用：
+\begin{itemize}
+    \item 如果能传递\texttt{Rc}的所有权，就直接在指针上调用。
+    \item 如果需要保留\texttt{Rc}的所有权，就递增引用计数。
+    \item 如果只拥有\texttt{Node}，那么必须先调用\texttt{Rc::new}来分配堆空间然后把\texttt{Node}移动进去。因为\texttt{parent}必须通过\texttt{Rc<Node>}指针引用它的子节点，所以这一步最终肯定是必须的。
+\end{itemize}
+
+再重复一遍，对于大多数方法，\texttt{\&self}、\texttt{\&mut self}、和\texttt{self}（以值传参）就能满足你的需求。但如果一个方法的目的是影响值的所有权，使用其他指针类型的\texttt{self}可能是正确的选择。
+
+\subsection{类型关联函数}
 
 \section{内部可变性}\label{intermut}
