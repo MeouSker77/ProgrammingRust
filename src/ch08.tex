@@ -298,7 +298,8 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
 
 这个\texttt{spores}模块和我们在上一节中展示的版本的\emph{唯一}不同就是代码的位置。有关公有性和私有性的规则和之前完全相同。Rust从来不会单独编译模块，即使它们在单独的文件里。当你构建一个Rust的crate的时候，你总是要重新编译它里面所有的模块。
 
-一个模块也可以有自己的目录。当Rust看到\texttt{mod spores;}时，它会检查\texttt{spores.rs}和\texttt{spores/mod.rs}，如果这两个文件都不存在或者都存在就会报错。这个例子中我们使用了\texttt{spores.rs}，因为\texttt{spores}模块没有任何子模块。但考虑一下我们之前写的\texttt{plant\_structures}模块。如果我们决定将那个模块和它的三个字模块分割在单独的文件中，最终的项目看起来就是这样：
+一个模块也可以有自己的目录。当Rust看到\texttt{mod spores;}时，它会检查\texttt{spores.rs}和\\
+\texttt{spores/mod.rs}，如果这两个文件都不存在或者都存在就会报错。这个例子中我们使用了\texttt{spores.rs}，因为\texttt{spores}模块没有任何子模块。但考虑一下我们之前写的\texttt{plant\_structures}模块。如果我们决定将那个模块和它的三个字模块分割在单独的文件中，最终的项目看起来就是这样：
 \begin{minted}{text}
     fern_sim/
     |—— Cargo.toml
@@ -1215,7 +1216,7 @@ Cargo也有一个内建的机制来解决这个问题。当你第一次构建项
        Compiling fern_sim v0.1.0 (file:///.../fern_sim/target/package/fern_sim-0.1.0)
 \end{minted}
 
-\texttt{cargo package}命令会产生一个文件（在这个例子中是\texttt{target/package/fern\_sim-0.1.0.crate}，这个文件包含你库里的所有源文件，包括\texttt{Cargo.toml}。这是你将要上传到crates.io与全世界分享的文件。（你可以使用\texttt{cargo package --list}来查看包含了哪些文件。）Cargo会进行二次检查，像你的最终用户一样从\texttt{.crate}文件构建你的库，来确保它能正常工作。
+\texttt{cargo package}命令会产生一个文件（这里是\texttt{target/package/fern\_sim-0.1.0.crate}，这个文件包含你库里的所有源文件，包括\texttt{Cargo.toml}。这是你将要上传到crates.io与全世界分享的文件。（你可以使用\texttt{cargo package --list}来查看包含了哪些文件。）Cargo会进行二次检查，像你的最终用户一样从\texttt{.crate}文件构建你的库，来确保它能正常工作。
 
 Cargo警告说\texttt{Cargo.toml}的\texttt{[package]}节缺少了一些对下游用户来说很重要的信息，例如你分发代码所依据的许可证。警告中的URL是非常优秀的资源，因此我们不会在这里详细解释所有的字段。简单来说，你可以通过在\texttt{Cargo.toml}中添加几行内容来修复警告：
 \begin{minted}{toml}

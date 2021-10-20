@@ -1,5 +1,136 @@
 \chapter{结构体}\label{ch09}
 
+\emph{Long ago, when shepherds wanted to see if two herds of sheep were isomorphic, they would look for an explicit isomorphism}
+
+\begin{flushright}
+    ——John C. Baez and James Dolan, “\href{https://arxiv.org/abs/math/9802029}{Categorification}”
+\end{flushright}
+
+Rust的结构体，有时也称为\emph{structure}，类似于C和C++中的\texttt{struct}类型、Python中的\texttt{class}、JavaScript中的对象。一个结构体把多个不同类型的值组合成单个值，所以你可以将它们作为一个单元进行处理。对于一个结构体，你可以读取并且修改它的各个组成部分。一个结构体也可以有一些关联的方法来操作它的组成部分。
+
+Rust有三种类型的结构体：\emph{命名字段(name-field)}、\emph{类元组(tuple-like)}、\emph{类单元(unit-like)}，它们的区别在于如何引用它们的组成部分：一个命名字段结构体给每一个组件取了一个名字，而类元组结构体用它们出现的顺序来标识它们。类单元结构体没有任何组成部分，它并不常见，但可能比你想象中的更加有用。
+
+在这一章中我们将详细解释每一种结构体，并展示它们在内存中的布局。我们家给你介绍如何给它们添加方法、如何定义可以处理很多不同类型组件的泛型结构体、以及如何让Rust为你的结构体生成通用的trait的实现。
+
+\section{命名字段结构体}
+
+一个命名字段结构体的定义类似于这样：
+\begin{minted}{Rust}
+    /// 一个8位灰度像素的矩形
+    struct GrayscaleMap {
+        pixels: Vec<u8>,
+        size: (usize, usize)
+    }
+\end{minted}
+
+这里声明了一个结构体类型\texttt{GrayscaleMap}，它有两个字段分别命名为\texttt{pixels}和\texttt{size}。Rust的一个习惯是所有的类型包括结构体，名称中的每一个单词的首字母大写，例如\texttt{GrayscaleMap}，这种习惯称为\emph{大驼峰命名法}（或\emph{帕斯卡命名法}）。字段和方法名都是小写，用下划线分隔每个单词。这被称为\emph{蛇形命名法}。
+
+你可以用\emph{结构体表达式}构造一个这种类型的值，例如：
+\begin{minted}{Rust}
+    let width = 1024;
+    let height = 576;
+    let image = GrayscaleMap {
+        pixels: vec![0; width * height],
+        size: (width, height)
+    };
+\end{minted}
+
+结构体表达式以类型名称开始(\texttt{GrayscaleMap})，然后在花括号中列出每一个字段的名称和值。还有一种缩写可以用同名的局部变量来充当字段：
+\begin{minted}{Rust}
+    fn new_map(size: (usize, usize), pixels: Vec<u8>) -> GrayscaleMap {
+        assert_eq!(pixels.len(), size.0 * size.1);
+        GrayscaleMap { pixels, size }
+    }
+\end{minted}
+
+结构体表达式\texttt{GrayscaleMap \{ pixels, size \}}是\texttt{GrayscaleMap \{ pixels: pixels, size: size \}}的缩写。你也可以在使用同名字段缩写的同时使用\texttt{key: value}语法为其它字段赋值。
+
+访问一个结构体的字段需要使用熟悉的\texttt{.}运算符：
+\begin{minted}{Rust}
+    assert_eq!(image.size, (1024, 476));
+    assert_eq!(image.pixels.len(), 1024 * 576);
+\end{minted}
+
+和其他item一样，结构体默认是私有的，只在它们声明的模块及其子模块中可见。你可以通过在定义前加\texttt{pub}来让结构体在模块之外也可见。它的每一个字段也是这样，默认也是私有的：
+\begin{minted}{Rust}
+    /// 一个8位灰度像素的矩形
+    pub struct GrayscaleMap {
+        pub pixels: Vec<u8>,
+        pub size: (usize, usize)
+    }
+\end{minted}
+
+即使结构体被声明为\texttt{pub}，它的字段也可以是私有的：
+\begin{minted}{Rust}
+    /// 一个8位灰度像素的矩形
+    pub struct GrayscaleMap {
+        pixels: Vec<u8>,
+        size: (usize, usize)
+    }
+\end{minted}
+
+其他的模块可以使用这个结构体和它的所有共有的关联函数，但不能通过字段名访问私有的字段，也不能通过结构体表达式创建新的\texttt{GrayscaleMap}值。也就是说，创建一个结构体的值要求所有的结构体字段都可见。这也是为什么你不能通过结构体表达式创建新的\texttt{String}或者\texttt{Vec}。这些标准类型都是结构体，但它们的字段全都是私有的。要想创建一个这些类型的值，你必须使用共有的类型关联函数，例如\texttt{Vec::new()}。
+
+在创建一个命名字段结构体值的时候，你可以使用另一个相同类型的结构体来提供你省略的字段的值。在一个结构体表达式中，如果命名字段最后跟着一个\texttt{.. EXPR}，那么没有提到的字段将从\texttt{EXPR}中获取值，\texttt{EXPR}必须是另一个相同类型的值。假设我们有一个代表游戏中的怪物的结构体：
+\begin{minted}{Rust}
+    // 在这个游戏中，连扫帚都有怪物。你将会看到。
+    struct Boom {
+        name: String,
+        height: u32,
+        health: u32,
+        position: (f32, f32, f32),
+        intent: BroomIntent
+    }
+
+    /// 一个`Broom`的工作状态有两种可能。
+    #[derive(Copy, Clone)]
+    enum BroomIntent { FetchWater, DumpWater }
+\end{minted}
+
+对程序员来说最好的童话是\emph{魔法师的学徒}：一个魔法师学徒制造了一把能替他工作的扫帚，但工作完成之后却不知道该如何停止它。用斧头把扫帚劈成两半会产生两把扫帚，每个只有一半大小，但仍然像之前一样盲目地继续工作：
+\begin{minted}{Rust}
+    // 以值接受输入的扫帚，会获取所有权
+    fn chop(b: Broom) -> (Broom, Broom) {
+        // 用`b`初始化`broom1`的大部分，只修改`height`。因为
+        // `String`不是`Copy`，因此`broom1`会获取`b`的name的所有权。
+        let mut broom1 = Broom { height: b.height / 2, .. b };
+
+        // 用`broom1`初始化`broom2`的大部分。因为`String`不是
+        // `Copy`，所以我们必须显式克隆`name`
+        let mut broom2 = Broom { name: broom1.name.clone(), .. broom1 };
+
+        // 给两半分别起不同的名字。
+        broom1.name.push_str(" I");
+        broom2.name.push_str(" II");
+        (broom1, broom2)
+    }
+\end{minted}
+
+这个定义完成之后，我们可以创建一个扫帚，将它劈成两半，然后我们会得到：
+\begin{minted}{Rust}
+    let hokey = Broom {
+        name: "Hokey".to_string(),
+        height: 60,
+        width: 100,
+        health: 100,
+        position: (100.0, 200.0, 0.0),
+        intent: BroomIntent::FetchWater
+    };
+
+    let (hokey1, hokey2) = chop(hokey);
+    assert_eq!(hokey1.name, "Hokey I");
+    assert_eq!(hokey1.height, 30);
+    assert_eq!(hokey1.health, 100);
+
+    assert_eq!(hokey2.name, "Hokey II");
+    assert_eq!(hokey2.height, 30);
+    assert_eq!(hokey2.health, 100);
+\end{minted}
+
+新的\texttt{hokey1}和\texttt{hokey2}扫帚接收到了新的调整之后的名字，高度减半，其他的值都和原来一样。
+
+\section{类元组结构体}
+
 \section{使用impl定义方法}\label{method}
 
 \section{内部可变性}\label{intermut}
