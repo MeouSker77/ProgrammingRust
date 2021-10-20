@@ -167,6 +167,21 @@ Rust有三种类型的结构体：\emph{命名字段(name-field)}、\emph{类元
 
 \section{类单元结构体}
 
+第三种结构体有一点迷惑：它声明了一个没有任何元素的结构体类型：
+\begin{minted}{Rust}
+    struct Onesuch;
+\end{minted}
+
+一个这种类型的值不占用任何内存，类似于单元类型\texttt{()}。Rust不需要考虑怎么在内存中存储类单元结构体，也不需要生成操作它们的代码，因为它可以仅从其类型中得知它可能需要了解的有关值的所有信息。但从逻辑上讲，一个空的结构体和其他的有值的类型没有什么区别——或者更精确地说，一个这样的类型就是一个单独的值：
+\begin{minted}{Rust}
+    let o = Onesuch;
+\end{minted}
+
+当在“\nameref{field}”一节中介绍\texttt{..}运算符时，你已经遇到过一个类单元结构体了。表达式\texttt{3..5}是结构体值\texttt{Range \{ start: 3, end: 5 \}}的缩写，而表达式\texttt{..}，两端都省略的情况下，就是类单元结构体值\texttt{RangeFull}的缩写。
+
+当和trait一起使用时，类单元结构体会变得很有用。我们将在\hyperref[ch11]{第11章}中介绍trait。
+
+
 \section{使用impl定义方法}\label{method}
 
 \section{内部可变性}\label{intermut}
