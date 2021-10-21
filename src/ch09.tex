@@ -397,5 +397,37 @@ Rust将调用方法的值作为第一个参数传给方法，它的参数名必�
 再重复一遍，对于大多数方法，\texttt{\&self}、\texttt{\&mut self}、和\texttt{self}（以值传参）就能满足你的需求。但如果一个方法的目的是影响值的所有权，使用其他指针类型的\texttt{self}可能是正确的选择。
 
 \subsection{类型关联函数}
+\texttt{impl}块里定义的函数也可以没有\texttt{self}参数。这些参数仍然和类型关联，因为它们也是在\texttt{impl}块中定义的。但它们不是方法，因为它们没有\texttt{self}参数。为了将它们和方法区别开来，我们称它们为\emph{类型关联函数}。
+
+它们通常用于提供构造函数，例如：
+\begin{minted}{Rust}
+    impl Queue {
+        pub fn new() -> Queue {
+            Queue { older: Vec::new(), younger: Vec::new() }
+        }
+    }
+\end{minted}
+
+为了使用这个函数，我们通过\texttt{Queue::new}来引用它：类型名+双冒号+函数名。现在我们的示例代码变得更加简洁：
+\begin{minted}{Rust}
+    let mut q = Queue::new();
+
+    q.push('*');
+    ...
+\end{minted}
+
+Rust的传统是构造函数都叫\texttt{new}，我们已经见过了\texttt{Vec::new}、\texttt{Box::new}、\texttt{HashMap::new}，等等。但\texttt{new}这个名字本身并没有什么特殊的地方。它并不是关键字，而且一个类型经常还有其他名字的关联函数作为构造函数，例如\texttt{Vec::with\_capacity}。
+
+尽管一个类型可以有很多个分开的\texttt{impl}块，但它们必须在定义类型的那个crate中。然而，Rust确实允许你将自己定义的方法附加到其他类型，我们将在\hyperref[ch11]{第11章}介绍怎么做到这一点。
+
+如果你习惯写C++或Java，你可能会觉得将类型的方法和定义分离开来很奇怪，但这么做确实有以下优势：
+\begin{itemize}
+    \item 你总是能很容易的找到一个类型的数据成员。在很大的C++类定义中，你可能需要浏览几百行成员成员函数的定义来确保你没有遗漏数据成员。而在Rust中，所有数据成员都在一个地方。
+    \item 尽管我们可以很容易想象把方法定义添加到命名字段结构体的定义中，但类元组结构体和类单元结构体却不是这样。将方法拿出来放在一个\texttt{impl}块中可以让这三种结构体共用唯一一种语法。事实上，Rust还使用这套语法为不是结构体的类型定义方法，例如\texttt{enum}结构体和基本类型例如\texttt{i32}。（任何类型都可以有方法的事实是Rust中不使用术语\emph{对象}，而是更喜欢把一切称为\emph{值}的原因之一。）
+    \item 同样的\texttt{impl}语法还可以很容易地用于实现trait，我们将在\hyperref[ch11]{第11章}中介绍。
+\end{itemize}
+
+\section{关联常量}
+
 
 \section{内部可变性}\label{intermut}
