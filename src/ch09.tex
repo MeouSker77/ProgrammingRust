@@ -577,6 +577,31 @@ Rust的类型系统还采取了C\#和Java等语言中的一个特性，就是关
 
 诚然，我们\emph{可能}是在说\texttt{Extrema<'static>}，但这并不是通常的情况。Rust为通用的情况提供了一个缩写。\footnote{译者注：没看懂。原文：Granted, we \emph{might} have meant \texttt{Extrema<'static>}, but that’s pretty unusual. Rust provides a shorthand for the common case}
 
+\section{为结构体类型派生常见的trait}
 
+可以非常简单地定义一个结构体：
+\begin{minted}{Rust}
+    struct Point {
+        x: f64,
+        y: f64
+    }
+\end{minted}
+
+然而，如果你真的开始使用这个\texttt{Point}类型，你将很快发现它使用起来很痛苦。按照上面的写法，\texttt{Point}既不能拷贝也不能克隆。你不能用\texttt{println!("\{:?\}", point);}打印它，它也不支持\texttt{==}和\texttt{!=}运算符。
+
+在Rust中这些特性都有一个名字——\texttt{Copy}、\texttt{Clone}、\texttt{Debug}、\texttt{PartialEq}。它们被称为\emph{trait}。在\hyperref[ch11]{第11章}中，我们将展示如何为你自己的结构体手动实现trait。但这个例子中出现的标准trait，以及其它一些trait，你不需要手动实现它们，除非你想要一些自定义行为。Rust可以自动为你实现它们。只需要为结构体添加\texttt{\#[derive]}属性：
+\begin{minted}{Rust}
+    #[derive(Copy, Clone, Debug, PartialEq)]
+    struct Point {
+        x: f64,
+        y: f64
+    }
+\end{minted}
+
+这些trait中的任何一个都可以自动实现，前提是这个结构体的所有字段都实现了那个trait。我们可以要求Rust为\texttt{Point}派生\texttt{PartialEq}，是因为它的两个字段都是\texttt{f64}类型，这个类型已经实现了\texttt{PartialEq}。
+
+Rust还可以派生\texttt{PartialOrd}，它可以支持比较运算符\texttt{<}、\texttt{>}、\texttt{<=}和\texttt{>=}。我们没有这么做，是因为比较两个点来判断其中一个是否“小于”另一个是一件很奇怪的事。因此我们选择让\texttt{Point}值不支持那些比较运算符。像这样的情况也是Rust让我们自己写\texttt{\#[derive]}属性而不是直接自动派生所有可用的trait的原因之一。另一个原因是实现一个trait将自动变为公有的特性。因此可复制性、可克隆性等都将是结构体公共API的一部分，应该慎重选择。
+
+我们将在\hyperref[ch13]{第13章}详细介绍Rust的标准trait并解释哪些可以用\texttt{\#[derive]}自动实现。
 
 \section{内部可变性}\label{intermut}
