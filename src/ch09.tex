@@ -456,4 +456,84 @@ Rust的类型系统还采取了C\#和Java等语言中的一个特性，就是关
     }
 \end{minted}
 
+\section{泛型结构体}
+
+我们之前的\texttt{Queue}定义并不能令人满意：它被用来存储字符，但它却没有任何和字符相关的方法。如果我们要定义另一个存储\texttt{String}值的结构体，那么除了\texttt{char}要换成\texttt{String}之外，剩下的代码完全相同。重复定义将会浪费时间。
+
+幸运的是，Rust的结构体可以是\emph{泛型}的，这意味着它们的定义只是一个模板，你可以把任何类型塞进去。例如，这里有一个可以存储任何类型的值的\texttt{Queue}的定义：
+\begin{minted}{Rust}
+    pub struct Queue<T> {
+        older: Vec<T>,
+        younger: Vec<T>
+    }
+\end{minted}
+
+你可以将\texttt{Queue<T>}中的\texttt{<T>}读作“对于任意类型\texttt{T}”。因此这个定义读作“对于任意类型\texttt{T}，一个\texttt{Queue<T>}有两个\texttt{Vec<T>}类型的字段。”例如，在\texttt{Queue<String>}中，\texttt{T}是\texttt{String}，所以\texttt{older}和\texttt{younger}的类型都是\texttt{Vec<String>}。在\texttt{Queue<char>}中\texttt{T}是\texttt{char}，我们就得到了一个和一开始的\texttt{char}类型特定的定义完全相同的结构体。事实上，\texttt{Vec}本身就是一个用这种方式定义的泛型结构体。
+
+在泛型结构体的定义中，<尖括号>里的类型名被称为\emph{类型参数}。一个泛型结构体的\texttt{impl}块看起来像这样：
+\begin{minted}{Rust}
+    impl<T> Queue<T> {
+        pub fn new() -> Queue<T> {
+            Queue { older: Vec::new(), younger: Vec::new() }
+        }
+
+        pub fn push(&mut self, t: T) {
+            self.younger.push(t);
+        }
+
+        pub fn is_empty(&self) -> bool {
+            self.older.is_empty() && self.younger.is_empty()
+        }
+
+        ...
+    }
+\end{minted}
+
+你可以将\texttt{impl<T> Queue<T>}这一行读作“对于任意类型\texttt{T}，有一些\texttt{Queue<T>}可用的关联方法”。然后，你可以在关联函数的定义中将类型参数\texttt{T}用作一个类型。
+
+这种语法看起来好像有些重复，但\texttt{impl<T>}能更清晰地表达出\texttt{impl}块覆盖了任意的类型\texttt{T}，这能将它和为特定种类的\texttt{Queue}编写的\texttt{impl}块区分开来，例如：
+\begin{minted}{Rust}
+    impl Queue<f64> {
+        fn sum(&self) -> f64 {
+            ...
+        }
+    }
+\end{minted}
+
+这个\texttt{impl}块头读作“这里有一些\texttt{Queue<f64>}特定的管关联函数”。这样就给\texttt{Queue<f64>}添加了一个\texttt{sum}方法，而其它种类的\texttt{Queue}并没有这个方法。
+
+我们已经在之前的代码中使用过Rust的\texttt{self}参数的缩写形式。这里\texttt{Queue<T>}如果写出类型显得有些啰嗦。作为另一种缩写，每一个\texttt{impl}块，不管是不是泛型的，都定义了特殊的类型参数\texttt{Self}（注意\texttt{大驼峰}风格的名称）来表示我们要添加方法的类型。在之前的代码中，\texttt{Self}将是\texttt{Queue<T>}，因此我们可以进一步简化\texttt{Queue::new}的定义：
+\begin{minted}{Rust}
+    pub fn new() -> Self {
+        Queue { older: Vec::new(), younger: Vec::new() }
+    }
+\end{minted}
+
+你可能已经注意到了，在\texttt{new}的函数体内，我们不需要在构造表达式中写出类型参数，简单地写\texttt{Queue \{ ... \}}就足够了。这是因为Rust的类型推导发挥了作用：因为函数的返回值类型只能有一种可能，就是\texttt{Queue<T>}，所以Rust会自动为我们提供参数。然而，你必须总是在函数签名和类型定义中指明类型参数。Rust不会推断它们，相反，它将这些已知的类型作为基础来推断那些函数体内的类型。
+
+\texttt{Self}也可以用于这种方式：我们可以写\texttt{Self \{ ... \}}。你觉得哪种形式更容易理解就可以用哪种。
+
+对于关联函数的调用，你可以显式地使用\texttt{::<>(涡轮鱼)}注解来提供类型参数：
+\begin{minted}{Rust}
+    let mut q = Queue::<char>::new();
+\end{minted}
+
+但在实践中，通常可以让Rust自动帮你推断类型：
+\begin{minted}{Rust}
+    let mut q = Queue::new();
+    let mut r = Queue::new();
+
+    q.push("CAD");      // 显然是Queue<&'static str>
+    r.push(0.74);       // 显然是Queue<f64>
+
+    q.push("BTC");      // 比特币/USD，2019年6月 
+    r.push(13764.0);    
+\end{minted}
+
+事实上，这正是整本书中我们使用\texttt{Vec}的方式。
+
+并不只有结构体可以是泛型的。枚举也可以有类型参数，语法也非常的相似。我们将在“\nameref{enum}”一节中详细介绍。
+
+\section{有生命周期参数的结构体}
+
 \section{内部可变性}\label{intermut}
