@@ -428,6 +428,32 @@ Rust的传统是构造函数都叫\texttt{new}，我们已经见过了\texttt{Ve
 \end{itemize}
 
 \section{关联常量}
+Rust的类型系统还采取了C\#和Java等语言中的一个特性，就是关联到类型而不是关联到类型实例的值。在Rust中，它们被称为\emph{关联常量}。
 
+正如它的名字一样，关联常量是常量值。它们通常用来表示某一个类型中使用最广泛的值。例如，你可以定义一个二维的向量用于线性代数，并为它定义一个关联的单位向量：
+\begin{minted}{Rust}
+    pub struct Vector2 {
+        x: f32,
+        y: f32,
+    }
+
+    impl Vector2 {
+        const ZERO: Vector2 = Vector2 { x: 0.0, y: 0.0 };
+        const UNIT: Vector2 = Vector2 { x: 1.0, y: 0.0 };
+    }
+\end{minted}
+
+这些值被关联到类型本身，你可以在不创建\texttt{Vector2}的实例的亲逛下使用它们。和类型关联方法一样，引用它们的方法是类型的名称再加上它们的名称：
+\begin{minted}{Rust}
+    let scaled = Vector2::UNIT.scaled_by(2.0);
+\end{minted}
+
+关联常量的类型并不一定必须是它关联的类型，我们可以使用这个特性来给类型添加ID或者名称。例如，如果有几个和\texttt{Vector2}很像的类型需要写入到文件里，然后加载到内存中，那么关联常量可以为写入的数据添加名称或数字ID，这样之后可以据此辨识出类型：
+\begin{minted}{Rust}
+    impl Vector2 {
+        const NAME: &'static str = "Vector2";
+        const ID: u32 = 18;
+    }
+\end{minted}
 
 \section{内部可变性}\label{intermut}
