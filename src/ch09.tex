@@ -536,4 +536,47 @@ Rust的类型系统还采取了C\#和Java等语言中的一个特性，就是关
 
 \section{有生命周期参数的结构体}
 
+正如我们在“\nameref{refstruct}”一节中讨论过的一样，如果一个结构体类型中包含引用，你必须指明那些引用的生命周期。例如，这里有一个存储切片中最大和最小元素的引用的结构体：
+\begin{minted}{Rust}
+    struct Extrema<'elt> {
+        greatest: &'elt i32,
+        least: &'elt i32
+    }
+\end{minted}
+
+之前，我们建议你将类似\texttt{struct Queue<T>}的声明看作是对于任意类型\texttt{T}，你都可以构建一个\texttt{Queue<T>}来存储该类型。类似的，你可以将\texttt{struct Extrema<'elt>}看作对于任意生命周期\texttt{'elt}，你都可以构建一个\texttt{Extrema<'elt>}来存储生命周期为\texttt{'elt}的引用。
+
+这里有一个函数来扫描一个切片并返回一个指向其中元素的\texttt{Extrema}值：
+\begin{minted}{Rust}
+    fn find_extrema<'s>(slice: &'s [i32]) -> Extrema<'s> {
+        let mut greatest = &slice[0];
+        let mut least = &slice[0];
+
+        for i in 1..slice.len() {
+            if slice[i] < *least    { least     = &slice[i]; }
+            if slice[i] > *greatest { greatest  = &slice[i]; }
+        }
+        Extrema { greatest, least }
+    }
+\end{minted}
+
+这里，\texttt{find\_extrema}借用了\texttt{slice}的元素。因为\texttt{slice}的生命周期是\texttt{'s}，所以我们返回的\texttt{Extrema}结构体中的引用的生命周期也是\texttt{'s}。Rust总是会为调用推断生命周期参数，因此调用\texttt{find\_extrema}并不需要提到它们：
+\begin{minted}{Rust}
+    let a = [0, -3, 0, 15, 48];
+    let e = find_extrema(&a);
+    assert_eq!(*e.least, -3);
+    assert_eq!(*e.greatest, 48);
+\end{minted}
+
+因为返回值和参数使用相同的生命周期非常常见，所以当只有一种可能时Rust允许我们省略生命周期。我们还可以在不改变含义的情况下将\texttt{find\_extrema}的签名写成这样：
+\begin{minted}{Rust}
+    fn find_extrema(slice: &[i32]) -> Extrema {
+        ...
+    }
+\end{minted}
+
+诚然，我们\emph{可能}是在说\texttt{Extrema<'static>}，但这并不是通常的情况。Rust为通用的情况提供了一个缩写。\footnote{译者注：没看懂。原文：Granted, we \emph{might} have meant \texttt{Extrema<'static>}, but that’s pretty unusual. Rust provides a shorthand for the common case}
+
+
+
 \section{内部可变性}\label{intermut}
