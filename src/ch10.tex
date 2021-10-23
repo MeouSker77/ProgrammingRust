@@ -6,7 +6,7 @@
     ——Graydon Hoare
 \end{flushright}
 
-这一章的第一个话题将是一个古老的、强有力的、可以帮你在短期内完成很多工作的、并且在许多语言中以不同的名字广为人知的特性。但它并不是魔鬼。而是一种用户自定义的数据类型，它是ML和Haskell程序员们熟知的和类型、也是互斥的联合、还是代数数据类型。在Rust中，它们被称为\emph{枚举(enumerations)}，或者简写为\emph{enum}。和魔鬼不同的是，它们非常安全、索取的代价也很小。
+这一章的第一个话题将是一个古老的、强有力的、可以帮你在短期内完成很多工作的（有代价地）、并且在许多语言中以不同的名字广为人知的特性。但它并不是魔鬼。而是一种用户自定义的数据类型，它是ML和Haskell程序员们熟知的和类型、也是互斥的联合、还是代数数据类型。在Rust中，它们被称为\emph{枚举(enumerations)}，或者简写为\emph{enum}。和魔鬼不同的是，它们非常安全、索取的代价也很小。
 
 C++和C\#都有枚举，你可以使用它们来定义自己的类型，这种类型的取值范围是一些命名常量的集合。例如，你可能定义过一个叫\texttt{Color}的类型，取值范围为\texttt{Red}、\texttt{Orange}、\texttt{Yellow}等等。这种枚举在Rust中也能工作，但Rust进一步扩展了枚举。一个Rust枚举可以包含数据，包括多种不同类型的数据。例如，Rust的\texttt{Result<String, io::Error}类型是一个枚举；这样一个值要么是一个包含\texttt{String}的\texttt{Ok}值要么是一个包含\texttt{io::Error}的\texttt{Err}值。这就超出了C++和C\#中枚举的能力。它更像C中的\texttt{union}——但和联合不同的是，Rust的枚举是类型安全的。
 
@@ -202,7 +202,7 @@ C风格的枚举就这么多内容了。Rust中最有趣的一类枚举是那些
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.9\textwidth]{../img/10-1.png}
+    \includegraphics[width=0.9\textwidth]{../img/f10-1.png}
     \caption{内存中的\texttt{RoughTime}值}
     \label{f10-1}
 \end{figure}
@@ -279,3 +279,101 @@ C风格的枚举就这么多内容了。Rust中最有趣的一类枚举是那些
 \end{minted}
 
 30行代码，我们才刚刚开始。这个类还需要构造函数、析构函数、一个赋值运算符。另一种方案是通过继承，首先创建一个基类\texttt{JSON}和它的子类\texttt{JSONBoolean}、\texttt{JSONString}等等。无论哪种方式，等到完成之后，我们的C++ JSON库都要有一堆代码了。其他程序员需要花费不少精力来阅读和使用它。而Rust的整个枚举只需要8行代码。
+
+\subsection{泛型枚举}
+枚举可以是泛型的。标准库的两个例子几乎是整个语言中使用最广泛的数据类型：
+\begin{minted}{Rust}
+    enum Option<T> {
+        None,
+        Some(T),
+    }
+
+    enum Result<T, E> {
+        Ok(T),
+        Err(E),
+    }
+\end{minted}
+
+到现在这些类型你应该已经很熟悉了，泛型枚举的语法和泛型结构体完全相同。
+
+一个不明显的细节是当类型\texttt{T}是引用、\texttt{Box}或其他智能指针类型时Rust可以省略\texttt{Option<T>}的标签字段。因为这些指针类型中的任何一个都不允许为0，所以Rust可以用单个机器字来表示\texttt{Option<Box<i32>>}：用0表示\texttt{None}，用非0表示\texttt{Some}指针。这使得这样的\texttt{Option}类型与C和C++中可以为空的指针值非常相似。不同之处在于Rust的类型系统要求你必须先检查\texttt{Option}的值是\texttt{Some}，然后才能使用它内含的值。这有效的避免了空指针解引用。
+
+泛型数据结构体可以用很少的几行代码构建：
+\begin{minted}{Rust}
+    // 一个`T`类型的有序集合
+    enum BinaryTree<T> {
+        Empty,
+        NonEmpty(Box<TreeNode<T>>),
+    }
+
+    // 二叉树的一部分
+    struct TreeNode<T> {
+        element: T,
+        left: BinaryTree<T>,
+        right: BinaryTree<T>,
+    }
+\end{minted}
+
+这几行代码定义了一个可以存储任意数量的\texttt{T}类型值的\texttt{BinaryTree}类型。
+
+这两个定义包含了大量信息，所以我们将花费一些时间把代码翻译为中文。每一个\texttt{BinaryTree}值是\texttt{Empty}或者\texttt{NonEmpty}。如果它是\texttt{Empty}，那么它不包含任何数据。如果是\texttt{NonEmpty}，那么它会包含一个\texttt{Box}，这个指针指向一个在堆上分配的\texttt{TreeNode}值。
+
+每一个\texttt{TreeNode}值包含一个实际的元素，和两个\texttt{BinaryTree}值。这意味着一棵树可以包含子树，因此一个\texttt{NonEmpty}树可以包含任意数量的后台节点。
+
+一个\texttt{BinaryTree<\&str>}类型的值的视图如\hyperref[f10-3]{图10-3}所示。因为对于\texttt{Option<Box<T>>}，Rust会省略标签字段，所以一个\texttt{BinaryTree}值只占一个机器字。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f10-3.png}
+    \caption{一个包含6个字符串的\texttt{BinaryTree}}
+    \label{f10-3}
+\end{figure}
+
+构建这棵树中的节点非常直观：
+\begin{minted}{Rust}
+    use self::BinaryTree::*;
+    let jupiter_tree = NonEmpty(Box::new(TreeNode {
+        element: "Jupiter",
+        left: Empty,
+        right: Empty,
+    }));
+\end{minted}
+
+更大的树可以通过较小的树构建：
+\begin{minted}{Rust}
+    let mars_tree = NonEmpty(BOx::new(TreeNode {
+        element: "Mars",
+        left: jupiter_tree,
+        right: mercury_tree,
+    }));
+\end{minted}
+
+自然地，这个赋值会把\texttt{jupiter\_node}和\texttt{mercury\_node}的所有权移动到新的父节点里。
+
+树的其他部分遵循相同的模式。根节点和其它节点不同：
+\begin{minted}{Rust}
+    let tree = NonEmpty(Box::new(TreeNode {
+        element: "Saturn",
+        left: mars_tree,
+        right: uranus_tree,
+    }));
+\end{minted}
+
+在这一章的后续部分中，我们将介绍怎么在\texttt{BinaryTree}类型上实现一个\texttt{add}方法，这样我们就可以这样写：
+\begin{minted}{Rust}
+    let mut tree = BinaryTree::Empty;
+    for planet in planets {
+        tree.add(planet);
+    }
+\end{minted}
+
+无论你之前用什么语言，在Rust中创建像\texttt{BinaryTree}这样的数据结构都需要一些练习。一开始把\texttt{Box}放在哪可能并不明显。一种寻找设计的方法是画一幅像\hyperref[f10-3]{图10-3}这样的内存布局图。然后根据图设计代码：每一个矩形都是一个结构体或者元组，每一个箭头都是一个\texttt{Box}或者其他智能指针。搞清楚每个字段的类型有点困难，但解决难题的回报是控制程序的内存使用。 
+
+现在就到了我们在本章开始时提到的“代价”。枚举的标签字段要占用很小的内存，最糟的情况下要占用8个字节，但这种情况通常非常少见。枚举真正的缺点（如果它能被称为缺点的话）是Rust不能忽略安全性、不管当前的值是什么直接尝试访问字段：
+\begin{minted}{Rust}
+    let r = shape.radius;   // 错误：`Shape`类型没有字段`radius`
+\end{minted}
+
+访问枚举中的值的唯一方式是：使用枚举，这是一种安全的方式。
+
+\section{模式}
