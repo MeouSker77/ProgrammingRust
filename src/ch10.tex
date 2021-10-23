@@ -209,7 +209,73 @@ C风格的枚举就这么多内容了。Rust中最有趣的一类枚举是那些
 
 对于枚举的布局Rust不做任何保证。然而，为了给将来的优化留下余地，在一些情况下它可能会用比图中所示更加高效的方式包装一个枚举。例如，一些泛型结构体可以不用标签存储，我们稍后会讲到它。
 
+\subsection{使用枚举实现富数据结构}
 
+枚举在实现树形结构时也很有用。例如，假设一个Rust程序要处理任意的Json数据。在内存中，任何Json文档都可以被表示为一个这种Rust类型的值：
+\begin{minted}{Rust}
+    use std::collections::HashMap;
 
+    enum Json {
+        Null,
+        Boolean(bool),
+        Number(f64),
+        String(String),
+        Array(Vec<Json>),
+        Object(Box<HashMap<String, Json>>),
+    }
+\end{minted}
 
+与Rust代码相比，用英文来解释这个数据结构也不会再有太大的改进了。JSON标准定义了可以出现在JSON文档中的数据类型：\texttt{null}、布尔值、数字、字符串、JSON值的数组、以及带有字符串键和JSON值的对象。这个\texttt{Json}枚举简单地列出了这些类型。
 
+这并不是一个假想的例子。你可以在\texttt{serde\_json} crate中找到一个非常相似的枚举，它是一个用于Rust结构体序列化的库，也是crates.io上下载次数最多的crate之一。
+
+用于表示\texttt{Object}的\texttt{HashMap}外层的\texttt{Box}只是为了让\texttt{Json}值更加紧凑。在内存中，\texttt{Json}类型的值将占据4个机器字。\texttt{String}和\texttt{Vec}都是3个字，Rust会再添加一个字节的标签，再加上对齐所以总共是4个字。\texttt{Null}和\texttt{Boolean}值没有足够的数据利用全部的空间，但所有的\texttt{Json}值大小必须相同，因此这时多余的空间就被浪费了。\hyperref[f10-2]{图10-2}展示了一些示例的\texttt{Json}值在内存中的实际视图。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f10-2.png}
+    \caption{内存中的\texttt{Json}值}
+    \label{f10-2}
+\end{figure}
+
+一个\texttt{HashMap}会更大如果我们一定要在每一个\texttt{Json}值中给它留出空间，它们将会变得更大，也就是8个字。但\texttt{Box<HashMap>}是单个字：它只是一个指向堆上分配的数据的指针。我们甚至可以通过装箱更多的字段来让\texttt{Json}变得更加紧凑。
+
+这里优秀的地方在于，我们如此简单的就完成了这一切。如果是在C++中，可能要写一个这样的一个类才行：
+\begin{minted}{Rust}
+    class JSON {
+    private:
+        enum Tag {
+            Null, Boolean, Number, String, Array, Object
+        };
+        union Data {
+            bool boolean;
+            double number;
+            shared_ptr<string> str;
+            shared_ptr<vector<JSON>> array;
+            shared_ptr<unordered_map<string, JSON>> object;
+
+            Data() {}
+            ~Data() {}
+            ...
+        };
+        
+        Tag tag;
+        Data data;
+    
+    public:
+        bool is_null() const { return tag == Null; }
+        bool is_boolean const { return tag == Boolean; }
+        bool get_boolean() const {
+            assert(is_boolean());
+            return data.boolean;
+        }
+        void set_boolean(bool value) {
+            this->~JSON();  // 清除string/array/object值
+            tag = Boolean;
+            data.boolean = value;
+        }
+        ...
+    };
+\end{minted}
+
+30行代码，我们才刚刚开始。这个类还需要构造函数、析构函数、一个赋值运算符。另一种方案是通过继承，首先创建一个基类\texttt{JSON}和它的子类\texttt{JSONBoolean}、\texttt{JSONString}等等。无论哪种方式，等到完成之后，我们的C++ JSON库都要有一堆代码了。其他程序员需要花费不少精力来阅读和使用它。而Rust的整个枚举只需要8行代码。
