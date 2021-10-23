@@ -196,6 +196,20 @@ C风格的枚举就这么多内容了。Rust中最有趣的一类枚举是那些
 
 \subsection{内存中的枚举}
 
+在内存中，带有数据的枚举被存储为一个很小的整数\emph{标签(tag)}，加上一块足够存储所有variant中最大的那个的内存。标签字段是Rust内部要使用的，它表示是哪一个constructor创建了这个值，进而得知这个值有哪些字段。
+
+在Rust 1.50中，\texttt{RoughTime}存储为8个字节，如\hyperref[f10-1]{图10-1}所示。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/10-1.png}
+    \caption{内存中的\texttt{RoughTime}值}
+    \label{f10-1}
+\end{figure}
+
+对于枚举的布局Rust不做任何保证。然而，为了给将来的优化留下余地，在一些情况下它可能会用比图中所示更加高效的方式包装一个枚举。例如，一些泛型结构体可以不用标签存储，我们稍后会讲到它。
+
+
 
 
 
