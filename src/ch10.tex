@@ -377,3 +377,143 @@ C风格的枚举就这么多内容了。Rust中最有趣的一类枚举是那些
 访问枚举中的值的唯一方式是：使用枚举，这是一种安全的方式。
 
 \section{模式}
+
+回顾一下我们在本章中定义过的\texttt{RoughTime}：
+\begin{minted}{Rust}
+    enum RoughTime {
+        InThePast(TimeUnit, u32),
+        JustNow,
+        InTheFuture(TimeUnit, u32),
+    }
+\end{minted}
+
+假设你有一个\texttt{RoughTime}值并且你想在网页中显示它。你需要访问值里的\texttt{TimeUnit}和\texttt{u32}字段。Rust不允许你直接通过\texttt{rough\_time.0}和\texttt{rough\_time.1}访问它们，因为毕竟此时值也可能是\texttt{RoughTime::JustNow}，而它没有字段。那么，你怎么获取数据呢？
+
+你需要一个\texttt{match}表达式：
+\begin{minted}[linenos,numbersep=-1em]{Rust}
+    fn rough_time_to_english(rt: RoughTime) -> String {
+        match rt {
+            RoughTime::InThePast(units, count) =>
+                format!("{} {} ago", count, units.plural()),
+            RoughTime::JustNow =>
+                format!("just now"),
+            RoughTime::InTheFuture(units, count) =>
+                format!("{} {} from now", count, units.plural()),
+        }
+    }
+\end{minted}
+\texttt{match}会进行模式匹配。在这个例子中，\emph{模式}是第3、5、7行中出现在\texttt{=>}符号左边的部分。匹配\texttt{RoughTime}值的模式看起来就像是一个创建\texttt{RoughTime}值的表达式。这并不是巧合。表达式\emph{产生}值，模式\emph{消耗}值。它们使用相同的语法。
+
+让我们逐步看看运行这个\emph{match}表达式时发生了什么。假设\texttt{rt}的值是\texttt{RoughTime::InTheFuture(TimeUnit::Months, 1)}。Rust首先尝试将这个值和第3行的模式匹配。正如\hyperref[f10-4]{图10-4}所示，它并不能匹配。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f10-4.png}
+    \caption{一个\texttt{RoughTime}值和不匹配的模式}
+    \label{f10-4}
+\end{figure}
+
+Rust中用于匹配一个枚举、结构体或者元组的模式的工作原理就好像简单地从左到右扫描，检查模式中的每个部分来看看是不是和值匹配。如果不是，Rust会移动到下一个模式。
+
+第3和第5行的模式都匹配失败。但第7行的模式成功了（\hyperref[f10-5]{图10-5}）。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f10-5.png}
+    \caption{一个成功的匹配}
+    \label{f10-5}
+\end{figure}
+
+当一个模式包含像\texttt{units}和\texttt{count}这样的简单标识符时，在匹配之后的代码中它们会变为局部变量。当前值里的任何内容都会被拷贝或移动到新的变量中。Rust把\texttt{TimeUnit::Months}存储在\texttt{units}中，把\texttt{1}存储在\texttt{count}中，然后运行第8行的代码，最后返回字符串\texttt{"1 months from now"}。
+
+这个输出有一点语法上的错误，可以通过给\texttt{match}添加另一个分支来修正：
+\begin{minted}{Rust}
+    RoughTime::InTheFuture(unit, 1) =>
+        format!("a {} from now", unit.singular()),
+\end{minted}
+
+只有当\texttt{count}字段恰好是1时这个分支才能匹配。注意这一段新代码必须添加到第7行之前。如果我们把它添加在最后，那么执行流永远不会到达它，因为第7行匹配所有的\texttt{InTheFuture}值。如果你犯了这种错误，Rust编译器会给出一个“不可达的模式”警告。
+
+即使有了新的代码，\texttt{RoughTime::InTheFuture(TimeUnit::Hours, 1)}仍然有一个问题：结果\texttt{"a hour from now"}在英语中并不是完全正确。这可以通过给\texttt{match}添加另一个分支来修复。
+
+正如这个例子所示，模式匹配和枚举协同工作，甚至可以测试它们包含的值，这使得\texttt{match}表达式成为C的\texttt{switch}语句的一个更强大、更灵活的替代。
+
+到目前为止，我们只见到了匹配枚举值的模式。其实它还有更多用途。Rust的模式有它们自己的语言，\hyperref[t10-1]{表10-1}中进行了总结。我们将用本章中剩下的大部分内容来展示表中的特性。
+
+\begin{table}[htbp]
+    \centering
+    \caption{模式}
+    \label{t10-1}
+    \begin{tabular}{p{0.15\textwidth}p{0.35\textwidth}p{0.4\textwidth}}
+        \hline
+        \textbf{模式类型} & \textbf{示例} & \textbf{注释} \\
+        \hline
+        字面量  & \makecell[l]{\texttt{100} \\ \texttt{"name"}} & 匹配一个精确值，也可以使用一个\texttt{const}的值的名称    \\
+        \rowcolor{tablecolor}
+        范围    & \makecell[l]{\texttt{0 ..= 100} \\ \texttt{'a' ..= 'k'}}  & 匹配范围内的任何值，包括终点值 \\
+        通配符  & \texttt{\_}   & 匹配任何值并忽略  \\
+        \rowcolor{tablecolor}
+        变量    & \makecell[l]{\texttt{name} \\ \texttt{mut count}} & 类似\texttt{\_}但是把值移动或拷贝进新的局部变量   \\
+        \texttt{ref}变量    & \makecell[l]{\texttt{ref field} \\ \texttt{ref mut field}}    & 借用匹配的值的引用，而不是移动或拷贝它    \\
+        \rowcolor{tablecolor}
+        带子模式的绑定  & \makecell[l]{\texttt{val @ 0 ..= 99} \\ \texttt{ref circle @ Shape::Circle \{ .. \}}} & 匹配@右侧的模式，使用左侧作为变量名   \\
+        枚举模式    & \makecell[l]{\texttt{Some(value)} \\ \texttt{None} \\ \texttt{Pet::Orca}} & \\
+        \rowcolor{tablecolor}
+        元组模式    & \makecell[l]{\texttt{(key, value)} \\ \texttt{(r, g, b)}} & \\
+        数组模式    & \makecell[l]{\texttt{[a, b, c, d, e, f, g]} \\ \texttt{[heading, carom, correction]}} & \\
+        \rowcolor{tablecolor}
+        切片模式    & \makecell[l]{\texttt{[first, second]} \\ \texttt{[first, \_, third]} \\ \texttt{[first, .., nth]} \\ \texttt{[]}}  & \\
+        结构体模式  & \makecell[l]{\texttt{Color(r, g, b)} \\ \texttt{Point \{ x, y \}} \\ \texttt{Card \{ suit: Clubs, rank: n \}} \\ \texttt{Account \{ id, name, .. \}}} & \\
+        \rowcolor{tablecolor}
+        引用    & \makecell[l]{\texttt{\&value} \\ \texttt{\&(k, v)}}   & 只匹配引用值 \\
+        多重模式    & \texttt{'a' | 'A'}    & 只能用作可反驳的模式（\texttt{match, if let, while let}） \\
+        \rowcolor{tablecolor}
+        守卫表达式  & \texttt{x if x * x <= r2} & 只能在\texttt{match}中使用（在\texttt{let}等表达式中无效） \\
+    \end{tabular}
+\end{table}
+
+\subsection{模式中的字面量、变量和通配符}
+到目前为止，我们已经展示了\texttt{match}表达式和枚举一起使用，其实其它类型也可以用模式来匹配。当你需要类似C的\texttt{switch}语句的功能时，可以使用处理整数值的\texttt{match}表达式。整数字面量例如\texttt{0}和\texttt{1}可以用作模式：
+\begin{minted}{Rust}
+    match meadow.count_rabbits() {
+        0 => {} // 什么都不输出
+        1 => println!("A rabbit is nosing around in the clover."),
+        n => println!("There are {} rabbits hopping about in the meadow", n),
+    }
+\end{minted}
+
+当草地上没有兔子时模式\texttt{0}会匹配，当只有一只时\texttt{1}会匹配。如果有两只或者更多兔子，就会到达第三个模式\texttt{n}。这个模式只有一个变量名。它可以匹配任何值，被匹配的值会被移动或拷贝进新的局部变量。因此在这个例子中，\texttt{meadow.count\_rabbits()}的值被存储在一个新的局部变量\texttt{n}中，然后我们打印出它。
+
+其他的字面量也可以用作模式，包括布尔值、字符、甚至字符串：
+\begin{minted}{Rust}
+    let calendar = match settings.get_string("calendar") {
+        "gregorian" =>  Calendar::Gregorian,
+        "chinese" => Calendar::Chinese,
+        "ethiopian" => Calendar::Ethiopian,
+        other => return parse_error("calendar", other),
+    };
+\end{minted}
+
+在这个例子中，\texttt{other}和上个例子中的\texttt{n}一样用作匹配任何值的模式。这些模式和\texttt{switch}语句中的\texttt{default}标签一样，用来匹配其他所有模式都匹配不了的值。
+
+如果你需要一个匹配所有值的模式，但又不关心匹配到的值，你可以使用单个下划线\texttt{\_}作为模式，也就是\emph{通配模式}：
+\begin{minted}{Rust}
+    let caption = match photo.tagged_pet() {
+        Pet::Tyrannosaur => "RRRAAAAAHHHHHH",
+        Pet::Samoyed => "*dog thoughts*",
+        _ => "I'm cute, love me",   // 通用标题，用于任何宠物
+    };
+\end{minted}
+
+通配模式匹配任何值，但并不存储它。因为Rust要求每一个\texttt{match}表达式要能处理所有可能的值，因此最后通常需要一个通配符。即使你非常确信其他的情况不会发生，你也必须至少添加一个fallback分支，这个分支里可以直接panic：
+\begin{minted}{Rust}
+    // 有很多形状，但我们只支持“选择”文本或者一个矩形区域。
+    // 你不能选择一个椭圆或者梯形。
+    match document.selection() {
+        Shape::TextSpan(start, end) => paint_text_selection(start, end),
+        Shape::Rectangle(rect) => paint_rect_selection(rect),
+        _ => panic!("unexpected selection type"),
+    }
+\end{minted}
+
+\subsection{元组和结构体模式}
