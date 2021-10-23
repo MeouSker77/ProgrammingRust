@@ -443,7 +443,7 @@ Python拷贝了\texttt{s}的指针，并赋给了\texttt{t}和\texttt{u}，然�
 \end{minted}
 这里对\texttt{take}的调用有和之前对\texttt{replace}的调用相同的效果。
 
-\section{Copy类型：move的例外}
+\section{Copy类型：move的例外}\label{copy}
 到目前为止我们的例子涉及vector、string、和其他可能潜在地使用大量内存并且拷贝开销很大的类型。move保证了这些类型的所有权的明晰、也保证了赋值的开销很小。但对于简单类型例如整数或字符，这种谨慎的处理方式事实上并不是必须的。
 
 让我们比较一下赋值一个\texttt{String}和赋值一个\texttt{i32}值时内存中会发生什么：
