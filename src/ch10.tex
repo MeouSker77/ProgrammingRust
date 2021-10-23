@@ -1,3 +1,201 @@
 \chapter{枚举与模式}\label{ch10}
 
+\emph{Surprising how much computer stuff makes sense viewed as tragic deprivation of sum types (cf. deprivation of lambdas).}
+
+\begin{flushright}
+    ——Graydon Hoare
+\end{flushright}
+
+这一章的第一个话题将是一个古老的、强有力的、可以帮你在短期内完成很多工作的、并且在许多语言中以不同的名字广为人知的特性。但它并不是魔鬼。而是一种用户自定义的数据类型，它是ML和Haskell程序员们熟知的和类型、也是互斥的联合、还是代数数据类型。在Rust中，它们被称为\emph{枚举(enumerations)}，或者简写为\emph{enum}。和魔鬼不同的是，它们非常安全、索取的代价也很小。
+
+C++和C\#都有枚举，你可以使用它们来定义自己的类型，这种类型的取值范围是一些命名常量的集合。例如，你可能定义过一个叫\texttt{Color}的类型，取值范围为\texttt{Red}、\texttt{Orange}、\texttt{Yellow}等等。这种枚举在Rust中也能工作，但Rust进一步扩展了枚举。一个Rust枚举可以包含数据，包括多种不同类型的数据。例如，Rust的\texttt{Result<String, io::Error}类型是一个枚举；这样一个值要么是一个包含\texttt{String}的\texttt{Ok}值要么是一个包含\texttt{io::Error}的\texttt{Err}值。这就超出了C++和C\#中枚举的能力。它更像C中的\texttt{union}——但和联合不同的是，Rust的枚举是类型安全的。
+
+枚举适用于一个值有多种可能的情况。使用它们的“代价”是你必须使用模式匹配来安全地访问数据，这也是我们这一章中的第二个话题。
+
+如果你使用过Python的解包或者JavaScript中的解构，那你可能觉得模式也很熟悉，但Rust同样扩展了模式。Rust的模式有点像匹配数据的正则表达式。它们被用来测试一个值是否具有特定的期望的形态。它们可以一次从结构体或这元组中提取出多个字段存入局部变量。并且和正则表达式类似，它们很简洁，通常只用单行代码就能完成任务。
+
+这一章将以枚举的基础开始，展示数据怎么被关联到枚举选项以及枚举是怎么存储在内存中的。然后我们会展示Rust的模式和\texttt{match}表达式如何简洁地指定基于枚举、结构体、数组、切片的逻辑。模式也可以包含引用、move和\texttt{if}条件，这让它们的功能更加强大。
+
 \section{枚举}\label{enum}
+
+简单的C风格枚举非常直观：
+\begin{minted}{Rust}
+    enum Ordering {
+        Less,
+        Equal,
+        Greater,
+    }
+\end{minted}
+
+这里声明了一个有三个可能的值的\texttt{Ordering}类型，这些值被称为\emph{variant}或者\emph{constructor}：\texttt{Ordering::Less}、\texttt{Ordering::Equal}、\texttt{Ordering::Greater}。这个枚举是标准库的一部分，因此Rust代码可以导入它：
+\begin{minted}{Rust}
+    use std::cmp::Ordering;
+
+    fn compare(n: i32, m: i32) -> Ordering {
+        if n < m {
+            Ordering::Less
+        } else if n > m {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
+        }
+    }
+\end{minted}
+
+或者它的所有constructor：
+\begin{minted}{Rust}
+    use std::cmp::Ordering::{self, *};  // `*`意思是导入所有的子item
+
+    fn compare(n: i32, m: i32) -> Ordering {
+        if n < m {
+            Less
+        } else if n > m {
+            Greater
+        } else {
+            Equal
+        }
+    }
+\end{minted}
+
+导入constructor之后，我们可以写\texttt{Less}来代替\texttt{Ordering::Less}等，但因为这样不够明显，因此一般认为\emph{不要}导入它们式更好的风格，除非它能是你的代码的可读性更强。
+
+为了导入一个在当前模块中声明的枚举的constructor，可以使用\texttt{self}：
+\begin{minted}{Rust}
+    enum Pet {
+        Orca,
+        Giraffe,
+        ...
+    }
+
+    use self::Pet::*;
+\end{minted}
+
+在内存中，C风格的枚举值被存储为整数。有时告诉Rust使用哪些整数会很有用：
+\begin{minted}{Rust}
+    enum HttpStatus {
+        Ok = 200,
+        NotModified = 304,
+        NotFound = 404,
+        ...
+    }
+\end{minted}
+
+否则，Rust会从0开始自动分配值。
+
+默认情况下，Rust用能容纳所有值的最小的内建整数类型来存储C风格枚举。大多数情况下都是一个单独的字节：
+\begin{minted}{Rust}
+    use std::mem::size_of;
+    assert_eq!(size_of::<Ordering>(), 1);
+    assert_eq!(size_of::<HttpStatus>(), 2); // 404不能存储在u8中
+\end{minted}
+
+你可以通过添加\texttt{\#[repr]}属性来覆盖Rust选择的内存表示方式。更多的细节见“\nameref{repr}”。
+
+将C风格的枚举转换为整数是允许的：
+\begin{minted}{Rust}
+    assert_eq!(HttpStatus::Ok as i32, 200);
+\end{minted}
+
+然而，反过来把整数转换为枚举是不允许的。和C和C++不同，Rust保证枚举的值只能是\texttt{enum}生命中列出的值之一。未经检查的从整数类型到枚举类型的转换会打破这种保证，所以它是不允许的。你可以写出你自己的带检查的版本：
+\begin{minted}{Rust}
+    fn http_status_from_u32(n: u32) -> Option<HttpStatus> {
+        match n {
+            200 => Some(HttpStatus::Ok),
+            304 => Some(HttpStatus::NotModified),
+            404 => Some(HttpStatus::NotFound),
+            ...
+            _ => None,
+        }
+    }
+\end{minted}
+
+或者使用\href{https://crates.io/crates/enum_primitive}{\texttt{enum\_primitive}} crate。它包含一个宏可以为你自动生成这种类型的转换代码。
+
+和结构体一样，编译器也可以为你自动生成类似\texttt{==}运算符这样的特性，但你需要显式地要求这样：
+\begin{minted}{Rust}
+    #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+    enum TimeUnit {
+        Seconds, Minutes, Hours, Days, Months, Years,
+    }
+\end{minted}
+
+枚举也和结构体一样可以拥有方法：
+\begin{minted}{Rust}
+    impl TimeUnit {
+        /// 返回该时间单位的复数名词。
+        fn plural(self) -> &'static str {
+            match self {
+                TimeUnit::Seconds => "seconds",
+                TimeUnit::Minutes => "minutes",
+                TimeUnit::Hours => "hours",
+                TimeUnit::Days => "days",
+                TimeUnit::Months => "months",
+                TimeUnit::Years => "years",
+            }
+        }
+
+        /// 返回该时间单位的单数名词。
+        fn singular(self) -> &'static str {
+            self.plural().trim_end_matches('s')
+        }
+    }
+\end{minted}
+
+C风格的枚举就这么多内容了。Rust中最有趣的一类枚举是那些带有数据的枚举。我们将展示这些枚举如何存储在内存中、如何通过添加类型参数将它们变为泛型的，以及如何通过枚举构建复杂的数据结构。
+
+\subsection{带有数据的枚举}
+
+一些程序总是需要显示完整的日期和时间，并且精确到毫秒。但对于大多数程序，显示大概的时间范围会更加友好，例如“两个月以前”。我们可以用之前定义的枚举编写一个新的枚举来实现这一点：
+\begin{minted}{Rust}
+    /// 一个故意舍入的时间戳，因此我们的程序会显示“6个月以前”
+    /// 而不是“February 9, 2016, at 9:49 AM”。
+    #[derive(Copy, Clone, Debug, PartialEq)]
+    enum RoughTime {
+        InThePast(TimeUnit, u32),
+        JustNow,
+        InTheFuture(TimeUnit, u32),
+    }
+\end{minted}
+
+这个枚举中的两个variant，即\texttt{InThePast}和\texttt{InTheFuture}都有参数。这些被称为\emph{tuple variant}。就像类元组结构体一样，它们的constructor是创建新的\texttt{RoughTime}值的函数：
+\begin{minted}{Rust}
+    let four_score_and_seven_years_ago =
+        RoughTime::InThePast(TimeUnit::Years, 4 * 20 + 7);
+
+    let three_hours_from_now =
+        RoughTime::InTheFuture(TimeUnit::Hours, 3);
+\end{minted}
+
+枚举也可以有\emph{struct variant}，它们和普通的结构体一样拥有命名字段：
+\begin{minted}{Rust}
+    enum Shape {
+        Sphere { center: Point3d, radius: f32 },
+        Cuboid { corner1: Point3d, corner2: Point3d },
+    }
+
+    let unit_sphere = Shape::Sphere {
+        center: ORIGIN,
+        radius: 1.0,
+    };
+\end{minted}
+
+总的来说，Rust有三种枚举variant，分别对应我们在上一章中展示的三种结构体。没有数据的variant对应类单元结构体。元组variant对应类元组结构体。结构体variant对应有花括号和命名字段的结构体。一个枚举可以同时有这三种variant：
+\begin{minted}{Rust}
+    enum RelationshipStatus {
+        Single,
+        InARelationship,
+        ItsComplicated(Option<String>),
+        ItsExtremelyComplicated {
+            car: DifferentialEquation, 
+            cdr: EarlyModernistPoem,
+        },
+    }
+\end{minted}
+
+所有种类的constructor都和枚举自身有相同的可见性。
+
+\subsection{内存中的枚举}
+
+
+
+
