@@ -517,3 +517,63 @@ Rust中用于匹配一个枚举、结构体或者元组的模式的工作原理�
 \end{minted}
 
 \subsection{元组和结构体模式}
+元组模式匹配元组。当你想在单个\texttt{match}中获得数据的多个部分时它们会很有用：
+\begin{minted}{Rust}
+    fn describe_point(x: i32, y: i32) -> &'static str {
+        use std::cmp::Ordering::*;
+        match (x.cmp(&0), y.cmp(&0)) {
+            (Equal, Equal) => "at the origin",
+            (_, Equal) => "on the x axis",
+            (Equal, _) => "on the y axis",
+            (Greater, Greater) => "in the first quadrant",
+            (Less, Greater) => "in the second quadrant",
+            _ => "somewhere else",
+        }
+    }
+\end{minted}
+
+结构体模式要使用花括号，就和结构体表达式一样。它们可以包含每个字段的子模式：
+\begin{minted}{Rust}
+    match balloon.location {
+        Point { x: 0, y: height } =>
+            println!("straight up {} meters", height),
+        Point { x: x, y: y } =>
+            println!("at ({}m, {}m)", x, y),
+    }
+\end{minted}
+
+在这个例子中，如果第一个分支匹配了，那么\texttt{balloon.location.y}会被存储到新的局部变量\texttt{height}。
+
+假设\texttt{balloon.location}是\texttt{Point \{ x: 30, y: 40 \}}。和之前一样，Rust会按照\hyperref[f10-6]{图10-6}的顺序检查每一个模式的每一个部分。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f10-6.png}
+    \caption{结构体模式匹配}
+    \label{f10-6}
+\end{figure}
+
+第二个分支可以匹配，因此输出将是\texttt{at (30m, 40m)}。
+
+当匹配结构体时类似\texttt{Point \{ x: x, y: y \}}的模式非常常见，多余的名字也只会扰乱视觉，因此Rust为此支持一种缩写形式\texttt{Point \{x, y\}}。含义和之前相同，这个模式也会把点的\texttt{x}字段存储在新的局部变量\texttt{x}、把\texttt{y}字段存储在新的局部变量\texttt{y}。
+
+即使有了缩写形式，如果我们要匹配一个很大的结构体但又只关心少数字段时还是会很麻烦：
+\begin{minted}{Rust}
+    match get_account(id) {
+        ...
+        Some(Account {
+                name, language, // 我们关心的两个字段
+                id: _, status: _, address: _, birthday: _, eye_color: _,
+                pet: _, security_question: _, hashed_innermost_secret: _,
+                is_adamantium_preferred_customer: _, }) =>
+            language.show_custom_greeting(name),
+    }
+\end{minted}
+
+为了避免这种情况，可以使用\texttt{..}告诉Rust你不关心其他的字段：
+\begin{minted}{Rust}
+    Some(Account { name, language, .. }) =>
+        language.show_custom_greeting(name),
+\end{minted}
+
+\subsection{数字和切片模式}
