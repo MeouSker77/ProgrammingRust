@@ -689,3 +689,47 @@ Rust模式支持两种和引用有关的特性。\texttt{ref}模式会借用被�
 \end{minted}
 
 \subsection{匹配守卫}
+有时一个匹配分支还有附加的条件必须要满足。假设我们在实现一个六边形空间内的棋子游戏，玩家只需要点击即可移动棋子。为了确认点击时有效的，我们可能要尝试类似这样的代码：
+\begin{minted}{Rust}
+    fn check_move(current_hex: Hex, click: Point) -> game::Result<Hex> {
+        match point_to_hex(click) {
+            None =>
+                Err("That's not a game space."),
+            Some(current_hex) => // 尝试匹配用户是不是点击了当前位置
+                                 // (这样是错误的：原因如下)
+                Err("You are already there! You must click somewhere else."),
+            Some(other_hex) =>
+                Ok(other_hex)
+        }
+    }
+\end{minted}
+
+这样是错误的，因为模式里的标识符会引入\emph{新的}变量。模式\texttt{Some(current\_hex)}会创建一个新的叫\texttt{current\_hex}的局部变量，然后遮蔽参数\texttt{current\_hex}。Rust会为这段代码报出好几个警告——尤其是，最后一个\texttt{match}分支不可达。一种修复这个问题的方法是简单地在分支中使用一个\texttt{if}表达式：
+\begin{minted}{Rust}
+    match point_to_hex(click) {
+        None => Err("That's not a game space."),
+        Some(hex) => {
+            if hex == current_hex {
+                Err("You are already there! You must click somewhere else")
+            } else {
+                Ok(hex)
+            }
+        }
+    }
+\end{minted}
+
+不过Rust还提供了\emph{匹配守卫(match guard)}：模式和分支的\texttt{=>}词元中间的\texttt{if CONDITION}条件必须满足才能匹配：
+\begin{minted}{Rust}
+    match point_to_hex(click) {
+        None => Err("That's not a game space."),
+        Some(hex) if hex == current_hex =>
+            Err("You are already there! You must click somewhere else"),
+        Some(hex) => Ok(hex)
+    }
+\end{minted}
+
+如果模式匹配，但条件不满足，那么将会继续匹配下一个分支。
+
+\subsection{匹配多种可能}
+
+
