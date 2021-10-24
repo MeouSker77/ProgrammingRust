@@ -754,6 +754,44 @@ Rust模式支持两种和引用有关的特性。\texttt{ref}模式会借用被�
 Rust（目前）不允许在模式中使用尾开区间例如\texttt{0..100}。
 
 \subsection{绑定和\texttt{@}模式}
+最后，\texttt{x @ pattern}用给定的\texttt{pattern}来匹配，但匹配成功时它会创建单个变量\texttt{x}并把整个值移动或拷贝进去，而不是为匹配值的每一部分创建一个变量。例如，假设你有下面的代码：
+\begin{minted}{Rust}
+    match self.get_selection() {
+        Shape::Rect(top_left, bottom_right) => {
+            optimized_paint(&Shape::Rect(top_left, bottom_right))
+        }
+        other_shape => {
+            paint_outline(other_shape.get_outline())
+        }
+    }    
+\end{minted}
+注意第一种情况会解包一个\texttt{Shape::Rect}值，然后在下一行中重新构建了一个新的\texttt{Shape::Rect}值。这可以被重写为\texttt{@}模式：
+\begin{minted}{Rust}
+    rect @ Shape::Rect(..) => {
+        optimized_paint(&rect)
+    }
+\end{minted}
+
+\texttt{@}模式和范围一起使用时也很有用：
+\begin{minted}{Rust}
+    match chars.next() {
+        Some(digit @ '0'..='9') => read_number(digit, chars),
+        ...
+    },
+\end{minted}
+
+\subsection{模式可以用在哪里}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
