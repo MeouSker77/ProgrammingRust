@@ -834,7 +834,84 @@ Rust（目前）不允许在模式中使用尾开区间例如\texttt{0..100}。
 
 有关这些表达式的细节，见“\nameref{iflet}”和“\nameref{loop}”。
 
-\subsection{}
+\subsection{填充二叉树}
+之前我们说过要展示如何实现一个\texttt{BinaryTree::add()}方法，它把一个节点添加到\texttt{BinaryTree}中：
+\begin{minted}{Rust}
+    // 一个类型`T`的顺序集合
+    enum BinaryTree<T> {
+        Empty,
+        NonEmpty(Box<TreeNode<T>>),
+    }
+
+    // 二叉树的一个节点
+    struct TreeNode<T> {
+        element: T,
+        left: BinaryTree<T>,
+        right: BinaryTree<T>,
+    }
+\end{minted}
+
+现在你已经知道了编写这个方法所需的关于模式的知识。对二叉搜索树的解释已经超过了这本书的范围，但对于那些已经对这个话题很熟悉的读者，值得看一下在Rust中如何实现它。
+
+\begin{minted}[linenos,numbersep=-1em]{Rust}
+    impl<T: Ord> BinaryTree<T> {
+        fn add(&mut self, value: T) {
+            match *self {
+                BinaryTree::Empty => {
+                    *self = BinaryTree::NonEmpty(Box::new(TreeNode {
+                        element: value,
+                        left: BinaryTree::Empty,
+                        right: BinaryTree::Empty,
+                    }))
+                }
+                BinaryTree::NonEmpty(ref mut node) => {
+                    if value <= node.element {
+                        node.left.add(value);
+                    } else {
+                        node.right.add(value);
+                    }
+                }
+            }
+        }
+    }    
+\end{minted}
+
+第1行告诉了Rust我们正在为有序类型的\texttt{BinaryTree}定义一个方法。这和我们之前为泛型结构体定义方法的语法完全相同，语法的解释见“\nameref{method}”一节。
+
+如果现有的树\texttt{*self}是空的，那么就很简单。第5-9行把\texttt{Empty}树变成了一个\texttt{NonEmpty}的树。\texttt{Box::new()}的调用在堆上分配一个新的\texttt{TreeNode}。当运行完之后，树就有了一个元素，这个元素的左子树和右子树都是\texttt{Empty}。
+
+如果\texttt{*self}不是空，第11行的模式就会匹配：
+\begin{minted}{Rust}
+    BinaryTree::NonEmpty(ref mut node) => {
+\end{minted}
+
+这个模式会借用一个\texttt{Box<TreeNode<T>>}的可变引用，因此我们可以访问并修改这个树节点中的数据。引用叫做\texttt{node}，它的作用域是12到16行。因为这个节点中已经有一个元素了，所以需要递归调用\texttt{.add()}来给左子树或右子树的节点添加新元素。
+
+新的方法可以像这样使用：
+\begin{minted}{Rust}
+    let mut tree = BinaryTree::Empty;
+    tree.add("Mercury");
+    tree.add("Venus");
+    ...
+\end{minted}
+
+\section{}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -204,7 +204,7 @@ Rust有三种类型的结构体：\emph{命名字段(name-field)}、\emph{类元
 
 你可以使用\texttt{\#[repr(C)]}属性来要求Rust用一种与C和C++兼容的方式布局结构体。我们将会在\hyperref[ch23]{第23章}中详细介绍这些。
 
-\section{使用impl定义方法}\label{method}
+\section{使用\texttt{impl}定义方法}\label{method}
 
 整本书中，我们已经在很多类型的值上调用过方法。我们使用\texttt{v.push(e)}把元素添加进vector，使用\texttt{v.len()}获取它的长度，使用\texttt{r.expect("msg")}检查\texttt{Result}的值是否是错误值，等等。你可以为你自己的结构体类型定义方法。与C++或Java那种直接出现在结构体定义内部的方式不同，Rust的方法在一个单独的\texttt{impl}块中定义。
 
