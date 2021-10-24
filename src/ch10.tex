@@ -602,4 +602,90 @@ Rust中用于匹配一个枚举、结构体或者元组的模式的工作原理�
     }
 \end{minted}
 
+\subsection{引用模式}
+Rust模式支持两种和引用有关的特性。\texttt{ref}模式会借用被匹配的值，\texttt{\&}模式匹配引用。我们将首先介绍\texttt{ref}模式。
 
+匹配一个非拷贝类型的值会移动这个值。继续上面的例子，下面的代码是无效的：
+\begin{minted}{Rust}
+    match account {
+        Account { name, language, .. } => {
+            ui.greet(&name, &language);
+            ui.show_settings(&account); // error: borrow of moved value: `account`
+        }
+    }
+\end{minted}
+
+这里，字段\texttt{account.name}和\texttt{account.language}被移动进局部变量\texttt{name}和\texttt{language}中。\texttt{account}的其他部分被丢弃。这就是为什么我们不能再借用它的引用。
+
+如果\texttt{name}和\texttt{language}都是可拷贝的值，Rust将会拷贝字段而不是移动它们，代码将没有问题。但假设它们就是\texttt{String}，那我们该怎么办？
+
+我们需要一种模式\emph{借用}被匹配的值而不是移动它们。\texttt{ref}关键字就是为此而生：
+\begin{minted}{Rust}
+    match account {
+        Account { ref name, ref language, .. } => {
+            ui.greet(name, language);
+            ui.show_settings(&account); // ok
+        }
+    }
+\end{minted}
+
+现在局部变量\texttt{name}和\texttt{language}都是\texttt{account}中相应字段的引用。因此\texttt{account}只是被借用，并没有被消耗，所以继续用它调用方法也是OK的。
+
+你可以使用\texttt{ref mut}来借用\texttt{mut}引用：
+\begin{minted}{Rust}
+    match line_result {
+        Err(ref err) => log_error(err), // `err`是&Error(shared ref)
+        Ok(ref mut line) => {           // `line`是&mut String(mut ref)
+            trim_comments(line);        // 修改String
+            handle(line);
+        }
+    }
+\end{minted}
+
+模式\texttt{Ok(ref mut line)}匹配任何成功值，并借用存储在里面的成功值的\texttt{mut}引用。
+
+另一种相反的引用模式是\texttt{\&}模式。一个以\texttt{\&}开始的模式只能匹配引用：
+\begin{minted}{Rust}
+    match sphere.center() {
+        &Point3d { x, y, z } => ...
+    }
+\end{minted}
+
+在这个例子中，假设\texttt{sphere.center()}返回一个\texttt{sphere}的私有字段的引用，这在Rust中是很常见的。返回的值是一个\texttt{Point3d}的引用。如果中心在原点的话，\texttt{sphere.center()}会返回\texttt{\&Point3d \{ x: 0.0, y: 0.0, z: 0.0 \}}。
+
+模式匹配按照\hyperref[f10-7]{图10-7}进行。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f10-7.png}
+    \caption{引用的模式匹配}
+    \label{f10-7}
+\end{figure}
+
+这里有一点诡异，因为Rust在这里解除了引用，也就是\texttt{*}运算符的功能。要住的是模式和表达式天然是相反的。表达式\texttt{(x, y)}把两个值放入一个新的元组中，而模式\texttt((x, y))恰好相反：它匹配一个元组然后取出两个值。\texttt{\&}也是一样，在表达式里，\texttt{\&}创建一个引用；在模式里，\texttt{\&}匹配一个引用。
+
+匹配一个引用遵循我们期望的所有规则。生命周期是强制的。你不能通过共享引用获取\texttt{mut}访问权限。你不能将值移动出引用，即使是\texttt{mut}引用。当我们匹配\texttt{\&Point3d \{ x, y, z \}}时，变量\texttt{x, y, z}都是坐标的拷贝，原本的\texttt{Point3d}值还是完整的。只有当这些字段都是拷贝类型才可以正常工作。如果我们想对结构体中一个不可拷贝的字段这么做，我们会遇到错误：
+\begin{minted}{Rust}
+    match friend.borrow_car() {
+        Some(&Car { engine, .. }) => // error: can't move out of borrow
+            ...
+        None => {}
+    }
+\end{minted}
+
+把一辆借来的车报废是不好的，Rust也不会允许这么做。你可以使用\texttt{ref}模式来借用一个引用，这样就不用拥有它：
+\begin{minted}{Rust}
+    Some(&Car { ref engine, .. }) => // ok, engine is a reference
+\end{minted}
+
+再来看另一个\texttt{\&}模式的例子。假设我们有一个迭代器\texttt{chars}迭代一个字符串里的所有字符，并且它有一个方法\texttt{chars.peek()}返回一个\texttt{Option<\&char>}：一个指向下一个字符的引用，如果有的话。（这类迭代器确实返回一个\texttt{Option<\&ItemType>}，我们将在\hyperref[ch15]{第15章}中见到。）
+
+一个程序可以使用\texttt{\&}来获得指向的字符：
+\begin{minted}{Rust}
+    match chars.peek() {
+        Some(&c) => println!("coming up: {:?}", c),
+        None => println!("end of chars"),
+    }
+\end{minted}
+
+\subsection{匹配守卫}
