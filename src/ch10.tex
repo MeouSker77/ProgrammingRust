@@ -781,6 +781,60 @@ Rust（目前）不允许在模式中使用尾开区间例如\texttt{0..100}。
 \end{minted}
 
 \subsection{模式可以用在哪里}
+尽管模式最常用在\texttt{match}表达式中，但它们也能出现在一些其他地方，例如出现在标识符的位置。含义总是相同的：Rust使用模式匹配来分别取出值中的每一部分，而不是存储在单个变量中。
+
+这意味着模式可以用于……
+\begin{minted}{Rust}
+    // ...把一个结构体解包为3个局部变量
+    let Track { album, track_number, title, .. } = song;
+
+    // ...解包一个元组类型的函数参数
+    fn distance_to((x, y): (f64, f64)) -> f64 { .. }
+
+    // ...迭代一个HashMap的键和值
+    for (id, document) in &cache_map {
+        println!("Document #{}: {}", id, document.title);
+    }
+
+    // ...自动解引用闭包的参数，
+    // 当你想要一份拷贝时，其他代码可能会传给你一个引用，
+    // 这时这种写法很方便。
+    let sum = numbers.fold(0, |a, &num| a + num)
+\end{minted}
+
+这些写法都节省了两到三行重复的样本代码。其它语言中也有相同的概念：JavaScript中它被称为\emph{解构(destructuring)}，而在Python中它被称为\emph{解包(unpacking)}。
+
+注意这四个例子中，我们都使用了一定能匹配的模式。模式\texttt{Point3d \{ x, y, z \}}匹配\texttt{Point3d}类型的任意值，\footnote{译者注：此处应是作者写错了，应该是\texttt{Track}对应的例子。}\texttt{(x, y)}匹配任意的\texttt{(f64, f64)}类型的值，等等。在Rust中总是能匹配的模式是很特殊的，它们被称为\emph{不可反驳的模式(irrefutable pattern)}，它们也是唯一能出现在这里展示的四种位置的模式（在\texttt{let}之后、在函数参数中、在\texttt{for}之后、在闭包的参数中）。
+
+一个\emph{可反驳的模式(refutable pattern)}是那些可能不能匹配的模式，例如\texttt{Ok(x)}，它不能匹配一个错误的Result，或者\texttt{'0' ..= '9'}，它不能匹配字符\texttt{'Q'}。可反驳的模式可以用在\texttt{match}分支中，因为\texttt{match}就是为它们设计的：在\texttt{match}中如果匹配失败，那么接下来要怎么做很明显。而上面的四个例子中的位置，Rust不允许匹配失败。
+
+可反驳的模式还可以用在\texttt{if let}和\texttt{while let}表达式中，它们可以用于……
+\begin{minted}{Rust}
+    // ...只有当是特定类型的枚举variant时才进行处理
+    if let RoughTime::InTheFuture(_, _) = user.data_of_birth() {
+        user.set_time_traveler(true);
+    }
+
+    // ...只有当查找成功时才运行代码
+    if let Some(document) = cache_map.get(&id) {
+        return send_cached_response(document);
+    }
+
+    // ...重复尝试执行操作直到它成功
+    while let Err(err) = present_cheesy_anti_robot_task() {
+        log_robot_attempt(err);
+        // 让用户重试
+    }
+
+    // ...手动迭代器循环
+    while let Some(_) = lines.peek() {
+        read_paragraph(&mut lines);
+    }
+\end{minted}
+
+有关这些表达式的细节，见“\nameref{iflet}”和“\nameref{loop}”。
+
+\subsection{}
 
 
 
