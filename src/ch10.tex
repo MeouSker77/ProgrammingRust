@@ -280,7 +280,7 @@ C风格的枚举就这么多内容了。Rust中最有趣的一类枚举是那些
 
 30行代码，我们才刚刚开始。这个类还需要构造函数、析构函数、一个赋值运算符。另一种方案是通过继承，首先创建一个基类\texttt{JSON}和它的子类\texttt{JSONBoolean}、\texttt{JSONString}等等。无论哪种方式，等到完成之后，我们的C++ JSON库都要有一堆代码了。其他程序员需要花费不少精力来阅读和使用它。而Rust的整个枚举只需要8行代码。
 
-\subsection{泛型枚举}
+\subsection{泛型枚举}\label{GenEnum}
 枚举可以是泛型的。标准库的两个例子几乎是整个语言中使用最广泛的数据类型：
 \begin{minted}{Rust}
     enum Option<T> {

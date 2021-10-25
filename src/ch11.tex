@@ -143,7 +143,7 @@ C++也有这种运行时的类型信息。它被称为\emph{虚表}或者\emph{v
 
 熟练的C++程序员可能会注意到Rust和C++采取的内存策略有些不同。在C++中，虚表指针或者称为\emph{vptr}被存储为结构体的一部分，而Rust使用胖指针来代替。结构体本身不包含任何自身字段之外的东西。这样，一个结构体可以实现一大堆trait而不需要包含一大堆vptr。即使像\texttt{i32}这样的大小还不足以容纳一个vptr的类型，也可以实现trait。
 
-当需要时Rust会自动把普通引用转换为trait对象。这就是为什么我们能在这个例子中直接把\texttt{\&mut local_file}传递给\texttt{say\_hello}：
+当需要时Rust会自动把普通引用转换为trait对象。这就是为什么我们能在这个例子中直接把\texttt{\&mut local\_file}传递给\texttt{say\_hello}：
 \begin{minted}{Rust}
     let mut local_file = File::create("hello.txt")?;
     say_hello(&mut local_file)?;
@@ -161,7 +161,128 @@ C++也有这种运行时的类型信息。它被称为\emph{虚表}或者\emph{v
 这种转换是唯一创建trait对象的方法。编译器做的工作其实很简单，当转换发生时，Rust知道被引用值的真正类型（这个例子中是\texttt{File}），因此它只是加上了正确的vtable的地址、把普通指针变成了胖指针。
 
 \subsection{泛型函数和类型参数}
+在这一章的开始处，我们展示了\texttt{say\_hello()}函数，它以trait对象为参数。让我们把这个函数重新为泛型函数：
+\begin{minted}{Rust}
+    fn say_hello<W: Write>(out: &mut W) -> std::i9o::Result<()> {
+        out.write_all(b"hello world\n")?;
+        out.flush()
+    }
+\end{minted}
 
+只有类型签名改变了：
+\begin{minted}{Rust}
+    fn say_hello(out: &mut dyn Write)   // 普通函数
+
+    fn say_hello<W: Write>(out: &mut W) // 泛型函数
+\end{minted}
+
+让函数变为泛型函数的正是\texttt{<W: Write>}短语，它是一个\emph{类型参数}。它意味着在整个函数体内，\texttt{W}代表任何实现了\texttt{Write} trait的类型。按照习惯，类型参数通常是大写字母。
+
+类型\texttt{W}到底是什么取决于泛型函数如何被调用：
+\begin{minted}{Rust}
+    say_hello(&mut local_file)?;    // 调用say_hello::<File>
+    say_hello(&mut bytes)?;         // 调用say_hello<Vec<u8>>
+\end{minted}
+
+当你把\texttt{\&mut local\_file}传递给泛型的\texttt{say\_hello()}函数时，你实际是在调用\texttt{say\_hello::<File>()}。Rust会为这个函数生成机器码，机器码里还会调用\texttt{File::write\_all()}和\texttt{File::flush()}。当你传递\texttt{\&mut bytes}时，你实际是在调用\texttt{say\_hello::<Vec<u8>>()}。Rust会为这个版本的函数生成单独的机器码，然后调用相应的\texttt{Vec<u8>}的方法。在这两种情况下，Rust都从参数的类型推导出类型\texttt{W}，这个过程被称为\emph{单态化(monomorphization)}，编译器会自动进行处理。
+
+你也可以指明类型参数：
+\begin{minted}{Rust}
+    say_hello::<File>(&mut local_file)?;
+\end{minted}
+
+很少情况下才需要显式写出参数，因为Rust通常可以通过参数推断出类型参数。这里，\texttt{say\_hello}泛型函数期望一个\texttt{\&mut W}参数，而我们传入了一个\texttt{\&mut File}，因此Rust推断出\texttt{W = File}。
+
+如果你正在调用的泛型函数并没有足以推断出参数的线索，你需要显式地指明：
+\begin{minted}{Rust}
+    // 调用一个没有参数的泛型方法collect<C>()
+    let v1 = (0 .. 1000).collect();     // 错误：不能推断出类型
+    let v2 = (0 .. 1000).collect::<Vec<i32>>(); // ok
+\end{minted}
+
+有时我们需要一个类型参数可以支持多种功能。例如，如果我们想打印出一个vector中出现次数最多的10个值，我们需要这些值可以打印：
+\begin{minted}{Rust}
+    use std::fmt::Debug;
+
+    fn top_ten<T: Debug>(values: &Vec<T>) { ... }
+\end{minted}
+
+但这还不够。我们怎么判断哪个值是出现次数最多的？通常的办法是把每个值当作键存入一个哈希表。这意味着这些值需要支持\texttt{Hash}和\texttt{Eq}操作。\texttt{T}的约束还必须包括\texttt{Debug}。这种情况下应该使用的语法是\texttt{+}号：
+\begin{minted}{Rust}
+    use std::hash::Hash;
+    use std::fmt::Debug;
+
+    fn top_ten<T: Debug + Hash + Eq>(values: &Vec<T>) { ... }
+\end{minted}
+
+一些类型实现了\texttt{Debug}、一些实现了\texttt{Hash}、一些支持\texttt{Eq}，还有少数类型例如\texttt{u32}和\texttt{String}，实现了这三个trait，如\hyperref[f11-2]{图11-2}所示。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f11-2.png}
+    \caption{trait作为类型的集合}
+    \label{f11-2}
+\end{figure}
+
+也可以不给类型参数指定任何约束，但这样的话你几乎不能对它进行任何操作。你只能移动它、将它放在box或vector里。
+
+泛型函数可以有多个类型参数：
+\begin{minted}{Rust}
+    /// 在一个大规模的分区数据集上进行查询。
+    /// 见<http://research.google.com/archive/mapreduce.html>。
+    fn run_query<M: Mapper + Serialize, R: Reducer + Serialize>(
+        data: &DataSet, map: M, reduce: R) -> Results
+    { ... }
+\end{minted}
+
+正如这个例子展示的一样，约束可能太长以至于很难阅读。Rust提供了使用关键字\texttt{where}的替代语法：
+\begin{minted}{Rust}
+    fn run_query<M, R>(data: &DataSet, map: M, reduce: R) -> Results
+        where M: Mapper + Serialize,
+              R: Reducer + Serialize
+    { ... }
+\end{minted}
+
+类型参数\texttt{M}和\texttt{R}仍然在前边声明，但约束被移动到单独的行。这种\texttt{where}语法可以用于泛型结构体、泛型枚举、类型别名以及方法——任何允许约束的地方。
+
+当然，\texttt{where}语法的一个替代是保持简单：寻找一种不需要大量使用泛型的方法来编写程序。
+
+“\nameref{RefAsArg}”介绍了生命周期的语法。一个泛型函数可以同时有生命周期参数和类型参数。生命周期参数在前：
+\begin{minted}{Rust}
+    /// 返回`candidates`中距离`target`最近的点的引用。
+    fn nearest<'t, 'c, P>(target: &'t P, candidates: &'c [P]) -> &'c P
+        where P: MeasureDistance
+    {
+        ...
+    }
+\end{minted}
+
+这个函数有两个参数：\texttt{target}和\texttt{candidates}。它们都是引用，但我们给了它们不同的生命周期\texttt{'t}和\texttt{'c}（正如在“\nameref{DistLife}”中讨论的那样）。这个函数可以用于任何实现了\texttt{MeasureDistance} trait的类型\texttt{P}，因此我们可以在一个程序中用\texttt{Point2d}值调用它，而在另一个程序中用\texttt{Point3d}值调用它。
+
+生命周期绝不会影响到机器码。两个\texttt{P}的类型相同但生命周期不同的\texttt{nearest()}的调用，将会调用同一个编译好的函数。只有不同的类型才会导致Rust编译一个泛型函数的多个拷贝。
+
+当然，函数并不是Rust中唯一的泛型代码：
+\begin{itemize}
+    \item 我们已经在“\nameref{GenStruct}”和“\nameref{GenEnum}”中介绍过泛型类型了。
+    \item 一个单独的方法也可以是泛型的，就算定义它的类型不是泛型的：
+    \begin{minted}{Rust}
+    impl PancakeStack {
+        fn push<T: Topping>(&mut self, goop: T) -> PancakeResult<()> {
+            goop.pour(&self);
+            self.absorb_topping(goop)
+        }
+    }
+    \end{minted}
+    \item 类型别名也可以是泛型的：
+    \begin{minted}{Rust}
+    type PancakeResult<T> = Result<T, PancakeError>;
+    \end{minted}
+    \item 我们将在本章稍后介绍泛型trait。
+\end{itemize}
+
+所有这一节中介绍的特性——约束、\texttt{where}子句、生命周期参数等——可以被用于所有泛型item，而不仅仅是函数。
+
+\subsection{选择哪一种}
 
 \section{完全限定方法调用}\label{fullymethod}
 
