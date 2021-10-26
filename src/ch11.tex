@@ -585,6 +585,40 @@ trait对象实际上是为最简单的trait设计的，就是那种可以用Java
 这个trait可以和trait对象兼容。调用\texttt{.splice()}方法时的类型检查不会有问题，因此参数\texttt{other}的类型不需要和\texttt{self}的类型相同，尽管它们的类型都是\texttt{MegaSpliceable}。
 
 \subsection{子trait}\label{subtrait}
+我们可以定义一个trait作为另一个trait的扩展：
+\begin{minted}{Rust}
+    /// 游戏世界中的某个生物，可能是玩家或者
+    /// 小精灵、石像鬼、松鼠、食人魔等。
+    trait Creature: Visible {
+        fn position(&self) -> (i32, i32);
+        fn facing(&self) -> Direction;
+        ...
+    }
+\end{minted}
+
+短语\texttt{trait Creature: Visible}意味着所有的生物都是可视的。每一个实现了\texttt{Creature}的类型都必须实现\texttt{Visible} trait：
+\begin{minted}{Rust}
+    impl Visible for Broom {
+        ...
+    }
+
+    impl Creature for Broom {
+        ...
+    }
+\end{minted}
+我们可以以任何顺序实现这两个trait，但为一个没有实现\texttt{Visible}的类型实现\texttt{Creature}是错误的。这里，我们说\texttt{Creature}是\texttt{Visible}的一个\emph{子trait(subtrait)}，而\texttt{Visible}是\texttt{Creature}的\emph{父trait(supertrait)}。
+
+子trait类似Java或者C\#中的子接口，用户可以假定任何实现了子trait的值一定也实现了它的父trait。但在Rust中，一个子trait不会继承父trait中的相关item，如果你想调用方法的话仍然要确保每个trait都在作用域中。
+
+事实上，Rust的子trait只是对\texttt{Self}的约束的缩写。\texttt{Creature}的定义和下面这个完全等价：
+\begin{minted}{Rust}
+    trait Creature where Self: Visible {
+        ...
+    }
+\end{minted}
+
+\subsection{类型关联函数}
+
 
 \section{完全限定方法调用}\label{fullymethod}
 
