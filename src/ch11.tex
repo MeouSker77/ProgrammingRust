@@ -163,7 +163,7 @@ C++也有这种运行时的类型信息。它被称为\emph{虚表}或者\emph{v
 \subsection{泛型函数和类型参数}
 在这一章的开始处，我们展示了\texttt{say\_hello()}函数，它以trait对象为参数。让我们把这个函数重新为泛型函数：
 \begin{minted}{Rust}
-    fn say_hello<W: Write>(out: &mut W) -> std::i9o::Result<()> {
+    fn say_hello<W: Write>(out: &mut W) -> std::io::Result<()> {
         out.write_all(b"hello world\n")?;
         out.flush()
     }
@@ -283,6 +283,72 @@ C++也有这种运行时的类型信息。它被称为\emph{虚表}或者\emph{v
 所有这一节中介绍的特性——约束、\texttt{where}子句、生命周期参数等——可以被用于所有泛型item，而不仅仅是函数。
 
 \subsection{选择哪一种}
+选择trait对象还是泛型代码是一件很微妙的事情。因为它们都基于trait，有很多相似之处。
+
+任何当你需要一个混合类型的值的集合的情况下trait对象都是正确的选择。从技术上讲创建泛型的沙拉是可行的：
+\begin{minted}{Rust}
+    trait Vegetable {
+        ...
+    }
+
+    struct Salad<V: Vegetable> {
+        veggies: Vec<V>
+    }
+\end{minted}
+
+然而，这是一个非常糟糕的设计。每一个这样的沙拉都全部是由单一类型的蔬菜组成的。不是所有人都适合这么做，这本书的作者曾经为一个\texttt{Salad<IcebergLettuce}支付了\$14美元，并且直到现在也没有完全克服那次经历。
+
+然而我们怎么构建一个更好的沙拉呢？因为\texttt{Vegetable}值可能是不同大小的，我们不能要求Rust创建一个\texttt{Vec<dyn Vegetable>}：
+\begin{minted}{Rust}
+    struct Salad {
+        veggies: Vec<dyn Vegetable> // 错误：`dyn Vegetable`并
+                                    // 没有固定大小
+    }
+\end{minted}
+
+trait对象就是解决方案:
+\begin{minted}{Rust}
+    struct Salad {
+        veggies: Vec<Box<dyn Vegetable>>
+    }
+\end{minted}
+
+每一个\texttt{Box<dyn Vegetable>}可以持有任何类型的蔬菜，但box自身的大小是固定的——两个指针——因此可以存储在vector中。除了在食物里放盒子这个不幸的比喻之外，它确实就是我们需要的。它也同样适用于绘图应用中的形状、游戏中的怪物、网络路由器中的可插拔路由算法等等。
+
+另一个使用trait对象的可能的原因是减小编译出的代码的体积。Rust可能需要编译一个泛型函数很多次，因为它要为每一个用到的类型都编译一次。这可能导致生成的二进制文件很大，这种现象在C++圈子里称为\emph{代码膨胀(code bloat)}。近年来内存越来越充裕，因此我们中的大多数人可以忽略代码的体积，但确实还有一些受限制的环境。
+
+除了涉及到沙拉或者资源受限的环境之外，泛型与trait对象相比有三个优势。因此在Rust中泛型是更加普遍的选择。
+
+第一个优势是速度。注意泛型函数签名中没有\texttt{dyn}关键字。因为你在编译期指明了确切的类型，不管是显式还是通过类型推导，编译器都知道实际上调用了哪个\texttt{write}。没有使用\texttt{dyn}关键字是因为没有trait对象——因此也没有涉及动态分发。
+
+引言中展示的泛型\texttt{min()}函数就和我们单独编写\texttt{min\_u8}、\texttt{min\_i64}、\texttt{min_string}等函数一样快。编译器还可以像其他函数一样内联它，因此在release构建中，一个对\texttt{min::<i32>}的调用可能只有两三条指令。对于常量的调用，例如\texttt{min(5, 3)}可能会更快：Rust可以在编译期对它进行求值，因此不会有任何运行时开销。
+
+或者考虑这个泛型函数调用：
+\begin{minted}{Rust}
+    let mut sink = std::io::sink();
+    say_hello(&mut sink);
+\end{minted}
+
+\texttt{std::io::sink()}返回一个\texttt{Sink}类型的writer，它会偷偷丢弃掉所有写入的字节。
+
+当Rust为此生成机器码的时候，它可以产生先调用\texttt{Sink::write\_all}、再检查错误、最后调用\texttt{Sink::flush}的代码。这正是泛型函数体的内容。
+
+或者，Rust可以查看那些方法，然后意识到下列情况：
+\begin{itemize}
+    \item \texttt{Sink::write\_all()}什么也不做。
+    \item \texttt{Sink:flush()}什么也不做。
+    \item 两个方法都不可能返回错误。
+\end{itemize}
+
+简单来说，Rust拥有所有优化掉这个函数调用所需的信息。
+
+相比与trait对象的行为，Rust直到运行时才能知道一个trait对象指向的值到底是什么类型。因此即使你传递了一个\texttt{Sink}，虚方法的调用开销和检查错误的开销仍然不可避免。
+
+泛型的第二个优势是有的trait不支持trait对象。trait只支持一部分特性，例如关联函数只能使用泛型，这样就完全排除了trait对象。当我们将到这些特性时会指出它们。
+
+泛型的第三个优势是可以很容易地一次给泛型类型参数添加多个trait约束，例如我们的\texttt{top\_ten}函数就要求它的参数\texttt{T}要实现\texttt{Debug + Hash + Eq}。trait对象不能这么做：Rust不支持类似\texttt{\&mut (dyn Debug + Hash + Eq)}这样的类型。（你可以用本章中稍后会讲到的\hyperref[subtrait]{子trait}来实现类似的功能，但这样有点复杂。）
+
+\section{定义和实现trait}
 
 \section{完全限定方法调用}\label{fullymethod}
 
