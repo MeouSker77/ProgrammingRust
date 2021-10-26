@@ -321,7 +321,7 @@ trait对象就是解决方案:
 
 第一个优势是速度。注意泛型函数签名中没有\texttt{dyn}关键字。因为你在编译期指明了确切的类型，不管是显式还是通过类型推导，编译器都知道实际上调用了哪个\texttt{write}。没有使用\texttt{dyn}关键字是因为没有trait对象——因此也没有涉及动态分发。
 
-引言中展示的泛型\texttt{min()}函数就和我们单独编写\texttt{min\_u8}、\texttt{min\_i64}、\texttt{min_string}等函数一样快。编译器还可以像其他函数一样内联它，因此在release构建中，一个对\texttt{min::<i32>}的调用可能只有两三条指令。对于常量的调用，例如\texttt{min(5, 3)}可能会更快：Rust可以在编译期对它进行求值，因此不会有任何运行时开销。
+引言中展示的泛型\texttt{min()}函数就和我们单独编写\texttt{min\_u8}、\texttt{min\_i64}、\texttt{min\_string}等函数一样快。编译器还可以像其他函数一样内联它，因此在release构建中，一个对\texttt{min::<i32>}的调用可能只有两三条指令。对于常量的调用，例如\texttt{min(5, 3)}可能会更快：Rust可以在编译期对它进行求值，因此不会有任何运行时开销。
 
 或者考虑这个泛型函数调用：
 \begin{minted}{Rust}
@@ -459,6 +459,79 @@ trait对象就是解决方案:
 默认方法最有戏剧性的使用是在标准库的\texttt{Iterator} trait，它只有一个需要实现的方法\texttt{.next()}，和一堆默认实现的方法。\hyperref[ch15]{第15章}中会解释原因。
 
 \subsection{trait和其他人的类型}
+Rust允许你在任意类型上实现任意trait，只要trait或者类型是在当前crate中定义的。
+
+这意味着任何时候如果你想给任何类型添加一个方法，你都可以用trait来做到这一点：
+\begin{minted}{Rust}
+    trait IsEmoji {
+        fn is_emoji(&self) -> bool;
+    }
+
+    /// 为内建的字符类型实现IsEmoji方法
+    impl IsEmoji for char {
+        fn is_emoji(&self) -> bool {
+            ...
+        }
+    }
+
+    assert_eq!('$'.is_emoji(), false);
+\end{minted}
+
+类似于其他trait方法，只有当\texttt{IsEmoji}在作用域中时新的\texttt{is\_emoji}方法才可见。
+
+这个trait的唯一目的就是给现有类型\texttt{char}添加一个方法。这被称为\emph{扩展trait(extension trait)}。当然，你可以把这个trait添加给其他类型，例如\texttt{impl IsEmoji for str \{ ... \}}等。
+
+你甚至可以使用泛型\texttt{impl}块来一次性给一整个家族的类型添加一个扩展trait。这个trait可以在任何类型上实现：
+\begin{minted}{Rust}
+    use std::io::{self, Write};
+
+    /// trait for values to which you can send HTML.
+    trait WriteHtml {
+        fn write_html(&mut self, html: &HtmlDocument) -> io::Result<()>;
+    }
+\end{minted}
+
+为所有writer实现这个trait，可以为所有Rust writer添加这个方法：
+\begin{minted}{Rust}
+    /// 你可以向任意std::io writer写入HTML
+    impl<W: Write> WriteHtml for W {
+        fn write_html(&mut self, html: &HtmlDocument) -> io::Reuslt<()> {
+            ...
+        }
+    }
+\end{minted}
+
+\texttt{impl<W: Write> WriteHtml for W}这一行意思是“对于任何实现了\texttt{Write}的类型\texttt{W}，这里有一个为\texttt{W}编写的\texttt{WriteHtml}的实现”。
+
+\texttt{serde}库提供了一个很好的例子，它展示了可以在标准类型上实现用户自定义trait这种能力的重要作用。\texttt{serde}是一个序列化库。也就是说，你可以使用它把任何Rust数据结构写入到磁盘，并在稍后加载它们。这个库定义了一个trait \texttt{Serialize}，库支持所有实现了这个trait的数据类型。因此在\texttt{serde}的源码中，为\texttt{bool, i8, i16, i32}，数组和元组类型等，包括标准数据结构例如\texttt{Vec}和\texttt{HashMap}都实现了\texttt{Serialize} trait。
+
+这样的结果是\texttt{serde}为所有这些类型添加了一个\texttt{.serialize()}方法。它可以像这样使用：
+\begin{minted}{Rust}
+    use serde::Serialize;
+    use serde_json;
+
+    pub fn save_configuration(config: &HashMap<String, String>) 
+        -> std::io::Result<()>
+    {
+        // 创建一个JSON序列化器来把数据写入到文件。
+        let writer = File::create(config_filename())?;
+        let mut serializer = serde_json::Serializer::new(writer);
+
+        // serde的`.serialize()`方法负责剩余的内容。
+        config.serialize(&mut serializer)?;
+
+        Ok(())
+    }
+\end{minted}
+
+我们之前说过当你实现一个tarit时，trait和类型至少有一个必须是在当前crate中新定义的。这被称为\emph{孤儿规则(orphan rule)}。它帮助确保tarit的实现是唯一的。你的代码不能\texttt{impl Write for u8}，因为\texttt{Write}和\texttt{u8}都是在标准库中定义的。如果Rust允许crate这么做，那么不同的crate中可能会有不同的\texttt{u8}类型的\texttt{Write} trait实现。Rust将不知道为一个方法调用选择哪种实现。
+
+（C++也有一个类似的唯一性约束：一次定义规则。在传统的C++风格中，除了最简单的情况之外，编译器并不会强制这一点，如果你打破了这个规则会遇到未定义行为。
+
+\subsection{trait中的\texttt{Self}}
+
+
+\subsection{子trait}\label{subtrait}
 
 \section{完全限定方法调用}\label{fullymethod}
 
