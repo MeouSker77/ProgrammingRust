@@ -529,7 +529,60 @@ Rust允许你在任意类型上实现任意trait，只要trait或者类型是在
 （C++也有一个类似的唯一性约束：一次定义规则。在传统的C++风格中，除了最简单的情况之外，编译器并不会强制这一点，如果你打破了这个规则会遇到未定义行为。
 
 \subsection{trait中的\texttt{Self}}
+trait中可以将\texttt{Self}关键字用作类型。例如标准的\texttt{Clone} trait，看起来像这样（简化版）：
+\begin{minted}{Rust}
+    pub trait Clone {
+        fn clone(&self) -> Self;
+        ...
+    }
+\end{minted}
 
+这里使用\texttt{Self}作为返回类型意味着\texttt{x.clone()}的返回值类型和\texttt{x}的类型相同，不管\texttt{x}是什么。如果\texttt{x}是一个\texttt{String}，那么\texttt{x.clone()}的类型就是\texttt{String}——不是\texttt{dyn Clone}或者别的可克隆的类型。
+
+同样，如果我们定义了这个trait：
+\begin{minted}{Rust}
+    pub trait Spliceable {
+        fn splice(&self, other: &Self) -> Self;
+    }
+\end{minted}
+还有两个实现：
+\begin{minted}{Rust}
+    impl Spliceable for CherryTree {
+        fn splice(&self, other: &Self) -> Self {
+            ...
+        }
+    }
+
+    impl Spliceable for Mammoth {
+        fn splice(&self, other: &Self) -> Self {
+            ...
+        }
+    }    
+\end{minted}
+
+在第一个\texttt{impl}中，\texttt{Self}就是\texttt{CherryTree}的别名；而在第二个\texttt{impl}中，它是\texttt{Mammoth}的别名。这意味着我们可以把两棵樱桃树或者两只猛犸象拼接在一起，而不能创建出樱桃树-猛犸象杂交种。\texttt{self}的类型和\texttt{other}的类型必须相同。
+
+一个使用了\texttt{Self}类型的trait和trait对象不兼容：
+\begin{minted}{Rust}
+    // 错误：trait `Spliceable`不能转变为一个对象
+    fn splice_anything(left: &dyn Spliceable, right: &dyn Spliceable) {
+        let combo = left.splice(right);
+        // ...
+    }
+\end{minted}
+
+当我们在深入研究trait的高级特性时会多次看到原因。Rust拒绝这段代码是因为它没有办法对\texttt{left.splice(right)}调用进行类型检查。关键点在于trait对象的类型直到运行时才能知道。Rust没有办法在编译期知道\texttt{left}和\texttt{right}是不是相同的类型。
+
+trait对象实际上是为最简单的trait设计的，就是那种可以用Java中的接口或者C++中的抽象基类实现的那种trait。trait的还有更多有用的高级特性，但它们不能和现有的trait对象共存。因为使用trait对象时，你会丢失Rust对程序进行类型检查时必须的类型信息。
+
+现在，假设我们想要一个从基因上讲不可能的拼接，我们可以设计一个trait对象友好的trait：
+\begin{minted}{Rust}
+    pub trait MegaSpliceable {
+        fn splice(&self, other: &dyn MegaSpliceable) -> Box<dyn MegaSpliceable>;
+    }
+\end{minted}
+
+这个trait可以和trait对象兼容。调用\texttt{.splice()}方法时的类型检查不会有问题，因此参数\texttt{other}的类型不需要和\texttt{self}的类型相同，尽管它们的类型都是\texttt{MegaSpliceable}。
 
 \subsection{子trait}\label{subtrait}
 
