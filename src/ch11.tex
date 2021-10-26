@@ -350,5 +350,115 @@ trait对象就是解决方案:
 
 \section{定义和实现trait}
 
+定义一个trait很简单，只需要给出名字和trait方法的签名类型。假设我们在编写一个游戏，我们可能会定义像这样的trait：
+\begin{minted}{Rust}
+    /// 一个角色、物品、风景等
+    /// 任何可以显示在屏幕上的游戏世界的物体。
+    trait Visible {
+        /// 在给定的画布上渲染这个对象。
+        fn draw(&self, canvas: &mut Canvas);
+
+        /// 如果点击(x, y)会选中这个对象就返回true。
+        fn hit_test(&self, x: i32, y: i32) -> bool;
+    }
+\end{minted}
+
+为了实现一个trait，需要使用语法\texttt{impl TraitName for Type}：
+\begin{minted}{Rust}
+    impl Visible for Broom {
+        fn draw(&self, canvas: &mut Canvas) {
+            for y in self.y - self.height -1 .. self.y {
+                canvas.write_at(self.x, y, '|');
+            }
+            canvas.write_at(self.x, self.y , 'M);
+        }
+
+        fn hit_test(&self, x: i32, y: i32) -> bool {
+            self.x == x
+            && self.y - self.height - 1 <= y
+            && y <= self.y
+        }
+    }
+\end{minted}
+
+注意\texttt{impl}包含了一份\texttt{Visible} trait中每个方法的实现，除此之外没有别的内容。在trait \texttt{impl}中定义的任何东西都必须是trait的特性。如果我们想要添加一个\texttt{Broom::draw()}的帮助函数，我们必须在单独的\texttt{impl}块中定义它：
+
+\begin{minted}{Rust}
+    impl Broom {
+        /// 下面的Broom::draw()用到的帮助函数。
+        fn broomstick_range(&self) -> Range<i32> {
+            self.y - self.height - 1 .. self.y
+        }
+    }
+\end{minted}
+
+这些帮助函数可以在trait \texttt{impl}块中使用：
+\begin{minted}{Rust}
+    impl Visible for Broom {
+        fn draw(&self, canvas: &mut Canvas) {
+            for y in self.broomstick_range() {
+                ...
+            }
+            ...
+        }
+        ...
+    }
+\end{minted}
+
+\subsection{默认方法}
+我们之前讨论的\texttt{Sink} writer可以用少数几行代码实现。首先，我们定义如下类型：
+\begin{minted}{Rust}
+    /// 一个忽略写入数据的writer
+    pub struct Sink;
+\end{minted}
+
+\texttt{Sink}是一个空结构体，因为我们不需要在里面存储任何数据。接下来，我们为\texttt{Sink}提供了一份\texttt{Write} trait的实现：
+\begin{minted}{Rust}
+    use std::io::{Write, Result};
+
+    impl Write for Sink {
+        fn write(&mut self, buf: &[u8]) -> Result<usize> {
+            // 假装成功写入了整个缓冲区
+            Ok(buf.len())
+        }
+
+        fn flush(&mut self) -> Result<()> {
+            Ok(())
+        }
+    }
+\end{minted}
+
+到目前为止，这和\texttt{Visible} trait很像。但是我们展示过\texttt{Write} trait还有一个\texttt{write\_all}方法：
+\begin{minted}{Rust}
+    let mut out = Sink;
+    out.write_all(b"hello world\n")?;
+\end{minted}
+
+为什么Rust允许我们\texttt{impl Write for Sink}时不定义\texttt{write\_all}方法？答案就是标准库中\texttt{Write} trait的定义中包含了一个\texttt{write\_all}的\emph{默认实现}：
+\begin{minted}{Rust}
+    trait Write {
+        fn write(&mut self, buf: &[u8]) -> Result<usize>;
+        fn flush(&mut self) -> Result<()>;
+        
+        fn write_all(&mut self, buf: &[8]) -> Result<()> {
+            let mut bytes_written = 0;
+            while bytes_written < buf.len() {
+                bytes_written += self.write(&buf[bytes_written..])?;
+            }
+            Ok(())            
+        }
+
+        ...
+    }
+\end{minted}
+
+\texttt{write}和\texttt{flush}方法是每一个writer必须实现的基本方法。一个writer可能也实现了\texttt{write\_all}，但如果没有，将会使用我们上边展示的默认实现。
+
+你自己的trait也可以使用相同的语法包含默认实现。
+
+默认方法最有戏剧性的使用是在标准库的\texttt{Iterator} trait，它只有一个需要实现的方法\texttt{.next()}，和一堆默认实现的方法。\hyperref[ch15]{第15章}中会解释原因。
+
+\subsection{trait和其他人的类型}
+
 \section{完全限定方法调用}\label{fullymethod}
 
