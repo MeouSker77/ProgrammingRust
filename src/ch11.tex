@@ -918,4 +918,77 @@ Rust中的乘法使用了这个trait：
 在Rust中，表达式\texttt{lhs * rhs}是\texttt{Mul::mul(lhs, rhs)}的缩写。因此在Rust中重载\texttt{*}运算符和实现\texttt{Mul} trait一样简单。我们将在下一章中展示示例。
 
 \subsection{impl trait}
+你可能想象过，组合使用多种泛型类型可能会变得一团糟。例如，仅仅只使用标准库中的组合器组合几个迭代器会让你的返回类型变得眼花缭乱：
+\begin{minted}{Rust}
+    use std::iter;
+    use std::vec::IntoIter;
+    fn cyclical_zip(v: Vec<u8>, u: Vec<u8>) ->
+        iter::Cycle<iter::Chain<IntoIter<u8>, IntoIter<u8>>> {
+            v.into_iter().chain(u.into_iter()).cycle()
+    }
+\end{minted}
 
+我们可以简单的将返回类型替换为一个triat对象：
+\begin{minted}{Rust}
+    fn cyclical_zip(v: Vec<u8>, u: Vec<u8>) -> Box<dyn Iterator<Item=u8>> {
+        Box::new(v.into_iter().chain(u.into_iter()).cycle())
+    }
+\end{minted}
+
+然而，在大多数情况下，仅仅为了避免丑陋的类型签名，就要在每一次调用这个函数时付出动态分发的开销和一次不可避免的堆分配并不是一个好的折衷。
+
+Rust有一个专为此情形设计的特性叫做\texttt{impl trait}。\texttt{impl trait}允许我们“擦除”返回值的类型，只指明它实现的trait或traits，并且没有动态分发或者堆分配：
+\begin{minted}{Rust}
+    fn cyclical_zip(v: Vec<u8>, u: Vec<u8>) -> impl Iterator<Item=u8> {
+        v.into_iter().chain(u.into_iter()).cycle()
+    }
+\end{minted}
+
+现在，与指明嵌套的迭代器组合器结构体的类型相比，\texttt{cyclical\_zip}的签名只简单的说明了它返回一种产生\texttt{u8}的迭代器。返回类型表达了函数的意图，而不是实现细节。
+
+这确实清理了代码并增强了可读性，但\texttt{impl Trait}并不只是一个方便的缩写。使用\texttt{impl Trait}意味着你可以在将来修改实际返回的类型，只要新的类型仍然实现了\texttt{Iterator<Item=u8>}，任何调用了这个函数的代码将仍然能不出错地继续编译。这为库的作者提供了很大的灵活性，因为只有相关的的功能被编码进类型签名。
+
+例如，如果一个库的第一版按照上面的方法使用迭代器组合器，然后又发现了一个更好的算法，那么库的作者可以使用不同的迭代器组合器或者甚至返回一个自定义的实现了\texttt{Iterator}的类型，而库的用户可以在完全不改变代码的情况下享受性能的提升。
+
+使用\texttt{impl Trait}类似于面向对象语言中广泛使用的工厂模式的静态分发版本，这很有诱惑力。例如，你可以定义一个这样的trait：
+\begin{minted}{Rust}
+    trait Shape {
+        fn new() -> Self;
+        fn area(&self) -> f64;
+    }
+\end{minted}
+
+在为几个类型实现了它之后，你可能想根据一个运行时的值来决定使用不同的\texttt{Shape}，例如一个用户输入的字符串。使用\texttt{impl Shape}作为返回类型并不可行：
+\begin{minted}{Rust}
+    fn make_shape(shape: &str) -> impl Shape {
+        match shape {
+            "circle" => Circle::new(),
+            "triangle" => Triangle::new(),  // 错误：不兼容的类型
+            "shape" => Rectangle::new(),
+        }
+    }
+\end{minted}
+
+从调用者的角度来看，想这样的函数并没有什么意义。\texttt{impl trait}是一种静态分发的版本，因此编译器需要在编译期知道函数内返回的实际类型，这样才能在栈上分配正确数量的空间并调用正确的字段和方法。这里，它可能是\texttt{Circle}、\texttt{Triganle}或者\texttt{Rectangle}，它们的空间大小都不同，而且都有不同的\texttt{area()}实现。
+
+很重要的一点是要注意Rust不允许trait方法使用\texttt{impl trait}作为返回类型。要想支持这一点需要对语言的类型系统进行一些改进。在这项工作完成之前，只有自由函数和关联到特定类型的函数可以使用\texttt{impl Trait}作为返回值。
+
+\texttt{impl Trait}也可以用来在函数中接受泛型参数。例如，考虑下面的简单泛型代码：
+\begin{minted}{Rust}
+    fn print<T: Display>(val: T) {
+        println!("{}", val);
+    }
+\end{minted}
+
+它和下面的使用\texttt{impl trait}的版本相同：
+\begin{minted}{Rust}
+    fn print(val: impl Display) {
+        println!("{}", val);
+    }
+\end{minted}
+
+这里有一个很重要的例外。使用泛型允许函数的调用者指定泛型参数的类型，例如\texttt{print::<i32>(42)}，而使用\texttt{impl trait}则不行。
+
+每一个\texttt{impl trait}参数都会被赋予一个自己的匿名类型参数，因此\texttt{impl Trait}局限于最简单的的泛型函数中，不能表示参数的类型之间的关系。
+
+\subsection{关联常量}
