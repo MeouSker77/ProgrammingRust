@@ -738,3 +738,151 @@ trait对象实际上是为最简单的trait设计的，就是那种可以用Java
 
 \section{定义类型关系的trait}
 
+到目前为止，我们看到过的每个trait都是独立的：一个triat就是一些可以实现的方法的集合。trait也可以用于需要多个类型协同工作的场景。它们可以描述类型之间的关系：
+\begin{itemize}
+    \item \texttt{std::iter::Iterator} trait将迭代器类型和产生的值的类型联系在了一起。
+    \item \texttt{std::ops::Mul} trait将可以做乘法的类型联系了起来。在表达式\texttt{a * b}中，值\texttt{a}和\texttt{b}可以是相同类型，也可以是不同的类型。
+    \item \texttt{rand} crate包含一个随机数生成器的trait(\texttt{rand::Rng})，和一个可以被随机生成的类型的trait(\texttt{rand::Distribution})。这些trait定义了这些类型怎么协同工作。
+\end{itemize}
+
+日常编程中你可能并不需要创建这样的trait，但你会在标准库和第三方crate中看到它们。在这一节中，我们将展示这些例子是怎么实现的、根据需要介绍相关的Rust的语言特性。这里最核心的技能就是读懂trait和方法签名、并搞清楚它们到底想表达什么意思。
+
+\subsection{关联类型(或迭代器是如何工作的)}
+我们将以迭代器开始。到目前为止每一门面向对象的语言都有内建的对迭代器的支持，迭代器是表示遍历一系列值的对象。
+
+Rust有一个标准的\texttt{Iterator} trait，它的定义如下：
+\begin{minted}{Rust}
+    pub trait Iterator {
+        type Item;
+
+        fn next(&mut self) -> Option<Self::Item>;
+        ...
+    }
+\end{minted}
+
+这个trait的第一个特性\texttt{type Item}，是一个\emph{关联类型(associated tepe)}。每一个实现了\texttt{Iterator}的类型都必须指明它产生什么类型的值。
+
+第二个特性\texttt{next()}方法，在返回值类型中使用了关联类型。\texttt{next()}返回一个\texttt{Option<Self::Item>}：要么是\texttt{Some(item)}，即序列中的下一个值；要么是\texttt{None}，表示已经没有值了。这个类型被写作\texttt{Self::Item}，而不是普通的\texttt{Item}，这是因为\texttt{Item}是每一个迭代器类型的一个特性，而不是单独的类型。和往常一样，\texttt{self}和\texttt{Self}类型需要显式地出现在使用它们的字段、方法等的代码中。
+
+这里有一个为一个类型实现\texttt{Iterator}的示例：
+\begin{minted}{Rust}
+    // (这段代码出自std::env标准库模块)
+    impl Iterator for Args {
+        type Item = String;
+
+        fn next(&mut self) -> Option<String> {
+            ...
+        }
+
+        ...
+    }
+\end{minted}
+
+我们在\hyperref[ch02]{第2章}中使用过标准库函数\texttt{std::env::args()}来获取命令行参数，\texttt{std::env::Args}就是它返回的迭代器的类型。它产生\texttt{String}值，因此\texttt{impl}块中声明了\texttt{type Item = String;}。
+
+泛型代码也可以使用关联类型：
+\begin{minted}{Rust}
+    /// 循环一个迭代器，把值存储到新的vector中。
+    fn collect_into_vector<I: Iterator>(iter: I) -> Vec<I::Item> {
+        let mut results = Vec::new();
+        for value in iter {
+            results.push(value);
+        }
+        results
+    }
+\end{minted}
+
+在这个函数体重，Rust为我们推断出了\texttt{value}的类型，这很棒。但我们必须指明\texttt{collect\_into\_vector}的返回类型，而\texttt{Item}关联类型是唯一的方法。（\texttt{Vec<I>}显然是错的：它说明函数会返回一个迭代器的vector！）
+
+上面的代码你可能永远不会自己写出来，因为在阅读了\hyperref[ch15]{第15章}后，你就会知道迭代器已经有了一个标准方法\texttt{iter.collect()}来做这件事了。因此在继续之前让我们再看一个例子：
+\begin{minted}{Rust}
+    /// 打印出一个迭代器产生的所有值
+    fn dump<I>(iter: I)
+        where I: Iterator
+    {
+        for (index, value) in iter.enumerate() {
+            println!("{}: {:?}", index, value); // error
+        }
+    }
+\end{minted}
+
+还差一点就完成了。这里只有一个问题：\texttt{value}可能不是一个可打印的类型。
+\begin{minted}{text}
+    error: `<I as Iterator>::Item` doesn't implement `Debug`
+      |
+    8 |         println!("{}: {:?}", index, value);   // error
+      |                                     ^^^^^
+      |                          `<I as Iterator>::Item` cannot be formatted
+      |                          using `{:?}` because it doesn't implement `Debug`
+      = help: the trait `Debug` is not implemented for `<I as Iterator>::Item`
+      = note: required by `std::fmt::Debug::fmt`
+    help: consider further restricting the associated type
+      |
+    5 |     where I: Iterator, <I as Iterator>::Item: Debug
+      |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+\end{minted}
+
+错误信息有一点混淆，因为Rust使用了语法\texttt{<I as Iterator>::Item}，这种方式比\texttt{I::Item}更加显式和详细。这是有效的Rust语法，不过你很少会需要用这种方式指明类型。
+
+错误信息的关键是，要想让这段泛型代码能编译，我们必须确保\texttt{I::Item}实现了\texttt{Debug} trait，这个trait用于使用\texttt{\{:?\}}格式化值。正如错误信息建议的那样，我们可以通过添加一个\texttt{I::Item}的约束来解决这个问题：
+\begin{minted}{Rust}
+    use std::fmt::Debug;
+
+    fn dump<I>(iter: I)
+        where I: Iterator, I::Item: Debug
+    {
+        ...
+    }
+\end{minted}
+
+或者，我么可以写“\texttt{I}必须是一个在\texttt{String}值上迭代的迭代器”：
+\begin{minted}{Rust}
+    fn dump<I>(iter: I)
+        where I: Iterator<Item=String>
+    {
+        ...
+    }
+\end{minted}
+
+\texttt{Iterator<Item=String>}本身是一个trait。如果你把\texttt{Iterator}看作所有可能的迭代器类型的集合，那么\texttt{Iterator<Item=String>}就是\texttt{Iterator}的一个子集：产生\texttt{String}的迭代器类型的集合。这个语法可以用在任何需要一个trait名字的位置，包括trait对象类型：
+\begin{minted}{Rust}
+    fn dump(iter: &mut dyn Iterator<Item=String>) {
+        for (index, s) in iter.enumerate() {
+            println!("{}: {:?}", index, s);
+        }
+    }
+\end{minted}
+
+带有关联类型的trait，例如\texttt{iterator}，和trait对象是兼容的，不过必须像这里展示的一样指明所有的关联类型才可以。否则，\texttt{s}的类型可能是任何东西，因此Rust无法对这段代码进行类型检查。
+
+我们已经展示了很多涉及到迭代器的例子，因为目前迭代器是关联类型最突出的用途。但关联类型在任何trait需要涉及方法以外的东西的场景中都很有用：
+
+\begin{itemize}
+    \item 在一个线程池库中，一个\texttt{Task} trait表示一个工作单元，它可能有一个关联的\texttt{Output}类型。
+    \item 一个\texttt{Pattern} trait表示一种搜索字符串的方式，它可能有一个关联的\texttt{Match}类型，表示字符串中和模式匹配的所有信息：
+    \begin{minted}{Rust}
+    trait Pattern {
+        type Match;
+
+        fn search(&self, string: &str) -> Option<Self::Match>;
+    }
+
+    /// 你可以在字符串中搜索一个特定的字符。
+    impl Pattern for char {
+        /// 一个`Match`只是发现字符的位置
+        type Match = usize;
+
+        fn search(&self, string: &str) -> Option<usize> {
+            ...
+        }
+    }
+    \end{minted}
+
+    如果你熟悉正则表达式，那么很容易就能看出\texttt{impl Pattern for RegExp}将会有一个更加精密的\texttt{Match}类型，可能是一个包含匹配的开始和结尾、匹配的括号组的位置等内容的结构体。
+
+    \item 一个用于关系型数据库的库可能有一个\texttt{DatabaseConnection} trait，它有一个关联类型表示事务、游标、预处理语句等等。
+\end{itemize}
+
+关联类型完美适用于每一个实现都有\emph{一个}特定的相关类型的情况：每一个\texttt{Task}的类型产生一个特定类型的\texttt{Output}；每一个\texttt{Pattern}的类型查找一个特定的\texttt{Match}类型。然而，正如我们即将看到的一样，一些类型间的关系并不是这种模式。
+
+\subsection{泛型trait（或运算符重载是如何工作的）}
