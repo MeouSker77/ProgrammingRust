@@ -676,3 +676,65 @@ trait对象实际上是为最简单的trait设计的，就是那种可以用Java
 
 \section{完全限定方法调用}\label{fullymethod}
 
+目前为止我们展示过的所有调用trait方法的方式都需要Rust自动为我们填充一些缺失的东西。例如，假设你写了如下代码：
+\begin{minted}{Rust}
+    "hello".to_string();
+\end{minted}
+
+显然这里的\texttt{to\_string}指的是\texttt{ToString} trait的\texttt{to\_string}方法，而我们调用的是\texttt{str}类型的实现。因此这场游戏中出现了四个玩家：trait、trait方法、trait方法的实现、调用trait方法实现的值。我们不需要每次调用方法时都完全写出这四个部分是一件好事，但有些情况下你也可能会需要一种精确的方式来表达你的意思。这种情况下就要用到完全限定方法调用。
+
+首先，要知道方法只是一种特殊的函数。这两种调用是等价的：
+\begin{minted}{Rust}
+    "hello".to_string()
+
+    str::to_string("hello")
+\end{minted}
+
+第二种形式看起来很像一个关联函数的调用，即使\texttt{to\_string}方法以\texttt{self}为参数也没有问题，只会简单的传递\texttt{self}作为函数的第一个参数。
+
+因为\texttt{to\_string}是标准的\texttt{ToString} trait额方法，所以还有两种调用方式：
+\begin{minted}{Rust}
+    ToString::to_string("hello")
+
+    <str as ToString>::to_string("hello")
+\end{minted}
+
+这四种方法调用功能完全相同。通常你最可能写\texttt{value.method()}。其他的形式是\emph{限定(qualified)}方法调用。它们指明了方法关联到的类型或者trait。最后一种带尖括号的形式同时指明了类型和trait，这种形式被称为\emph{完全限定(fully qualified)}方法调用。
+
+当你写\texttt{"hello".to\_string()}时候，使用\texttt{.}运算符，你不需要精确地说明你要调用哪个\texttt{to\_string}方法。Rust有一个依据类型、强制解引用等机制的查找算法来确定是哪个方法。使用完全限定调用，你可以精确地说明你想要调用哪个方法，这可以在一些罕见的情况下有所帮助：
+\begin{itemize}
+    \item 当两个方法的名称相同时。经典的例子是\texttt{Outlaw}有两个来自不同trait的\texttt{.draw()}方法，一个用于在屏幕上绘制它，另一个用于和law交互：
+    \begin{minted}{Rust}
+    outlaw.draw();              // error: draw on screen or draw pistol?
+
+    Visible::draw(&outlaw);     // ok: draw on screen
+    HasPistol::draw(&outlaw);   // ok: corral
+    \end{minted}
+
+    通常你可能更愿意重命名其中一个方法，但有时你不能这么做。
+
+    \item 当\texttt{self}参数的类型不能被推断出来时：
+    \begin{minted}{Rust}
+    let zero = 0;   // 类型为定义：可能是`i8`，`u8`，...
+
+    zero.abs();     // 错误：不能在有歧义的数字类型
+                    // 上调用方法`abs`
+
+    i64::abs(zero); // ok
+    \end{minted}
+
+    \item 当使用函数本身作为函数类型的值的时候：
+    \begin{minted}{Rust}
+    let words: Vec<String> =
+        line.split_whitespace()         // 迭代器会产生&str值
+            .map(ToString::to_string)   // ok
+            .collect();
+    \end{minted}
+
+    \item 当在宏中调用trait方法时。我们将在\hyperref[ch21]{第21章}中解释。
+\end{itemize}
+
+完全限定语法也可以用于关联函数。在之前的小节中，我们用了\texttt{S::new()}在泛型函数中创建一个新的集合。我们还可以写成\texttt{StringSet::new()}或者\texttt{<S as StringSet>::new()}。
+
+\section{定义类型关系的trait}
+
