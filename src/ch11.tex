@@ -618,7 +618,61 @@ trait对象实际上是为最简单的trait设计的，就是那种可以用Java
 \end{minted}
 
 \subsection{类型关联函数}
+在大多数面向对象语言中，接口不能包含静态方法或者构造函数，但trait可以包含类型关联函数，Rust中的关联函数类似于静态方法：
+\begin{minted}{Rust}
+    trait StringSet {
+        /// 返回一个空的集合。
+        fn new() -> Self;
+        
+        /// 返回一个包含`strings`中所有字符串的集合。
+        fn from_slice(strings: &[&str]) -> Self;
 
+        /// 查找集合是否包含`string`。
+        fn contains(&self, string: &str) -> bool;
+
+        /// 向集合中添加一个字符串。
+        fn add(&mut self, string: &str);
+    }
+\end{minted}
+
+每一个实现了\texttt{StringSet} trait的类型都必须实现这四个关联函数。前两个函数\texttt{new()}和\texttt{from\_slice()}，没有\texttt{self}参数。它们充当构造函数。在非泛型代码中，这些函数可以使用\texttt{::}语法调用，就像其他类型关联函数一样：
+\begin{minted}{Rust}
+    // 创建两个impl StringSet的多态类型：
+    let set1 = SortedStringSet::new();
+    let set2 = HashedStringSet::new();
+\end{minted}
+
+在泛型代码中也是一样的。除了类型是一个类型变量，因此这里需要调用\texttt{S::new()}：
+\begin{minted}{Rust}
+    /// 返回`document`中有但`wordlist`中没有的单词的集合。
+    fn unknown_words<S: StringSet>(document: &[String], wordlist: &S) -> S {
+        let mut unknowns = S::new();
+        for word in document {
+            if !wordlist.contains(word) {
+                unknowns.add(word)
+            }
+        }
+        unknowns
+    }
+\end{minted}
+
+类似Java和C\#的接口，trait对象不支持类型关联函数。如果你想使用\texttt{\&dyn StringSet} trait对象，那你必须修改trait，给那些不接受\texttt{self}参数的关联函数加上\texttt{where Self: Sized}约束：
+
+\begin{minted}{Rust}
+    trait StringSet {
+        fn new() -> self
+            where Self: Sized;
+
+        fn from_slice(strings: &[&str]) -> Self
+            where Self: Sized;
+
+        fn contains(&self, string: &str) -> bool;
+
+        fn add(&mut self, string: &str);
+    }
+\end{minted}
+
+这个约束告诉Rust trait对象不支持这个关联函数。加上之后，你可以创建\texttt{StringSet}的trait对象了，但仍然不能使用\texttt{new}或者\texttt{from\_slice}，不过你可以使用它们调用\texttt{.contains()}和\texttt{.add()}。同样的技巧也适用于其他和trait对象不兼容的方法。（从技术上解释为什么会这样是相当乏味的，因此我们不会解释。不过\texttt{Sized} trait将会在\hyperref[ch13]{第13章}介绍。）
 
 \section{完全限定方法调用}\label{fullymethod}
 
