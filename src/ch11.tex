@@ -458,7 +458,7 @@ trait对象就是解决方案:
 
 默认方法最有戏剧性的使用是在标准库的\texttt{Iterator} trait，它只有一个需要实现的方法\texttt{.next()}，和一堆默认实现的方法。\hyperref[ch15]{第15章}中会解释原因。
 
-\subsection{trait和其他人的类型}
+\subsection{trait和其他人的类型}\label{OrphanRule}
 Rust允许你在任意类型上实现任意trait，只要trait或者类型是在当前crate中定义的。
 
 这意味着任何时候如果你想给任何类型添加一个方法，你都可以用trait来做到这一点：
@@ -886,3 +886,36 @@ Rust有一个标准的\texttt{Iterator} trait，它的定义如下：
 关联类型完美适用于每一个实现都有\emph{一个}特定的相关类型的情况：每一个\texttt{Task}的类型产生一个特定类型的\texttt{Output}；每一个\texttt{Pattern}的类型查找一个特定的\texttt{Match}类型。然而，正如我们即将看到的一样，一些类型间的关系并不是这种模式。
 
 \subsection{泛型trait（或运算符重载是如何工作的）}
+Rust中的乘法使用了这个trait：
+\begin{minted}{Rust}
+    /// std::ops::Mul，用于支持乘法(`*`)的类型
+    pub trait Mul<RHS> {
+        /// `*`运算符产生的结果的类型
+        type Output;
+
+        /// `*`运算符用到的的方法
+        fn mul(self, rhs: RHS) -> Self::Output;
+    }
+\end{minted}
+
+\texttt{Mul}是一个泛型类型。类型参数\texttt{RHS}，是\emph{右手边(righthand side)}的缩写。
+
+这里的类型参数和在结构体或函数中的含义一样：\texttt{Mul}是一个泛型trait，它实例化出的\texttt{Mul<f64>}、\texttt{Mul<String>}、\texttt{Mul<Size>}等等，都是不同的trait，正如\texttt{min::<i32>}和\texttt{min::<String>}是不同的函数，而\texttt{Vec<i32>}和\texttt{Vec<String>}是不同的类型。
+
+单个类型——例如\texttt{WindowSize}——可以同时实现\texttt{Mul<f64>}和\texttt{Mul<i32>}，甚至更多。你可以将一个\texttt{WindowSize}和很多其它类型相乘。每一个实现都有它自己的关联\emph{Output}类型。
+
+泛型trait可以不受故而规则的约束：你可以为一个外部类型实现一个外部trait，只要trait的类型参数中有一个是在当前crate中定义的类型。因此，假设你自己已经定义了\texttt{WindowSize}，你可以为\texttt{f64}实现\texttt{Mul<WindowSize>}，即使你既没有定义\texttt{Mul}有没有定义\texttt{f64}。这些实现甚至也可以是泛型的，例如\texttt{impl<T> Mul<WindowSize> for Vec<T>}。之所以可以这样是因为在别的crate中没有任何方法可以为任何类型实现\texttt{Mul<WindowSize>}，因此和你的实现之间不可能发生冲突。（我们在“\nameref{OrphanRule}”一节中介绍过孤儿规则。）这正是像\texttt{nalgebra}这样的crate为vector定义算术运算的方法。
+
+之前展示的trait忽略了一个小细节。真正的\texttt{Mul} trait看起来像这样：
+\begin{minted}{Rust}
+    pub trait Mul<RHS=Self> {
+        ...
+    }
+\end{minted}
+
+语法\texttt{RHS=Self}意思是\texttt{RHS}的默认值为\texttt{Self}。如果我们写\texttt{impl Mul for Complex}，而不指明\texttt{Mul}的类型参数，那么意味着\texttt{impl Mul<Complex> for Complex}。在一个约束，如果我们写\texttt{where T: Mul}，那么意味着\texttt{T: Mul<T>}。
+
+在Rust中，表达式\texttt{lhs * rhs}是\texttt{Mul::mul(lhs, rhs)}的缩写。因此在Rust中重载\texttt{*}运算符和实现\texttt{Mul} trait一样简单。我们将在下一章中展示示例。
+
+\subsection{impl trait}
+
