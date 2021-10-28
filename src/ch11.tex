@@ -992,3 +992,64 @@ Rust有一个专为此情形设计的特性叫做\texttt{impl trait}。\texttt{i
 每一个\texttt{impl trait}参数都会被赋予一个自己的匿名类型参数，因此\texttt{impl Trait}局限于最简单的的泛型函数中，不能表示参数的类型之间的关系。
 
 \subsection{关联常量}
+像结构体和枚举一样，trait也可以有关联常量。你可以用和结构体或枚举一样的语法给trait声明关联常量：
+\begin{minted}{Rust}
+    trait Greet {
+        const GREETING: &'static str = "Hello";
+        fn greet(&self) -> String;
+    }
+\end{minted}
+
+trait中的关联常量也有特殊的作用。像关联类型和函数一样，你可以声明它们但不赋给它们值：
+\begin{minted}{Rust}
+    trait Float {
+        const ZERO: Self;
+        const ONE: Self;
+    }
+\end{minted}
+
+然后，实现这些trait的类型可以定义这些值：
+\begin{minted}{Rust}
+    impl Float for f32 {
+        const ZERO: f32 = 0.0;
+        const ONE: f32 = 1.0;
+    }
+
+    impl Float for f64 {
+        const ZERO: f64 = 0.0;
+        const ONE: f64 = 1.0;
+    }
+\end{minted}
+
+你可以编写使用这些值的泛型代码：
+\begin{minted}{Rust}
+    fn add_one<T: Float + Add<Output=T>>(value: T) -> T {
+        value + T::ONE
+    }
+\end{minted}
+
+注意关联常量不能和trait对象一起使用，因为编译器依赖实现的类型信息，才能在编译器找出正确的值。
+
+即使是一个没有任何行为的简单trait，例如\texttt{Float}，也可以给出足够的类型信息，再搭配上少数运算符，就可以实现一些非常普遍的数学函数例如斐波那契数列：
+\begin{minted}{Rust}
+    fn fib<T: Float + Add<Output=T>>(n: usize) -> T {
+        match n {
+            0 => T::ZERO,
+            1 => T::ONE,
+            n => fib::<T>(n - 1) + fib::<T>(n - 2)
+        }
+    }
+\end{minted}
+
+在上面两节中，我们已经展示了用trait描述类型间关系的不同方法。所有这些都可以避免虚方法开销和向下转换，因为它们允许Rust在编译期就知道精确的类型。
+
+\section{逆向工程约束}
+
+
+
+
+
+
+
+
+
