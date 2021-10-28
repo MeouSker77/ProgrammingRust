@@ -37,7 +37,7 @@
     }
 \end{minted}
 
-\texttt{out}的类型是\texttt{\&mut dyn Write}，意思是“任何实现了。\texttt{Write} trait的值的可变引用”。我们可以把任何这样的值的可变引用传递给\texttt{say\_hello}：
+\texttt{out}的类型是\texttt{\&mut dyn Write}，意思是“任何实现了\texttt{Write} trait的值的可变引用”。我们可以把任何这样的值的可变引用传递给\texttt{say\_hello}：
 \begin{minted}{Rust}
     use std::fs::File;
     let mut local_file = File::create("hello.txt")?;
@@ -571,7 +571,8 @@ trait中可以将\texttt{Self}关键字用作类型。例如标准的\texttt{Clo
     }
 \end{minted}
 
-当我们在深入研究trait的高级特性时会多次看到原因。Rust拒绝这段代码是因为它没有办法对\texttt{left.splice(right)}调用进行类型检查。关键点在于trait对象的类型直到运行时才能知道。Rust没有办法在编译期知道\texttt{left}和\texttt{right}是不是相同的类型。
+当我们在深入研究trait的高级特性时会多次看到原因。Rust拒绝这段代码是因为它没有办法对\\
+\texttt{left.splice(right)}调用进行类型检查。关键点在于trait对象的类型直到运行时才能知道。Rust没有办法在编译期知道\texttt{left}和\texttt{right}是不是相同的类型。
 
 trait对象实际上是为最简单的trait设计的，就是那种可以用Java中的接口或者C++中的抽象基类实现的那种trait。trait的还有更多有用的高级特性，但它们不能和现有的trait对象共存。因为使用trait对象时，你会丢失Rust对程序进行类型检查时必须的类型信息。
 
@@ -742,7 +743,8 @@ trait对象实际上是为最简单的trait设计的，就是那种可以用Java
 \begin{itemize}
     \item \texttt{std::iter::Iterator} trait将迭代器类型和产生的值的类型联系在了一起。
     \item \texttt{std::ops::Mul} trait将可以做乘法的类型联系了起来。在表达式\texttt{a * b}中，值\texttt{a}和\texttt{b}可以是相同类型，也可以是不同的类型。
-    \item \texttt{rand} crate包含一个随机数生成器的trait(\texttt{rand::Rng})，和一个可以被随机生成的类型的trait(\texttt{rand::Distribution})。这些trait定义了这些类型怎么协同工作。
+    \item \texttt{rand} crate包含一个代表随机数生成器的trait(\texttt{rand::Rng})，和一个代表可以被随机生成的类型的trait\\
+    (\texttt{rand::Distribution})。这些trait定义了这些类型怎么协同工作。
 \end{itemize}
 
 日常编程中你可能并不需要创建这样的trait，但你会在标准库和第三方crate中看到它们。在这一节中，我们将展示这些例子是怎么实现的、根据需要介绍相关的Rust的语言特性。这里最核心的技能就是读懂trait和方法签名、并搞清楚它们到底想表达什么意思。
@@ -900,9 +902,10 @@ Rust中的乘法使用了这个trait：
 
 \texttt{Mul}是一个泛型类型。类型参数\texttt{RHS}，是\emph{右手边(righthand side)}的缩写。
 
-这里的类型参数和在结构体或函数中的含义一样：\texttt{Mul}是一个泛型trait，它实例化出的\texttt{Mul<f64>}、\texttt{Mul<String>}、\texttt{Mul<Size>}等等，都是不同的trait，正如\texttt{min::<i32>}和\texttt{min::<String>}是不同的函数，而\texttt{Vec<i32>}和\texttt{Vec<String>}是不同的类型。
+这里的类型参数和在结构体或函数中的含义一样：\texttt{Mul}是一个泛型trait，它实例化出的\texttt{Mul<f64>}、\texttt{Mul<String>}\\
+、\texttt{Mul<Size>}等都是不同的trait，正如\texttt{min::<i32>}和\texttt{min::<String>}是不同的函数、\texttt{Vec<i32>}和\texttt{Vec<String>}是不同的类型一样。
 
-单个类型——例如\texttt{WindowSize}——可以同时实现\texttt{Mul<f64>}和\texttt{Mul<i32>}，甚至更多。你可以将一个\texttt{WindowSize}和很多其它类型相乘。每一个实现都有它自己的关联\emph{Output}类型。
+单个类型例如\texttt{WindowSize}，可以同时实现\texttt{Mul<f64>}和\texttt{Mul<i32>}，甚至更多。你可以将一个\texttt{WindowSize}和很多其它类型相乘。每一个实现都有它自己的关联\emph{Output}类型。
 
 泛型trait可以不受故而规则的约束：你可以为一个外部类型实现一个外部trait，只要trait的类型参数中有一个是在当前crate中定义的类型。因此，假设你自己已经定义了\texttt{WindowSize}，你可以为\texttt{f64}实现\texttt{Mul<WindowSize>}，即使你既没有定义\texttt{Mul}有没有定义\texttt{f64}。这些实现甚至也可以是泛型的，例如\texttt{impl<T> Mul<WindowSize> for Vec<T>}。之所以可以这样是因为在别的crate中没有任何方法可以为任何类型实现\texttt{Mul<WindowSize>}，因此和你的实现之间不可能发生冲突。（我们在“\nameref{OrphanRule}”一节中介绍过孤儿规则。）这正是像\texttt{nalgebra}这样的crate为vector定义算术运算的方法。
 
@@ -1045,11 +1048,142 @@ trait中的关联常量也有特殊的作用。像关联类型和函数一样，
 
 \section{逆向工程约束}
 
+当没有单个trait可以满足你的所有需求时，编写泛型代码可能会变得非常困难。假设我们写了这个做一些计算的函数：
+\begin{minted}{Rust}
+    fn dot(v1: &[i64], v2: &[i64]) -> i64 {
+        let mut total = 0;
+        for i in 0 .. v1.len() {
+            total = total + v1[i] * v2[i];
+        }
+        total
+    }
+\end{minted}
 
+现在我们想用相同的代码来处理浮点数值。我们可能会尝试这样写：
+\begin{minted}{Rust}
+    fn dot<N>(v1: &[N], v2: &[N]) -> N {
+        let mut total: N = 0;
+        for i in 0 .. v1.len() {
+            total = total + v1[i] * v2[i];
+        }
+        total
+    }
+\end{minted}
 
+这样是行不通的：Rust会抱怨\texttt{*}和\texttt{+}的使用以及\texttt{0}的类型。我们可以用\texttt{Add}和\texttt{Mul} trait来要求\texttt{N}是一个支持\texttt{+}和\texttt{*}的类型。对于\texttt{0}的使用也要修改，因为在Rust中\texttt{0}总是整数，而相应的浮点值是\texttt{0.0}。幸运的是，那些有默认值的类型有一个标准的\texttt{Default} trait。对于数值类型，默认值总是0：
+\begin{minted}{Rust}
+    use std::ops::{Add, Mul};
 
+    fn dot<N: Add + Mul + Default>(v1: &[N], v2: &[N]) -> N {
+        let mut total = N::default();
+        for i in 0 .. v1.len() {
+            total = total + v1[i] * v2[i];
+        }
+        total
+    }
+\end{minted}
 
+这已经接近正确答案了，但还不够：
+\begin{minted}{text}
+    error: mismatched types
+      |
+    5 | fn dot<N: Add + Mul + Default>(v1: &[N], v2: &[N]) -> N {
+      |        - this type parameter
+    ...
+    8 |         total = total + v1[i] * v2[i];
+      |                         ^^^^^^^^^^^^^ expected type parameter `N`,
+      |                                       found associated type
+      |
+      = note: expected type parameter `N`
+                found associated type `<N as Mul>::Output`
+    help: consider further restricting this bound
+      |
+    5 | fn dot<N: Add + Mul + Default + Mul<Output = N>>(v1: &[N], v2: &[N]) -> N {
+      |                               ^^^^^^^^^^^^^^^^^
+\end{minted}
 
+我们的新代码假设两个\texttt{N}类型的值相乘产生另一个\texttt{N}类型的值。这并不是绝对的，你可以重载乘法运算符来返回任何你希望的类型。我们需要一种方式来告诉Rust这个泛型函数只能用于有普通乘法的类型，这也就是\texttt{N * N}要返回\texttt{N}类型的值。错误消息中的建议\emph{几乎总是}对的：我们可以把\texttt{Mul}换成\texttt{Mul<Output=N>}，然后\texttt{Add}也进行相同的替换：
+\begin{minted}{Rust}
+    fn dot<N: Add<Output=N> + Mul<Output=N> + Default>(v1: &[N], v2: &[N]) -> N
+    {
+        ...
+    }
+\end{minted}
 
+这个时候，约束已经开始逐渐累积，让代码变得难以阅读。让我们把约束移动到\texttt{where}子句中：
+\begin{minted}{Rust}
+    fn dot<N>(v1: &[N], v2: &[N]) -> N
+        where N: Add<Output=N> + Mul<Output=N> + Default
+    {
+        ...
+    }
+\end{minted}
 
+很好。但Rust仍然会抱怨下面这行代码：
+\begin{minted}{text}
+    error: cannot move out of type `[N]`, a non-copy slice
+      |
+    8 |         total = total + v1[i] * v2[i];
+      |                         ^^^^^
+      |                         |
+      |                         cannot move out of here
+      |                         move occurs because `v1[_]` has type `N`,
+      |                         which does not implement the `Copy` trait
+\end{minted}
 
+因为我们没有要求\texttt{N}是一个可拷贝的类型，Rust把\texttt{v[i]}解释为尝试把一个值移出切片，这是禁止的。但我们根本不希望修改这个切片；我们只希望拷贝这个值来进行操作。幸运的是，所有Rust的内建数值类型都实现了\texttt{Copy}，因此我们可以简单地把它添加到\texttt{N}的约束中：
+\begin{minted}{Rust}
+    where N: Add<Output=N> + Mul<Output=N> + Default + Copy
+\end{minted}
+
+这次，代码可以编译运行了。最终的代码看起来像这样：
+\begin{minted}{Rust}
+    use std::ops::{Add, Mul};
+
+    fn dot<N>(v1: &[N], v2: &[N]) -> N
+        where N: Add<Output=N> + Mul<Output=N> + Default + Copy
+    {
+        let mut total = N::default();
+        for i in 0 .. v1.len() {
+            total = total + v1[i] * v2[i];
+        }
+        total
+    }
+
+    #[test]
+    fn test_dot() {
+        assert_eq!(dot(&[1, 2, 3, 4], &[1, 1, 1, 1]), 10);
+        assert_eq!(dot(&[53.0, 7.0], &[1.0, 5.0]), 88.0);
+    }
+\end{minted}
+
+在Rust中偶尔会发生的一种情况是：有一段时间会与编译器激烈斗争，但最后写出来的代码看起来相当不错，好像编写起来轻而易举，并且运行得很漂亮。 
+
+我们在这里做的就是对\texttt{N}的约束进行逆向工程，让编译器来指导并检查我们的工作。这段代码写起来很麻烦是因为标准库中没有单独的\texttt{Number} trait包含我们需要的所有运算符和方法。有一个流行的开源crate叫做\texttt{num}定义了这样一个trait！我们已经知道，我们可以在\emph{Cargo.toml}中添加\texttt{add}并编写：
+\begin{minted}{Rust}
+    use num::Num;
+
+    fn dot<N: Num + Copy>(v1: &[N], v2: &[N]) -> N {
+        let mut total = N::zero();
+        for i in 0 .. v1.len() {
+            total = total + v1[i] * v2[i];
+        }
+        total
+    }
+\end{minted}
+
+正如在面向对象语言中正确的接口让一切变得美好一样，在泛型编程中，正确的trait让一切变得美好。
+
+为什么我们会遇到这种问题？为什么Rust的设计者不让泛型变得类似于C++的模板一样，把约束隐藏在代码中，à la “duck typing”？
+
+Rust的方案的一个优势是泛型代码的向前兼容性。你可以修改一个公有的泛型函数或方法的实现，只要你不修改签名，就不会影响到使用它的用户。
+
+约束的另一个优势是当你遇到编译器的错误时，至少编译器可以告诉你错误在哪。C++编译器涉及到模板的错误消息比Rust的要长很多，并且会指出很多不同行的代码，因为编译器没有办法辨别到底是谁的错误导致了这个问题：是模板、或者是它的调用者？
+
+可能显式写出约束最重要的优势是它们就在代码和文档中。你可以在Rust中查看泛型函数的签名，然后看出它到底接受什么类型的参数。而模板则做不到这一点。在像Boost这样的C++库中为参数类型编写完整的文档的工作甚至比我们在这里经历的工作更加艰巨。Boost的开发者们并没有一个可以检查他们的工作的编译器。
+
+\section{trait作为基础}
+
+trait是Rust最主要的特性之一，并且有充足的理由支持这一观点。设计一个程序或者库时没有什么比设计一个好的接口更重要了。
+
+本章是语法、规则和解释的风暴。现在我们已经铺设好基础了，可以开始讨论Rust中更多trait和泛型的用法。事实上，我们才刚刚触及皮毛。接下来的两章将介绍标准库提供的通用trait。再往后的章节介绍闭包、迭代器、输入/输出、并发。trait和泛型在这些话题中都扮演了中心的角色。
