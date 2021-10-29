@@ -198,7 +198,46 @@ Rust中为算术和位运算符设计的内建trait被分为三组：一元运�
 \end{minted}
 
 \subsection{二元运算符}\label{biop}
+Rust的二元算术和位运算以及对应的内建trait如\hyperref[t12-3]{表12-3}所示。
 
+\begin{table}[htbp]
+    \centering
+    \caption{二元运算符的内建trait}
+    \label{t12-3}
+    \begin{tabular}{llll}
+        \hline
+        \textbf{类别}   & \textbf{trait名称}    & \textbf{表达式}   & \textbf{等价的表达式} \\
+        \hline
+
+        \multirow{5}{*}{算术运算符} & \texttt{std::ops::Add}    & \texttt{x + y}    & \texttt{x.add(y)} \\
+        & \texttt{std::ops::Sub} \cellcolor{tablecolor} & \texttt{x - y} \cellcolor{tablecolor} & \texttt{x.add(y)} \cellcolor{tablecolor}  \\
+        & \texttt{std::ops::Mul}    & \texttt{x * y}    & \texttt{x.mul(y)} \\
+        & \texttt{std::ops::Div} \cellcolor{tablecolor} & \texttt{x / y} \cellcolor{tablecolor} & \texttt{x.div(y)} \cellcolor{tablecolor}  \\
+        & \texttt{std::ops::Rem}    & \texttt{x \% y}   & \texttt{x.rem(y)} \\
+
+        \hline
+
+        \multirow{5}{*}{位运算符}   & \texttt{std::ops::BitAnd} \cellcolor{tablecolor}  & \texttt{x \& y} \cellcolor{tablecolor}    & \texttt{x.bitand(y)} \cellcolor{tablecolor}   \\
+        & \texttt{std::ops::BitOr}  & \texttt{x | y}    & \texttt{x.bitor(y)}   \\
+        & \texttt{std::ops::BitXor} \cellcolor{tablecolor} & \texttt{x \^{} y} \cellcolor{tablecolor}   & \texttt{x.bitxor(y)} \cellcolor{tablecolor}   \\
+        & \texttt{std::ops::Shl}    & \texttt{x << y}   & \texttt{x.shl(y)} \\
+        & \texttt{std::ops::Shr} \cellcolor{tablecolor} & \texttt{x >> y} \cellcolor{tablecolor}    & \texttt{x.shr(y)} \cellcolor{tablecolor}  \\
+    \end{tabular}
+\end{table}
+
+Rust的所有数值类型都实现了算术运算符。Rust的整数类型和\texttt{bool}类型实现了位运算符。还有一个操作数是引用或者两个操作数都是引用的版本的实现。
+
+所有这些trait都有相同的形式。例如\texttt{std::ops::BitXor}(用于\^{}运算符)的定义看起来像这样：
+\begin{minted}{Rust}
+    trait BitXor<Rhs = Self> {
+        type Output;
+        fn bitxor(self, rhs: Rhs) -> Self::Output;
+    }
+\end{minted}
+
+在本章的开始处，我们还展示了这个分类中的另一个trait \texttt{std::ops::Add}，以及几个示例实现。
+
+你可以使用\texttt{+}运算符来连接一个\texttt{String}和一个\texttt{\&str}切片或者另一个\texttt{String}。然而，Rust不允许\texttt{+}左侧的操作数是\texttt{\&str}，以避免通过在左侧反复连接小块来构建长字符串。（这样做的性能很差，需要最终字符串长度平方数量级的时间。）通常来说，\texttt{write!}宏是更好的通过多个小块构建字符串的方式，我们会在“\nameref{AppendText}”一节中展示如何做到这一点。
 
 \subsection{复合赋值运算符}\label{assign}
 
