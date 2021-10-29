@@ -7,6 +7,7 @@
 \usepackage{graphicx}
 \usepackage{longtable}
 \usepackage{makecell}
+\usepackage{multirow}
 \usepackage{colortbl}
 \usepackage{enumitem}
 \usepackage{framed}
@@ -19,14 +20,13 @@
 \CJKsetecglue{\,}                   % 设置中英文间的空格
 
 \setminted{fontsize=\footnotesize}  % 设置代码字体大小
+\usemintedstyle{solarized-light}    % 设置代码环境高亮主题
 
 \setCJKmainfont[ItalicFont=楷体,BoldItalicFont=楷体]{宋体}  % 设置中文正文字体
 \setCJKmonofont{宋体}                                       % 设置中文等宽字体
 \setmainfont{Times New Roman}                               % 设置英文正文字体
 \setmonofont[Path=../fonts/,BoldFont=Inconsolata-Bold.ttf]{Inconsolata-Regular.ttf}       % 设置英文等宽字体
 \setlist{nosep}                 % 设置列表垂直间距为0
-
-\usemintedstyle{solarized-light}
 
 \newpagestyle{front}{               % 自定义页眉格式
 \sethead[\thepage][][\chaptertitle] % 偶数页页眉格式
@@ -65,7 +65,7 @@
     #1
 }
 
-\includeonly{ch11}
+\includeonly{ch12}
 
 \begin{document}
     \frontmatter
