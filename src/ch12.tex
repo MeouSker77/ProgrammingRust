@@ -387,7 +387,7 @@ Rust自动生成的实现跟我们手写的代码基本完全相同，就是依�
     assert_eq!(0.0 / 0.0 >= 0.0 / 0.0, false);
 \end{minted}
 
-因此尽管Rust的\texttt{==}运算符满足前两个等价关系的要求，但使用IEEE浮点数值显然不满足第三个要求。这被称为\emph{部分等价关系(partial equivalence relation)}，因此Rust使用名称\texttt{PartialEq}作为内建的\texttt{==}运算符。如果你写泛型代码时类型参数已知是\texttt{ParitalEq}，那你应该假设它们满足前两个要求，但你不应该假设那些值总是和它们自身相等。
+因此尽管Rust的\texttt{==}运算符满足前两个等价关系的要求，但使用IEEE浮点数值显然不满足第三个要求。这被称为\emph{部分等价关系(partial equivalence relation)}，因此Rust使用名称\texttt{PartialEq}作为内建的\texttt{==}运算符。如果你写泛型代码时类型参数已知是\texttt{PartialEq}，那你应该假设它们满足前两个要求，但你不应该假设那些值总是和它们自身相等。
 
 这有点违反直觉，如果你不保持警惕可能会导致bug。如果你希望你的泛型代码满足完全的等价关系，你可以使用\texttt{std::cmp::Eq} trait作为约束，它代表完全的等价关系：如果一个类型实现了\texttt{Eq}，那么对于任何该类型的值\texttt{x}，\texttt{x == x}一定为\texttt{true}。在实践中，几乎所有实现了\texttt{PartialEq}的类型也实现了\texttt{Eq}，\texttt{f32}和\texttt{f64}是标准库中仅有的实现了\texttt{PartialEq}但却没有实现\texttt{Eq}的类型。
 
@@ -417,6 +417,226 @@ Rust自动生成的实现跟我们手写的代码基本完全相同，就是依�
 
 \section{顺序性比较}\label{cmp}
 
-Rust用
+Rust用单个trait \texttt{std::cmp::PartialOrd}来指定比较运算符\texttt{<, >, <=, >=}的行为：
+\begin{minted}{Rust}
+    trait PartialOrd<Rhs = Self>: PartialEq<Rhs>
+    where
+        Rhs: ?Sized,
+    {
+        fn partial_cmp(&self, other: &Rhs) -> Option<Ordering>;
+
+        fn lt(&self, other: &Rhs) -> bool { ... }
+        fn le(&self, other: &Rhs) -> bool { ... }
+        fn gt(&self, other: &Rhs) -> bool { ... }
+        fn ge(&self, other: &Rhs) -> bool { ... }
+    }
+\end{minted}
+
+注意\texttt{PartialOrd<Rhs>}扩展了\texttt{PartialEq<Rhs>}：你只能对可以比较相等性的类型比较顺序性。
+
+你唯一需要实现的\texttt{PartialOrd}的方法就是\texttt{partial\_cmp}。当\texttt{partial\_cmp}返回\texttt{Some(o)}时，\texttt{o}表示\texttt{self}和\texttt{other}的关系：
+\begin{minted}{Rust}
+    enum Ordering {
+        Less,       // self < other
+        Equal,      // self == other
+        Greater,    // self > other
+    }
+\end{minted}
+
+但如果\texttt{partial\_cmp}返回\texttt{None}，那么意味着\texttt{self}和\texttt{other}无法比较顺序：每一个都不比另一个大，也不相等。在所有的Rust基本类型中，只有浮点数的比较可能会返回\texttt{None}：确切地说，在比较\texttt{NaN}(not-a-number)和其他任何值时会返回\texttt{None}。我们已经在“\nameref{equal}”中给出了一些关于NaN值的背景。
+
+和其他二元运算符一样，为了比较两个类型\texttt{Left}和\texttt{Right}，\texttt{Left}必须实现了\texttt{PartialOrd<Right>}。像\texttt{x < y}或\texttt{x >= y}这样的表达式是对\texttt{PartialOrd}方法调用的缩写，如\hyperref[t12-5]{表12-5}所示。
+
+\begin{table}[htbp]
+    \centering
+    \caption{顺序性比较运算符和\texttt{PartialOrd}的方法}
+    \label{t12-5}
+    \begin{tabular}{lll}
+        \hline
+        \textbf{表达式} & \textbf{等价的方法调用}   & \textbf{默认实现} \\
+        \hline
+
+        \texttt{x < y}  & \texttt{x.lt(y)}  & \texttt{x.partial\_cmp(\&y) == Some(Less)}    \\
+        \rowcolor{tablecolor}
+        \texttt{x > y}  & \texttt{x.gt(y)}  & \texttt{x.partial\_cmp(\&y) == Some(Greater)} \\
+        \texttt{x <= y} & \texttt{x.le(y)}  & \texttt{matches!(x.partial\_cmp(\&y), Some(Less) | Some(Equal))}  \\
+        \rowcolor{tablecolor}
+        \texttt{x >= y} & \texttt{x.ge(y)}  & \texttt{matches!(x.partial\_cmp(\&y), Some(Greater) | Some(Equal))}   \\
+    \end{tabular}
+\end{table}
+
+和之前的例子一样，这里展示的顺序性方法调用代码假设\texttt{std::cmp::PartialOrd}和\texttt{std::cmp::Ordering}在作用域里。
+
+如果你知道某个类型的两个值总是可以互相比较顺序性，那么你可以实现更加严格的\texttt{std::cmp::Ord} trait：
+\begin{minted}{Rust}
+    trait Ord: Eq + PartialOrd<Self> {
+        fn cmp(&self, other: &Self) -> Ordering;
+    }
+\end{minted}
+
+\texttt{cmp}方法直接返回\texttt{Ordering}，而不是像\texttt{partial\_cmp}一样返回\texttt{Option<Ordering>}：\texttt{cmp}总是返回两个参数相等或它们的相对顺序。几乎所有实现了\texttt{PartialOrd}的类型都应该实现\texttt{Ord}。在标准库中，\texttt{f32}和\texttt{f64}是仅有的例外。
+
+因为复数没有自然的顺序性，我们不能使用上一节的\texttt{Complex}类型来展示\texttt{PartialOrd}的示例实现。作为替代，假设你正在使用一个类型，这个类型表示表示一个半开区间内的数字的集合：
+\begin{minted}{Rust}
+    #[derive(Debug, PartialEq)]
+    struct Interval<T> {
+        lower: T,   // 包括
+        upper: T,   // 不包括
+    }
+\end{minted}
+
+你可能会希望让这种类型是部分有序的：如果一个区间A完全落在另一个区间B里，那么A小于B。如果两个不同的区间交叉，那么它们是无序的：每个区间里都有部分元素小于另一个区间里的部分元素。两个相同的区间则相等。下面的\texttt{PartialOrd}的实现实现了这些规则：
+\begin{minted}{Rust}
+    use std::cmp::{Ordering, PartialOrd};
+
+    impl<T: PartialOrd> PartialOrd<Interval<T>> for Interval<T> {
+        fn partial_cmp(&self, other: &Interval<T>) -> Option<Ordering> {
+            if self == other {
+                Some(Ordering::Equal)
+            } else if self.lower >= other.upper {
+                Some(Ordering::Greater)
+            } else if self.upper <= other.lower {
+                Some(Ordering::Less)
+            } else {
+                None
+            }
+        }
+    }
+\end{minted}
+
+有了这个实现，你可以写下面的代码：
+\begin{minted}{Rust}
+    assert!(Interval { lower: 10, upper: 20 } < Interval { lower: 20, upper: 40});
+    assert!(Interval { lower: 7, upper: 8 } >= Interval { lower: 0, upper: 1 });
+    assert!(Interval { lower: 7, upper: 8 } <= Interval { lower: 7, upper: 8 });
+
+    // 交叉的区间彼此无序
+    let left  = Interval { lower: 10, upper: 30 };
+    let right = Interval { lower: 20, upper: 40 };
+    assert!(!(left < right));
+    assert!(!(left >= right));
+\end{minted}
+
+尽管你通常见到的是\texttt{PartialOrd}，但\texttt{Ord}定义的全序关系在有些场景下也是必要的，例如标准库中实现的排序算法。例如，只有\texttt{PartialOrd}实现的情况下不能对区间排序。如果你确实想排序它们，你需要消除无序的情况。例如，你可以根据上界排序，使用\texttt{sort\_by\_key}可以很容易做到这一点：
+\begin{minted}{Rust}
+    intervals.sort_by_key(|i| i.upper);
+\end{minted}
+
+实现\texttt{Ord}的类型还可以使用\texttt{Reverse}包装类型来反转顺序。对于任何实现了\texttt{Ord}的类型\texttt{T}，\texttt{std::cmp::Reverse<T>}也会自动实现\texttt{Ord}，但是是以相反的顺序。例如，将我们的区间按照下界降序排列会很简单：
+\begin{minted}{Rust}
+    use std::cmp::Reverse;
+    intervals.sort_by_key(|i| Reverse(i.lower));
+\end{minted}
 
 \section{\texttt{Index}与\texttt{IndexMut}}\label{index}
+
+你可以通过为你的类型实现\texttt{std::ops::Index}和\texttt{std::ops::IndexMut} trait来指明索引表达式例如\texttt{a[i]}的行为。数组直接支持\texttt{[]}运算符，但对于任何其他类型，表达式\texttt{a[i]}通常是\texttt{*a.index(i)}的缩写，其中\texttt{index}是\texttt{std::ops::Index} trait的一个方法。然而，如果表达式被赋值或者可变借用，那么将是\texttt{*a.index\_mut(i)}的缩写，它是\texttt{std::ops::IndexMut} trait的一个方法。
+
+这是这两个trait的定义：
+\begin{minted}{Rust}
+    trait Index<Idx> {
+        type Output: ?Sized;
+        fn index(&self, index: Idx) -> &Self::Output;
+    }
+
+    trait IndexMut<Idx>: Index<Idx> {
+        fn index_mut(&mut self, index: Idx) -> *mut Self::Output;
+    }
+\end{minted}
+
+注意这些trait将索引的类型作为参数。你可以用单个\texttt{usize}值索引一个切片，来得到单个元素的引用，因为切片实现了\texttt{Index<usize>}。但你可以通过像\texttt{a[i..j]}这样的表达式来引用一个子切片，因为它们也实现了\texttt{Index<Range<usize>>}。这个表达式是如下表达式的缩写：
+\begin{minted}{Rust}
+    *a.index(std::ops::Range { start: i, end: j })
+\end{minted}
+
+Rust的\texttt{HashMap}和\texttt{BTreeMap}集合让你可以用任何可哈希或可比较的类型作为索引。下面的代码能正常工作，因为\texttt{HashMap<\&str, i32>}实现了\texttt{Index<\&str>}：
+\begin{minted}{Rust}
+    use std::collections::HashMap;
+    let mut m = HashMap::new();
+    m.insert("十", 10);
+    m.insert("百", 100);
+    m.insert("千", 1000);
+    m.insert("万", 1_0000);
+    m.insert("億", 1_0000_0000);
+
+    assert_eq!(m["十"], 10);
+    assert_eq!(m["千"], 1000);
+\end{minted}
+
+那两个索引表达式等价于：
+\begin{minted}{Rust}
+    use std::ops::Index;
+    assert_eq!(*m.index("十"), 10);
+    assert_eq!(*m.index("千"), 1000);
+\end{minted}
+
+\texttt{Index} trait的关联类型\texttt{Output}指定了索引表达式产生的值的类型：对于这里的\texttt{HashMap}，\texttt{Index}实现的\texttt{Output}类型是\texttt{i32}。
+
+\texttt{IndexMut} trait扩展了\texttt{Index}，增加了一个\texttt{index\_mut}方法，这个方法获取\texttt{self}的引用，并返回一个指向\texttt{Output}值的可变引用。当索引表达式出现在一个必须可变的上下文中时，Rust会自动选择\texttt{index\_mut}。例如，假设我们写了下面的代码：
+\begin{minted}{Rust}
+    let mut desserts =
+        vec!["Howalon".to_string(), "Soan papdi".to_string()];
+    desserts[0].push_str(" (fictional)");
+    desserts[1].push_str(" (real)");
+\end{minted}
+
+因为\texttt{push\_str}方法在\texttt{\&mut self}上进行操作，最后的两行等价于：
+\begin{minted}{Rust}
+    use std::ops::IndexMut;
+    (*desserts.index_mut(0)).push_str(" (fictional)");
+    (*desserts.index_mut(1)).push_str(" (real)");
+\end{minted}
+
+\texttt{IndexMut}的一个限制是，设计上它必须返回一个值的可变引用，所以你不能用类似\texttt{m["十"] = 10;}这样的表达式在\texttt{HashMap m}中插入一个值：哈希表需要首先为\texttt{"十"}创建一个值为默认的条目，然后返回指向它的可变引用。但并不是所有的类型都有开销很低的默认值，还有一些类型drop时可能开销很大。如果这种赋值先创建一个临时值然后立刻drop它将是一种浪费。（有计划在后续的语言版本中改善这种情况。）
+
+索引最常见的用途是集合。例如，假设我们正在处理类似于我们在\hyperref[ch02]{第2章}中创建的曼德勃罗集绘制器的位图。回想一下我们的程序中包含这样的代码：
+\begin{minted}{Rust}
+    pixels[row * bounds.0 + column] = ...;
+\end{minted}
+
+如果用\texttt{Image<u8>}类型来充当二维数组显然会更好，这样我们就可以在不需要写出算术运算的情况下访问像素：
+\begin{minted}{Rust}
+    image[row][column] = ...;
+\end{minted}
+
+为了做到这一点，我们需要声明一个结构体：
+\begin{minted}{Rust}
+    struct Image<P> {
+        width: usize,
+        pixels: Vec<P>,
+    }
+
+    impl<P: Default + Copy> Image<P> {
+        /// 创建一个给定大小的新图片。
+        fn new(width: usize, height: usize) -> Image<P> {
+            Image {
+                width,
+                pixels: vec![P::default(); width * height],
+            }
+        }
+    }
+\end{minted}
+
+\texttt{Index}和\texttt{IndexMut}的实现将是：
+\begin{minted}{Rust}
+    impl<P> std::ops::Index<usize> for Image<P> {
+        type Output = [P];
+        fn index(&self, row: usize) -> &[P] {
+            let start = row * self.width;
+            &self.pixels[start..start + self.width]
+        }
+    }
+
+    impl<P> std::ops::IndexMut<usize> for Image<P> {
+        fn index_mut(&mut self, row: usize) -> &mut [P] {
+            let start = row * self.width;
+            &mut self.pixels[start..start + self.width]
+        }
+    }
+\end{minted}
+
+当你索引一个\texttt{Image}时，你会得到一个像素的切片，再索引切片你会得到单独的像素。
+
+注意当我们写\texttt{image[row][column]}时，如果\texttt{row}越界了，我们的\texttt{.index()}方法会尝试索引越界的\texttt{self.pixels}，触发一个panic。这是\texttt{Index}和\texttt{IndexMut}的实现应有的行为：越界访问将被检测到并触发一个panic，当你索引一个越界的数组、切片或vector时也是这样。
+
+\section{}
