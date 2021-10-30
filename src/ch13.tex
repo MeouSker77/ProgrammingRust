@@ -6,10 +6,167 @@
     ——Jacob Bronowski
 \end{flushright}
 
-这一章将介绍介绍
+这一章将介绍Rust中的“工具” trait，它们是标准库中能够显著影响到编写Rust代码的方式的trait，因此你需要熟悉它们才能写出惯用的代码并设计出你的用户会觉得是“Rustic”的crate接口。它们可以分为三大类：
 
-\section{\texttt{Sized}}\label{sized}
+\codeentry{语言扩展trait}
+\hangparagraph{正如我们上一章介绍的运算符重载trait可以让你对自己的类型使用Rust的表达式运算符，还有几个其他的标准库trait充当Rust的扩展，让你可以把自己的类型更紧密地集成到语言中。这一类包括\texttt{Drop}、\texttt{Deref}和\texttt{DerefMut}，以及转换用的trait \texttt{From}和\texttt{Into}。我们将在本章介绍所有这些trait。}
+
+\codeentry{标记trait}
+\hangparagraph{有几个trait通常用于约束泛型类型变量来表达一些特殊的约束。这一类包括\texttt{Sized}和\texttt{Copy}。}
+
+\codeentry{公开的词汇表trait}
+\hangparagraph{这些trait并没有神秘的编译器集成，你可以在自己的代码中定义等价的trait。但它们服务于为常见问题制定常规解决方案的重要目标。这些trait在crate和模块之间的公共接口中特别有价值：通过减少不必要的变化，它们让接口更容易理解，它们还增加了不同crate的特性可以简单地集成在一起的可能性，并且无需样板或自定义的粘合代码。这一类包括\texttt{Default}、引用借用trait \texttt{AsRef}、\texttt{AsMut}、\texttt{Borrow}、\texttt{BorrowMut}，可能失败的转换 trait\texttt{TryFrom}和\texttt{TryInto}，以及\texttt{ToOwned} trait，它是\texttt{Clone}的泛化。}
+
+\hyperref[t13-1]{表13-1}是对它们的总结。
+
+\begin{table}[htbp]
+    \centering
+    \caption{工具trait汇总}
+    \label{t13-1}
+    \begin{tabular}{p{0.2\textwidth}p{0.9\textwidth}}
+        \hline
+        \textbf{trait}  & \textbf{说明} \\
+        \hline
+
+        \nameref{drop}  & 析构器。当一个值被drop时Rust会自动运行的清理代码。    \\
+        \rowcolor{tablecolor}
+        \nameref{sized} & 标记trait，标记一个类型有一个编译期已知的固定大小，与动态大小的类型（例如切片）相反。 \\
+        \nameref{clone} & 支持克隆的类型。  \\
+        \rowcolor{tablecolor}
+        \nameref{Copy}  & 标记trait，标记一个类型可以通过按位拷贝包含值的内存来克隆新值。   \\
+        \nameref{deref} & 为智能指针类型准备的trait。   \\
+        \rowcolor{tablecolor}
+        \nameref{default}   & 有一个有意义的“默认值”的类型。    \\
+        \nameref{asref} & 用于从一个类型的值借用另一个类型的引用的转换trait。   \\
+        \rowcolor{tablecolor}
+        \nameref{borrow}& 转换trait，类似于\texttt{Asref/AsMut}，但额外保证一致的哈希性、顺序性和相等性。   \\
+        \nameref{from}  & 用于将一个类型的值转换为另一个类型的值的转换trait。   \\
+        \rowcolor{tablecolor}
+        \nameref{tryfrom}   & 用于将一个类型的值转换为另一个类型的值的转换trait，用于可能失败的转换。   \\
+        \nameref{toowned}   & 将一个引用转换为一个有所有权的值的转换trait。 \\
+    \end{tabular}
+\end{table}
+
+还有一些其它重要的标准库trait。我们将在\hyperref[ch15]{第15章}中介绍\texttt{Iterator}和\texttt{IntoIterator}。用于计算哈希值的\texttt{Hash} trait，将在\hyperref[ch16]{第16章}中介绍。还有一对标记线程安全类型的trait，\texttt{Send}和\texttt{Sync}，将在\hyperref[ch19]{第19章}中介绍。
 
 \section{\texttt{Drop}}\label{drop}
 
+当一个值的所有者消失时，我们说Rust \emph{drop}了这个值。drop一个值意味着释放这个值拥有的所有其他值、堆上的存储空间和系统资源。drop会在各种情况下发生：当变量离开作用域时、处于表达式语句的末尾时、截断vector时从尾部移除元素时，等等。
+
+在大多数情况下，Rust自动为你处理drop过程。例如，假设你定义了下面的类型：
+\begin{minted}{Rust}
+    struct Appellation {
+        name: String,
+        nicknames: Vec<String>
+    }
+\end{minted}
+
+一个\texttt{Appellation}拥有为字符串内容和vector的元素缓冲区分配的堆上的空间。当一个\texttt{Appellation}被drop时，Rust会清理所有这些内容，你不需要编写任何代码。然而，如果你想的话，你可以通过实现\texttt{std::ops::Drop} trait来自定义Rust如何drop你的类型的值：
+\begin{minted}{Rust}
+    trait Drop {
+        fn drop(&mut self);
+    }
+\end{minted}
+
+\texttt{Drop}的实现类似于C++中的析构函数，或者其它语言中的终结函数。当一个值被drop时，如果它实现了\texttt{std::ops::Drop}，Rust会在清理它的字段或元素之前先调用它的\texttt{drop}方法。这种\texttt{drop}的隐式调用是唯一一种调用这个方法的方式，如果你尝试显式地调用这个方法，Rust会标记为错误。
+
+因为Rust会在drop一个值的字段或方法之前先用这个值调用\texttt{Drop::drop}，所以这个方法接收到的值总是保持完全初始化的状态。我们的\texttt{Appellation}类型的一个\texttt{Drop}的实现可以充分利用它的字段：
+\begin{minted}{Rust}
+    impl Drop for Appellation {
+        fn drop(&mut self) {
+            print!("Dropping {}", self.name);
+            if !self.nicknames.is_empty() {
+                print!(" (AKA {})", self.nicknames.join(", "));
+            }
+            println!("");
+        }
+    }
+\end{minted}
+
+有了这个实现，我们可以写出下列代码：
+\begin{minted}{Rust}
+    {
+        let mut a = Appellation {
+            name: "Zeus".to_string(),
+            nicknames: vec!["cloud collector".to_string(),
+                            "king of the gods".to_string()]
+        };
+
+        println!("before assignment");
+        a = Appellation { name: "Hera".to_string(), nicknames: vec![] };
+        println!("at end of block");
+    }
+\end{minted}
+
+当我们把第二个\texttt{Appellation}赋给\texttt{a}的时候，第一个值会被drop，当我们离开\texttt{a}的作用域时，第二个值也会被drop。这段代码会打印出如下内容：
+\begin{minted}{text}
+    before assignment
+    Dropping Zeus (AKA cloud collector, king of the gods)
+    at end of block
+    Dropping Hera
+\end{minted}
+
+因为我们的\texttt{Appellation}的\texttt{std::ops::Drop}实现只打印了一条消息，那么它的内存到底是怎么被精确地清理掉的？\texttt{Vec}类型也实现了\texttt{Drop}，drop它的每个元素，然后释放在堆上分配的缓冲区。一个\texttt{String}在内部使用\texttt{Vec<u8>}来保存文本，因此\texttt{String}自身没有实现\texttt{Drop}，它让它的\texttt{Vec}来清理字符。同样的规则也适用于\texttt{Appellation}值：当一个值被drop时，它的\texttt{Vec}的\texttt{Drop}实现负责清理每一个字符串的内容，并最终释放存储元素的缓冲区。保存\texttt{Appellation}值的内存本身也有一个拥有者，可能是一个局部变量或者一些数据结构，它们负责释放它。
+
+如果一个变量的值被移动走，导致当它离开作用域时是未初始化的状态，那么Rust会避免drop这个变量：它里面没有值可以drop。即使按照控制流一个变量的值可能被移动走、也可能没有的情况下，这个原则也会生效。Rust会使用一个不可见的标记来追踪变量的状态，它指示变量的值是否需要被drop：
+\begin{minted}{Rust}
+    let p;
+    {
+        let q = Appellation { name: "Cardamine hirsuta".to_string(),
+                              nicknames: vec!["shotweed".to_string(),
+                                              "bittercress".to_string()] };
+        if complicated_condition() {
+            p = q;
+        }
+    }
+    println!("Sproing! What was that?");
+\end{minted}
+
+根据\texttt{complicated\_condition}返回\texttt{true}还是\texttt{false}，\texttt{p}或者\texttt{q}最后将会拥有这个\texttt{Appellation}，另一个变为未初始化。这个值最终落在哪个变量里决定了它会在\texttt{println!}之前还是之后被drop。因为\texttt{q}在\texttt{println!}之前离开作用域，而\texttt{p}在之后。尽管一个值可能会被移来移去，但Rust只会drop它一次。
+
+你通常不需要实现\texttt{std::ops::Drop}，除非你想定义一个拥有一些Rust不知道的资源的类型。例如，在Unix系统上，Rust的标准库内部使用下面的类型来表示一个操作系统文件描述符：
+\begin{minted}{Rust}
+    struct FileDesc {
+        fd: c_int,
+    }
+\end{minted}
+
+\texttt{FileDesc}的\texttt{fd}字段就是当程序使用完它之后应该被关闭的文件描述符的序号。\texttt{c\_int}是\texttt{i32}的一个别名。标准库中按照如下方式为\texttt{FileDesc}实现了\texttt{Drop}：
+\begin{minted}{Rust}
+    impl Drop for FileDesc {
+        fn drop(&mut self) {
+            let _ = unsafe { libc::close(self.fd) };
+        }
+    }
+\end{minted}
+
+这里，\texttt{libc::close}是C库中的\texttt{close}函数的Rust名称。Rust代码只能在\texttt{unsafe}块中调用C函数，因此这里标准库使用了\texttt{unsafe}块。
+
+如果一个类型实现了\texttt{Drop}，它就不能再实现\texttt{Copy} trait。如果一个类型是\texttt{Copy}的，那意味着按位复制就可以创建一个新的独立拷贝。但通常在同样的数据上调用同一个\texttt{drop}方法不止一次是一个错误。
+
+标注prelude中包含了一个drop值的函数\texttt{drop}，但它的定义一点也不神奇：
+\begin{minted}{Rust}
+    fn drop<T>(_x: T) { }
+\end{minted}
+
+换句话说，它以值接收参数，从调用者那里获取所有权——然后什么也不做。当\texttt{\_x}离开作用域时Rust会drop它的值，正如它对其他任何变量做的一样。
+
+\section{\texttt{Sized}}\label{sized}
+
+\section{\texttt{Clone}}\label{clone}
+
+\section{\texttt{Copy}}\label{Copy}
+
 \section{\texttt{Deref}与\texttt{DerefMut}}\label{deref}
+
+\section{\texttt{Default}}\label{default}
+
+\section{\texttt{AsRef}与\texttt{AsMut}}\label{asref}
+
+\section{\texttt{Borrow}与\texttt{BorrowMut}}\label{borrow}
+
+\section{\texttt{From}与\texttt{Into}}\label{from}
+
+\section{\texttt{TryFrom}与\texttt{TryInto}}\label{tryfrom}
+
+\section{\texttt{ToOwned}}\label{toowned}
