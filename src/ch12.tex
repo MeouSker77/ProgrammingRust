@@ -210,7 +210,7 @@ Rust的二元算术和位运算以及对应的内建trait如\hyperref[t12-3]{表
         \hline
 
         \multirow{5}{*}{算术运算符} & \texttt{std::ops::Add}    & \texttt{x + y}    & \texttt{x.add(y)} \\
-        & \texttt{std::ops::Sub} \cellcolor{tablecolor} & \texttt{x - y} \cellcolor{tablecolor} & \texttt{x.add(y)} \cellcolor{tablecolor}  \\
+        & \texttt{std::ops::Sub} \cellcolor{tablecolor} & \texttt{x - y} \cellcolor{tablecolor} & \texttt{x.sub(y)} \cellcolor{tablecolor}  \\
         & \texttt{std::ops::Mul}    & \texttt{x * y}    & \texttt{x.mul(y)} \\
         & \texttt{std::ops::Div} \cellcolor{tablecolor} & \texttt{x / y} \cellcolor{tablecolor} & \texttt{x.div(y)} \cellcolor{tablecolor}  \\
         & \texttt{std::ops::Rem}    & \texttt{x \% y}   & \texttt{x.rem(y)} \\
@@ -240,9 +240,183 @@ Rust的所有数值类型都实现了算术运算符。Rust的整数类型和\te
 你可以使用\texttt{+}运算符来连接一个\texttt{String}和一个\texttt{\&str}切片或者另一个\texttt{String}。然而，Rust不允许\texttt{+}左侧的操作数是\texttt{\&str}，以避免通过在左侧反复连接小块来构建长字符串。（这样做的性能很差，需要最终字符串长度平方数量级的时间。）通常来说，\texttt{write!}宏是更好的通过多个小块构建字符串的方式，我们会在“\nameref{AppendText}”一节中展示如何做到这一点。
 
 \subsection{复合赋值运算符}\label{assign}
+复合赋值运算符例如\texttt{x += y}或\texttt{x \&= y}需要两个参数，然后对它们进行一些操作例如加法或位与，最后把结果保存到左侧的操作数。在Rust中，复合赋值表达式的值总是\texttt{()}，而不是最后被存储的值。
 
-\section{相等比较}\label{equal}
+很多语言都有这些运算符，并通常把它们定义为像\texttt{x = x + y}或\texttt{x = x \& y}这样的表达式的缩写。然而，Rust并没有采用这种方案。作为代替，\texttt{x += y}是方法调用\texttt{x.add\_assign(y)}的缩写，而\texttt{add\_assign}是\texttt{std::ops::AddAssign} trait唯一的方法：
+\begin{minted}{Rust}
+    trait AddAssign<Rhs = Self> {
+        fn add_assign(&mut self, rhs: Rhs);
+    }
+\end{minted}
 
-\section{顺序比较}\label{cmp}
+\hyperref[t12-4]{表12-4}展示了Rust的所有复合赋值运算符以及实现它们的所有内建trait。
 
-\section{Index与IndexMut}\label{index}
+\begin{table}[htbp]
+    \centering
+    \caption{复合赋值运算符对应的内建trait}
+    \label{t12-4}
+    \begin{tabular}{llll}
+        \hline
+        \textbf{类别}   & \textbf{trait名称}    & \textbf{表达式}   & \textbf{等价的表达式} \\
+        \hline
+
+        \multirow{5}{*}{算术运算符} & \texttt{std::ops::AddAssign}    & \texttt{x += y}    & \texttt{x.add\_assign(y)} \\
+        & \texttt{std::ops::SubAssign} \cellcolor{tablecolor} & \texttt{x -= y} \cellcolor{tablecolor} & \texttt{x.sub\_assign(y)} \cellcolor{tablecolor}  \\
+        & \texttt{std::ops::MulAssign}    & \texttt{x *= y}    & \texttt{x.mul\_assign(y)} \\
+        & \texttt{std::ops::DivAssign} \cellcolor{tablecolor} & \texttt{x /= y} \cellcolor{tablecolor} & \texttt{x.div\_assign(y)} \cellcolor{tablecolor}  \\
+        & \texttt{std::ops::RemAssign}    & \texttt{x \%= y}   & \texttt{x.rem\_assign(y)} \\
+
+        \hline
+
+        \multirow{5}{*}{位运算符}   & \texttt{std::ops::BitAndAssign} \cellcolor{tablecolor}  & \texttt{x \&= y} \cellcolor{tablecolor}    & \texttt{x.bitand\_assign(y)} \cellcolor{tablecolor}   \\
+        & \texttt{std::ops::BitOrAssign}  & \texttt{x |= y}    & \texttt{x.bitor\_assign(y)}   \\
+        & \texttt{std::ops::BitXorAssign} \cellcolor{tablecolor} & \texttt{x \^{}= y} \cellcolor{tablecolor}   & \texttt{x.bitxor\_assign(y)} \cellcolor{tablecolor}   \\
+        & \texttt{std::ops::ShlAssign}    & \texttt{x <<= y}   & \texttt{x.shl\_assign(y)} \\
+        & \texttt{std::ops::ShrAssign} \cellcolor{tablecolor} & \texttt{x >>= y} \cellcolor{tablecolor}    & \texttt{x.shr\_assign(y)} \cellcolor{tablecolor}  \\
+    \end{tabular}
+\end{table}
+
+Rust的所有数值类型都实现了算术复合赋值运算符。Rust的整数类型和\texttt{bool}实现了位运算复合赋值运算符。一个为我们的\texttt{Complex}类型的\texttt{AddAssign}的泛型实现非常直观：
+\begin{minted}{Rust}
+    use std::ops::AddAssign;
+
+    impl<T> AddAssign for Complex<T>
+    where
+        T: AddAssign<T>
+    {
+        fn add_assign(&mut self, rhs: Complex<T>) {
+            self.re += rhs.re;
+            self.im += rhs.im;
+        }
+    }
+\end{minted}
+
+复合赋值运算符的内建trait和相应的二元运算符的内建trait完全独立。实现\texttt{std::ops::Add}并不会自动实现\texttt{std::ops::AddAssign}。如果你想让Rust允许你的类型使用\texttt{+=}运算符，那你必须自己实现\texttt{AddAssign}。
+
+\section{相等性比较}\label{equal}
+
+Rust的相等运算符\texttt{==}和\texttt{!=}，是\texttt{std::cmp::PartialEq} trait的\texttt{eq}和\texttt{ne}方法的缩写：
+\begin{minted}{Rust}
+    assert_eq!(x == y, x.eq(&y));
+    assert_eq!(x != y, x.ne(&y));
+\end{minted}
+
+这是\texttt{std::cmp::PartialEq}的定义：
+\begin{minted}{Rust}
+    trait PartialEq<Rhs = Self>
+    where
+        Rhs: ?Sized,
+    {
+        fn eq(&self, other: &Rhs) -> bool;
+        fn ne(&self, other: &Rhs) -> bool {
+            !self.eq(other)
+        }
+    }
+\end{minted}
+
+因为\texttt{ne}方法有默认的定义，所以实现\texttt{PartialEq}时只需要实现\texttt{eq}。这里有一个\texttt{Complex}类型的实现：
+\begin{minted}{Rust}
+    impl<T: PartialEq> PartialEq for Complex<T> {
+        fn eq(&self, other: &Complex<T>) -> bool {
+            self.re == other.re && self.im == other.im
+        }
+    }
+\end{minted}
+
+换句话说，就是为任何可以比较相等性的类型\texttt{T}实现\texttt{Complex<T>}的比较运算。假设我们已经为\texttt{Complex}实现了\texttt{std::ops::Mul}，那我们现在可以写：
+\begin{minted}{Rust}
+    let x = Complex { re: 5, im: 2 };
+    let y = Complex { re: 2, im: 5 };
+    assert_eq!(x * y, Complex { re: 0, im: 29 });
+\end{minted}
+
+\texttt{PartialEq}的实现通常都是这里展示的形式：比较左右操作数的每一个字段是否都相同。这写起来非常无聊，而且相等性比较是通常都需要支持的操作，所以如果你要求的话，Rust可以为你自动生成一个\texttt{PartialEq}的实现。简单地像这样给这个类型的定义的\texttt{derive}属性加上\texttt{PartialEq}：
+\begin{minted}{Rust}
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    struct Complex<T> {
+        ...
+    }
+\end{minted}
+
+Rust自动生成的实现跟我们手写的代码基本完全相同，就是依次比较每一个字段或元素。Rust也可以为\texttt{enum}类型自动生成\texttt{PartialEq}实现。自然，这些类型持有的每个值自身必须实现了\texttt{PartialEq}。
+
+与算术和位trait以值传递操作数不同，\texttt{PartialEq}以引用获取操作数。这意味着比较像\texttt{String}、\texttt{Vec}、\texttt{HashMap}这样的非\texttt{Copy}值不会导致它们被移动，否则可能会导致问题：
+\begin{minted}{Rust}
+    let s = "d\x6fv\x65t\x61i\x6c".to_string();
+    let t = "\x64o\x76e\x74a\x69l".to_string();
+
+    assert!(s == t); // s和t只会被借用
+
+    // 因此它们仍然保持原来的值
+    assert_eq!(format!("{} {}", s, t), "dovetail dovetail");
+\end{minted}
+
+让我们看看这个trait中的\texttt{Rhs}类型参数的约束，它的类型我们之前从来没有见过：
+\begin{minted}{Rust}
+    where
+        Rhs: ?Sized,
+\end{minted}
+
+这放松了Rust通常要求类型参数必须是固定大小类型的要求，所以我们才可以写\texttt{PartialEq<str>}或\texttt{PartialEq<[T]>}这样的trait。\texttt{eq}和\texttt{ne}方法以类型\texttt{\&Rhs}获取参数，并用\texttt{\&str}或者\texttt{\&[T]}来进行比较是完全合理的。因为\texttt{str}实现了\texttt{PartialEq<str>}，所以下面的断言是等价的：
+\begin{minted}{Rust}
+    assert!("ungula" != "ungulate");
+    assert!("ungula".ne("ungulate"));
+\end{minted}
+
+这里，\texttt{Self}和\texttt{Rhs}都是无固定大小的\texttt{str}类型，这导致\texttt{ne}的\texttt{self}和\texttt{rhs}参数都只能是\texttt{\&str}值。我们将在“\nameref{sized}”中讨论固定大小类型、非固定大小类型以及\texttt{Sized} trait。
+
+为什么这个trait被称为\texttt{PartialEq}？相等性是\emph{等价关系(equivalence relation)}的传统数学定义中的一种，等价关系需要满足三个要求。对于任意值\texttt{x}和\texttt{y}：
+\begin{itemize}
+    \item 如果\texttt{x == y}为真，那么\texttt{y == x}也必须为真。换句话说，交换等价性比较的两侧并不会影响结果。
+    \item 如果\texttt{x == y}和\texttt{y == z}，那么\texttt{x == z}也必须为真。给定一个值链，如果其中相邻的两个值相等，那么链中的每个值一定等于其他每一个值。相等性有传递性。
+    \item \texttt{x == x}必须总是为真。
+\end{itemize}
+
+最后一个要求看起来似乎太明显以至于不值得列出来，但这正是导致事情变得复杂的地方。Rust的\texttt{f32}和\texttt{f64}是IEEE标准的浮点数类型。根据这个标准，像\texttt{0.0/0.0}以及其他没有合适的结果的表达式必须产生一个特殊的\emph{非数(not-a-number)}值，通常被称为NaN值。标准还要求一个NaN值必须和其他任何值都不想等——包括它自己。例如，这个标准要求以下行为：
+\begin{minted}{Rust}
+    assert!(f64::is_nan(0.0 / 0.0));
+    assert_eq!(0.0 / 0.0 == 0.0 / 0.0, false);
+    assert_eq!(0.0 / 0.0 != 0.0 / 0.0, true);
+\end{minted}
+
+另外，任何与NaN的顺序性比较都必须返回假：
+\begin{minted}{Rust}
+    assert_eq!(0.0 / 0.0 < 0.0 / 0.0, false);
+    assert_eq!(0.0 / 0.0 > 0.0 / 0.0, false);
+    assert_eq!(0.0 / 0.0 <= 0.0 / 0.0, false);
+    assert_eq!(0.0 / 0.0 >= 0.0 / 0.0, false);
+\end{minted}
+
+因此尽管Rust的\texttt{==}运算符满足前两个等价关系的要求，但使用IEEE浮点数值显然不满足第三个要求。这被称为\emph{部分等价关系(partial equivalence relation)}，因此Rust使用名称\texttt{PartialEq}作为内建的\texttt{==}运算符。如果你写泛型代码时类型参数已知是\texttt{ParitalEq}，那你应该假设它们满足前两个要求，但你不应该假设那些值总是和它们自身相等。
+
+这有点违反直觉，如果你不保持警惕可能会导致bug。如果你希望你的泛型代码满足完全的等价关系，你可以使用\texttt{std::cmp::Eq} trait作为约束，它代表完全的等价关系：如果一个类型实现了\texttt{Eq}，那么对于任何该类型的值\texttt{x}，\texttt{x == x}一定为\texttt{true}。在实践中，几乎所有实现了\texttt{PartialEq}的类型也实现了\texttt{Eq}，\texttt{f32}和\texttt{f64}是标准库中仅有的实现了\texttt{PartialEq}但却没有实现\texttt{Eq}的类型。
+
+标准库将\texttt{Eq}定义为\texttt{PartialEq}的扩展，没有添加任何新方法：
+\begin{minted}{Rust}
+    trait Eq: PartialEq<Self> {}
+\end{minted}
+
+如果你的类型是\texttt{PartialEq}并且你希望它也是\texttt{Eq}，那你必须显式地实现\texttt{Eq}，即使你并不需要为此再定义任何新的方法或类型。因此为我们的\texttt{Complex}类型实现\texttt{Eq}非常迅速：
+\begin{minted}{Rust}
+    impl<T: Eq> Eq for Complex<T> {}
+\end{minted}
+
+我们也可以直接在\texttt{Complex}类型定义中的\texttt{derive}属性里加上\texttt{Eq}：
+\begin{minted}{Rust}
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    struct Complex<T> {
+        ...
+    }
+\end{minted}
+
+在泛型类型上派生实现会依赖类型参数。有了这个\texttt{derive}属性，\texttt{Complex<i32>}将会实现\texttt{Eq}，因为\texttt{i32}实现了\texttt{Eq}；但\texttt{Complex<f32>}将只实现\texttt{PartialEq}，因为\texttt{f32}并没有实现\texttt{Eq}。
+
+当你自己实现\texttt{std::cmp::PartialEq}时，Rust无法检查你的\texttt{eq}和\texttt{ne}方法的定义是否真的满足等价关系的部分或全部要求。它们的行为可以是任意的。Rust简单地认为你实现等价性的方式满足用户的需求。
+
+尽管\texttt{PartialEq}的定义为\texttt{ne}提供了默认的实现，如果你愿意的话也可以提供自己的实现。然而，你必须要保证\texttt{ne}和\texttt{eq}彼此完全互补。\texttt{PartialEq} trait的用户也会这么假设。
+
+\section{顺序性比较}\label{cmp}
+
+Rust用
+
+\section{\texttt{Index}与\texttt{IndexMut}}\label{index}
