@@ -215,9 +215,29 @@ trait对象和切片的指针是对称的。在这两种情况下，都缺乏相
 
 \section{\texttt{Clone}}\label{clone}
 
-\texttt{}
+\texttt{std::clone::Clone} trait用于那些可以拷贝自身的类型。\texttt{Clone}的定义如下：
+\begin{minted}{Rust}
+    trait Clone: Sized {
+        fn clone(&self) -> Self;
+        fn clone_from(&mut self, source: &Self) {
+            *self = source.clone()
+        }
+    }
+\end{minted}
+
+\texttt{clone}方法应该构建一个\texttt{self}的独立拷贝并返回它。因为这个方法的返回类型是\texttt{Self}，并且函数不能返回大小不固定的值，因此\texttt{Clone} trait扩展了\texttt{Sized} trait：它会约束实现的\texttt{Self}类型是\texttt{Sized}。
+
+拷贝一个值通常意味着拷贝它拥有的所有内容，因此\texttt{clone}可能在时间和内存上的开销都比较大。例如，克隆一个\texttt{Vec<String>}不止要拷贝vector，还要拷贝它的每一个\texttt{String}元素。这就是为什么Rust不会自动拷贝值，而是要求你显式地调用方法来拷贝。引用计数指针例如\texttt{Rc<T>}和\texttt{Arc<T>}是例外：拷贝它们只会简单地递增引用计数并返回给你一个新的指针。
+
+\texttt{clone\_from}方法将\texttt{self}修改为\texttt{source}的拷贝。\texttt{clone\_from}的默认实现简单地拷贝\texttt{source}，然后将它移动进\texttt{*self}。这总是能正确工作，当对于某些类型，还有更快的方法达成相同的效果。例如，假设\texttt{s}和\texttt{t}都是\texttt{String}。语句\texttt{s = t.clone();}必须先克隆\texttt{t}，drop掉\texttt{s}的旧值，然后将克隆的值移动进\texttt{s}，因此这里面有一次堆分配和堆释放。但如果\texttt{s}原本的堆缓冲区有足够的容量存下\texttt{t}的内容，那么没有必要进行释放和分配操作：可以简单地将\texttt{t}的文本拷贝进\texttt{s}的缓冲区，然后调整它的长度。在泛型代码中，你应该使用\texttt{clone\_from}，这样可以充分利用优化过的实现的优势。
+
+如果你的类型的\texttt{Clone}实现只是简单地调用每一个字段或者元素的\texttt{clone}方法，然后利用这些克隆的值构造一个新的值，那么\texttt{clone\_from}的默认定义就已经够了，Rust将会为你实现它：只要在类型的定义上方加上\texttt{\#[derive(Clone)]}。
+
+标准库中几乎所有应该能拷贝的类型都实现了\texttt{Clone}。基本类型例如\texttt{bool}和\texttt{i32}实现了。容器类型例如\texttt{String, Vec<T>, HashMap}也实现了。一些不应该能拷贝的类型例如\texttt{std::sync::Mutex}没有实现\texttt{Clone}。一些类型例如\texttt{std::fs::File}可以拷贝，但如果操作系统没有足够的资源那么拷贝可能会失败，这些类型也没有实现\texttt{Clone}，因为\texttt{clone}不允许失败。作为替代，\texttt{std::fs::File}提供了一个\texttt{try\_clone}方法，它返回一个\texttt{std::io::Result<File>}来报告失败。
 
 \section{\texttt{Copy}}\label{Copy}
+
+在\hyperref[ch04]{第4章}中，我们解释过，对于大多数类型，赋值操作会移动它的值，而不是拷贝它们。
 
 \section{\texttt{Deref}与\texttt{DerefMut}}\label{deref}
 
