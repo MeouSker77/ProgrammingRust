@@ -164,7 +164,7 @@ Rust中为算术和位运算符设计的内建trait被分为三组：一元运�
 
 所有Rust的有符号数值类型都实现了\texttt{std::ops::Neg}，用于一元运算符\texttt{-}。整数类型和\texttt{bool}类型实现了\texttt{std::ops::Not}，用于一元运算符\texttt{!}。这些类型的引用也有相应的实现。
 
-注意\texttt{!}会按位取反整数（即反转所有位）值、反转\texttt{bool}值。它同时提供C和C++中的\texttt{!}和\texttt{~}的功能。
+注意\texttt{!}会按位取反整数（即反转所有位）值、反转\texttt{bool}值。它同时提供C和C++中的\texttt{!}和\texttt{\~{}}的功能。
 
 这些trait的定义很简单：
 \begin{minted}{Rust}
