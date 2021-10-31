@@ -237,7 +237,25 @@ trait对象和切片的指针是对称的。在这两种情况下，都缺乏相
 
 \section{\texttt{Copy}}\label{Copy}
 
-在\hyperref[ch04]{第4章}中，我们解释过，对于大多数类型，赋值操作会移动它的值，而不是拷贝它们。
+在\hyperref[ch04]{第4章}中，我们解释过，对于大多数类型，赋值操作会移动它的值，而不是拷贝它们。移动值让我们可以更容易地追踪它们拥有的资源。但在“\nameref{copy}”中，我们指出了例外情况：不持有任何资源的简单类型可以是\texttt{Copy}类型，这种类型的赋值操作会拷贝源值，而不是移动值并把源值设为未初始化。
+
+那个时候，我们并没有确切地说明\texttt{Copy}到底是什么，但现在我们可以告诉你：如果一个类型实现了\texttt{std::marker::Copy}标记trait，那么它就是\texttt{Copy}的，\texttt{Copy}的定义如下：
+\begin{minted}{Rust}
+    trait Copy: Clone { }
+\end{minted}
+
+很容易就可以为你自己的类型实现它：
+\begin{minted}{Rust}
+    impl Copy for MyType { }
+\end{minted}
+
+但因为\texttt{Copy}是一个有特殊含义的标记trait，所以Rust只允许可以通过逐字节的浅拷贝来拷贝自身的类型实现\texttt{Copy}。如果一个类型拥有任何其他资源，例如堆缓冲区或者操作系统句柄，那么它将不能实现\texttt{Copy}。
+
+任何实现了\texttt{Drop} trait的类型不能实现\texttt{Copy}。Rust假定如果一个类型需要特殊的清理代码，那么它肯定也需要特殊的拷贝代码，所以不能是\texttt{Copy}。
+
+和\texttt{Clone}一样，你可以使用\texttt{\#[derive(Copy)]}来让Rsut为你实现\texttt{Copy}。你通常能一次性看到它们两个，即\texttt{\#[derive(Copy, Clone)]}。
+
+在将类型变为\texttt{Copy}之前请仔细思考。尽管这样做会让类型更容易使用，但却对类型本身的实现添加了很大的限制。而且隐式的拷贝可能会有很大的开销。我们已经在“\nameref{copy}”中详细解释了这些因素。
 
 \section{\texttt{Deref}与\texttt{DerefMut}}\label{deref}
 
