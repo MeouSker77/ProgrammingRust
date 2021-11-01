@@ -286,7 +286,7 @@ Rust有一个\texttt{?}运算符来做这个工作。你可以在任何产生\te
 \begin{minted}{Rust}
     use std::io::{self, BufRead};
 
-    /// 从文本文件中读取一个证书。
+    /// 从文本文件中读取一个整数。
     /// 文件中应该每行一个数字。
     fn read_numbers(file: &mut dyn BufRead) -> Result<Vec<i64>, io::Error> {
         let mut numbers = vec![];
