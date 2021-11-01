@@ -119,7 +119,7 @@ Rust会报错\texttt{table}不再可用：
 
 \texttt{show}的参数\texttt{table}的类型从\texttt{Table}变为了\texttt{\&Table}：不再以值传递表格（会导致所有权移动到函数里），我们现在传递一个共享引用。这就是表面上唯一的变化。但是当我们执行函数体时到底是怎么工作的？
 
-我们原先的版本\texttt{for}循环会获取\texttt{HashMap}的所有权按并消耗它。在我们的新版本中它接受一个\texttt{HashMap}的共享引用，迭代一个\texttt{HashMap}的共享引用被定义为产生每个条目的key和value的引用：\texttt{artist}从一个\texttt{String}变为\texttt{\&string}，\texttt{works}从一个\texttt{Vec<String>}变为\texttt{\&Vec<String>}。
+我们原先的版本\texttt{for}循环会获取\texttt{HashMap}的所有权按并消耗它。在我们的新版本中它接受一个\texttt{HashMap}的共享引用，迭代一个\texttt{HashMap}的共享引用被定义为产生每个条目的key和value的引用：\texttt{artist}从一个\texttt{String}变为\texttt{\&String}，\texttt{works}从一个\texttt{Vec<String>}变为\texttt{\&Vec<String>}。
 
 内部的循环也有类似的变化。迭代一个vector的共享引用被定义为产生它的每个元素的共享引用，因此\texttt{work}现在是一个\texttt{\&String}。这个函数里不再有任何所有权的变化，而是传递各种无所有权的引用。
 
@@ -686,7 +686,7 @@ Rust为什么会报错？如果你仔细思考这段代码，你会发现以下�
     \item 我们用\texttt{\&y}初始化了\texttt{s.y}，这要求\texttt{'a}必须不超过\texttt{y}的生命周期。
 \end{itemize}
 
-这些约束不可能同时满足：没有生命周期比\texttt{y}的作用域短又比\texttt{r}的长。所以Rus报错了。
+这些约束不可能同时满足：没有生命周期比\texttt{y}的作用域短又比\texttt{r}的长。所以Rust报错了。
 
 问题出现的原因是\texttt{S}中的两个引用有相同的生命周期\texttt{'a}。将\texttt{S}的定义修改为每个引用有一个不同的生命周期就可以解决问题：
 \begin{minted}{Rust}
@@ -742,7 +742,7 @@ Rust为什么会报错？如果你仔细思考这段代码，你会发现以下�
     fn first_third<'a>(point: &'a [i32; 3]) -> (&'a i32, &'a i32)
 \end{minted}
 
-如果参数里有多个生命周期参数，内马尔没有简单的方法推断出返回值中的生命周期参数是哪个，此时Rust会要求你指明。
+如果参数里有多个生命周期参数，编译器没有简单的方法推断出返回值中的生命周期参数是哪个，此时Rust会要求你指明。
 
 如果你的函数是某个类型的方法，并通过引用获取\texttt{self}参数，那么会打破这个限制：Rust会假设\texttt{self}的生命周期是返回值中所有内容的生命周期。（Rust中的\texttt{self}参数代表调用这个方法的值，等价于C++、Java、JavaScript中的\texttt{this}，或者Python中的\texttt{self}。我们将在“\hyperref[method]{使用impl定义方法}”一节中介绍方法。
 
