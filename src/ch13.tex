@@ -259,6 +259,130 @@ trait对象和切片的指针是对称的。在这两种情况下，都缺乏相
 
 \section{\texttt{Deref}与\texttt{DerefMut}}\label{deref}
 
+你可以通过实现\texttt{std::ops::Deref}和\texttt{std::ops::DerefMut} trait来指定解引用运算符\texttt{*}和\texttt{.}的行为。像\texttt{Box<T>}和\texttt{Rc<T>}这样的指针类型都实现了这些triat，因此它们的行为可以和Rust内建的指针类型一样。例如，如果你有一个\texttt{Box<Complex>}类型的值\texttt{b}，那么\texttt{*b}就是\texttt{b}指向的\texttt{Complex}值，\texttt{b.re}就是它的实部。如果上下文赋值给被引用的对象，或者借用了被引用对象的可变引用，那么Rust会自动使用\texttt{DerefMut}（“可变地解引用”）trait；否则，只读的访问就已经足够了，所以它会使用\texttt{Deref}。
+
+这个trait的定义类似于这样：
+\begin{minted}{Rust}
+    trait Deref {
+        type Target: ?Sized;
+        fn deref(&self) -> &Self::Target;
+    }
+
+    trait DerefMut: Deref {
+        fn deref_mut(&mut self) -> &mut Self::Target;
+    }
+\end{minted}
+
+\texttt{deref}和\texttt{deref\_mut}方法以\texttt{Self}的引用为参数，并返回\texttt{Self::Target}的引用。\texttt{Target}应该是\texttt{Self}包含、有用或指向的东西：对于\texttt{Box<Complex>}，\texttt{Target}类型就是\texttt{Complex}。注意\texttt{DerefMut}扩展了\texttt{Deref}：如果你可以解引用某个值并修改它，那么你当然也应该能借用它的共享引用。因为方法返回一个和\texttt{\&self}生命周期相同的引用，只要返回的引用还存在，\texttt{self}就会保持被借用的状态。
+
+\texttt{Deref}和\texttt{DerefMut} trait还扮演着另一个角色。因为\texttt{deref}以\texttt{Self}的引用作为参数并返回\texttt{Self::Target}的引用，所以Rust会自动把前者的类型转换为后者。换句话说，如果插入一个\texttt{deref}方法调用可以让类型变得匹配，那么Rust就会自动插入。实现\texttt{DerefMut}允许可变引用的相应转换。这些被称为\emph{强制解引用(deref coercions)}：一个类型被“强迫”表现得和另一个类型一样。
+
+尽管你也可以自己显式写出转换来代替强制解引用，但它们确实很方便：
+\begin{itemize}
+    \item 如果你有一个\texttt{Rc<String>}的值\texttt{r}，并想用它调用\texttt{String::find}，你可以简单地写\texttt{r.find('?')}来代替\texttt{(*r).find('?')}：这个方法调用隐式地借用\texttt{r}，\texttt{\&Rc<String>}被强迫为\texttt{\&String}，因为\texttt{Rc<T>}实现了\texttt{Deref<Target=T>}。
+    \item 你可以对\texttt{String}值使用类似\texttt{split\_at}的方法，即使\texttt{split\_at}是\texttt{str}切片类型的方法。因为\texttt{String}实现了\texttt{Deref<Target=str>}。没有必要让\texttt{String}重新实现\texttt{str}的所有方法，因为你可以把一个\texttt{\&String}强迫为一个\texttt{\&str}。
+    \item 如果你有一个字节的vector \texttt{v}，然后你想把它传递给一个接受\texttt{\&[u8]}字节序列的函数，那你只需要传递\texttt{\&v}作为参数，因为\texttt{Vec<T>}实现了\texttt{Deref<Target=[T]>}。
+\end{itemize}
+
+如果需要的话，Rust会尝试多次强制解引用。例如，使用上面提到的强制解引用，你可以直接用\texttt{Rc<String>}调用\texttt{split\_at}方法，因为\texttt{\&Rc<String>}解引用为\texttt{\&String}，它再解引用为\texttt{\&str}，而\texttt{\&str}有\texttt{split\_at}方法。
+
+例如，假设你有下面的类型：
+\begin{minted}{Rust}
+    struct Selector<T> {
+        /// 这个`Selector`中可用的元素
+        elements: Vec<T>,
+
+        /// 当前的元素在`elements`中的索引。
+        /// 一个`Selector`的行为类似于当前的元素的指针。
+        current: usize
+    }
+\end{minted}
+
+为了让\texttt{Selector}的行为像文档中声明的一样，你必须为它实现\texttt{Deref}和\texttt{DerefMut}：
+\begin{minted}{Rust}
+    use std::ops::{Deref, DerefMut};
+
+    impl<T> Deref for Selector<T> {
+        type Target = T;
+        fn deref(&self) -> &T {
+            &self.elements[self.current]
+        }
+    }
+
+    impl<T> DerefMut for Selector<T> {
+        fn deref_mut(&mut self) -> &mut T {
+            &mut self.elements[self.current]
+        }
+    }
+\end{minted}
+
+有了上面的视线之后，你可以像这样使用一个\texttt{Selector}：
+\begin{minted}{Rust}
+    let mut s = Selector { elements: vec!['x', 'y', 'z'],
+                           current: 2 };
+
+    // 因为`Selector`实现了`Deref`，我们可以使用`*`运算符来
+    // 引用它的当前的元素。
+    assert_eq!(*s, 'z');
+
+    // 断言`z`是字母，通过强制解引用直接在`Selector`上调用`char`的方法
+    assert!(s.is_alphabetic());
+
+    // 通过给`Selector`的引用赋值把'z'改为'w'。
+    *s = 'w';
+
+    assert_eq!(s.elements, ['x', 'y', 'w']);
+\end{minted}
+
+\texttt{Deref}和\texttt{DerefMut} trait是为智能指针例如\texttt{Box, Rc, Arc}，以及那些经常以引用的方式使用并且充当另一种类型的类型准备的，例如\texttt{Vec<T>}和\texttt{String}充当\texttt{[T]}和\texttt{str}。你不应该仅仅为了让一个类型能自动使用\texttt{Target}类型的方法（类似于C++的子类可以使用基类的方法）而实现\texttt{Deref}和\texttt{DerefMut}。这可能不会按照你预想的工作，并且当事情变得复杂时可能会变得令人迷惑。
+
+强制解引用有时可能会导致困惑：Rust使用它们来解决类型冲突，但不把它们用于满足类型变量的约束。例如，下面的代码可以正常工作：
+\begin{minted}{Rust}
+    let s = Selector { elements: vec!["good", "bad", "ugly"],
+                       current: 2};
+    fn show_it(thing: &str) { println!("{}", thing); }
+    show_it(&s);
+\end{minted}
+
+在调用\texttt{show\_it(\&s)}中，Rust看到了一个\texttt{\&Selector<\&str>}类型的实参，和一个\texttt{\&str}类型的形参，然后它发现了\texttt{Deref<Target=str>}实现，并根据需要把调用重写为\texttt{show\_it(s.deref())}。
+
+然而，如果你把\texttt{show\_it}改为一个泛型函数，Rust突然变得不配合了：
+\begin{minted}{Rust}
+    use std::fmt::Display;
+    fn show_it_generic<T: Display>(thing: T) { println!("{}", thing); }
+    show_it_generic(&s);
+\end{minted}
+
+Rust会报错：
+\begin{minted}{text}
+    error: `Selector<&str>` doesn't implement `std::fmt::Display`
+        |
+     33 |     fn show_it_generic<T: Display>(thing: T) { println!("{}", thing); }
+        |                           ------- required by this bound in
+        |                                   `show_it_generic`
+     34 |     show_it_generic(&s);
+        |                     ^^
+        |                     |
+        |                     `Selector<&str>` cannot be formatted with the
+        |                     default formatter
+        |                     help: consider adding dereference here: `&*s`
+        |
+\end{minted}
+
+这可能看起来非常奇怪：为什么把函数改为泛型的就会导致这么一个错误？事实上，\texttt{Selector<\&str>}自身没有实现\texttt{Display}，但它可以解引用成\texttt{\&str}，后者实现了。
+
+因为你传递了一个\texttt{\&Selector<\&str>}类型的参数，而函数的形参类型是\texttt{\&T}，因此类型参数\texttt{T}必须是\texttt{Selector<\&str>}。然后，Rust会检查\texttt{T: Display}约束是否满足：因为Rust不会使用强制解引用来满足类型参数的约束，所以检查会失败。
+
+为了解决这个问题，你可以使用\texttt{as}运算符显式转换：
+\begin{minted}{Rust}
+    show_it_generic(&s as &str);
+\end{minted}
+
+或者，像编译器建议的一样，你可以使用\texttt{\&*}来强制解引用：
+\begin{minted}{Rust}
+    show_it_generic(&*s);
+\end{minted}
+
 \section{\texttt{Default}}\label{default}
 
 \section{\texttt{AsRef}与\texttt{AsMut}}\label{asref}
