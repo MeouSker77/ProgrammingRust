@@ -441,7 +441,74 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
 
 \section{\texttt{AsRef}与\texttt{AsMut}}\label{asref}
 
+如果一个类型实现了\texttt{AsRef<T>}，那么意味着你可以从它高效地借用一个\texttt{\&T}。\texttt{AsMut}用于可变引用。它们的定义如下：
+\begin{minted}{Rust}
+    trait AsRef<T: ?Sized> {
+        fn as_ref(&self) -> &T;
+    }
+
+    trait AsMut<T: ?Sized> {
+        fn as_mut(&mut self) -> &mut T;
+    }
+\end{minted}
+
+例如，\texttt{Vec<T>}实现了\texttt{AsRef<[T]>}，\texttt{String}实现了\texttt{AsRef<str>}。你可以从一个\texttt{String}的内容借用一个字节的数组，因为\texttt{String}也实现了\texttt{AsRef<[u8]>}。
+
+\texttt{AsRef}通常用于让函数在接受参数时更加灵活。例如，\texttt{std::fs::File::open}函数的声明如下：
+\begin{minted}{Rust}
+    fn open<P: AsRef<Path>>(path: P) -> Result<File>
+\end{minted}
+
+\texttt{open}真正想要的是一个\texttt{\&Path}，这个类型表示一个文件系统路径。但有了这个签名以后，\texttt{open}接受任何可以被借用一个\texttt{\&Path}的类型——也就是说，实现了\texttt{AsRef<Path>}的任何类型。这样的类型包括\texttt{String}和\texttt{str}，操作系统接口字符串类型\texttt{OsString}和\texttt{OsStr}、当然还有\texttt{PathBuf}和\texttt{Path}。完整的列表见标准库的文档。它允许你向\texttt{open}传递字符串字面量：
+\begin{minted}{Rust}
+    let dot_emacs = std::fs::File::open("/home/jimb/.emacs")?;
+\end{minted}
+
+标准库中所有的文件系统函数都用这种方式接受路径参数。对于调用者来说，它的作用就像是C++中重载的函数一样，尽管Rust用了不同的方法来表示可以接受哪些类型的参数。
+
+但只有这些还不够。一个字符串字面量是一个\texttt{\&str}，但实现了\texttt{AsRef<Path>}的类型是\texttt{str}，没有\texttt{\&}。正如我们在“\nameref{deref}”一节中解释的一样，Rust不会尝试通过强制解引用来满足类型参数的约束，因此它们也不能解决这个问题。
+
+幸运的是，标准库中包含了全面的实现：
+\begin{minted}{Rust}
+    impl<'a, T, U> AsRef<U> for &'a T
+        where T: AsRef<U>,
+              T: ?Sized, U: ?Sized
+    {
+        fn as_ref(&self) -> &U {
+            (*self).as_ref()
+        }
+    }
+\end{minted}
+
+换句话说，对于任意的类型\texttt{T}和\texttt{U}，如果有\texttt{T: AsRef<U>}，那么也会有\texttt{\&T: AsRef<U>}：简单地先解引用然后就和之前一样继续。这里，因为有\texttt{str: AsRef<Path>}，所以也会有\texttt{\&str: AsRef<Path>}。某种意义上，这是一种在检查类型参数中的\texttt{AsRef}约束时受限的强制解引用方式。
+
+你可能会假设如果一个类型实现了\texttt{AsRef<T>}，那它也应该实现\texttt{AsMut<T>}。然而，还有一些不适合这样的情况。例如，我们提到过\texttt{String}实现了\texttt{AsRef<[u8]>}；这是有意义的，因为每一个\texttt{String}都包含一个字节缓冲区，可以被当做二进制数据访问。然而，\texttt{String}还保证这些字节是有效的UTF-8文本；如果\texttt{String}实现了\texttt{AsMut<[u8]>}，那么调用者将能把\texttt{String}的字节缓冲区修改为任何内容，那么你将不能再信任\texttt{String}里存储的是有效的UTF-8。只有那些修改返回的\texttt{T}不会破坏一致性的类型实现\texttt{AsMut<T>}才有意义。
+
+尽管\texttt{AsRef}和\texttt{AsMut}非常简单，但它提供了一种标准化、泛型的方式来进行引用转换，进而避免了更多特化的转换trait。当实现\texttt{AsRef<Foo>}就足够的时候，你应该避免实现你自己的\texttt{AsFoo} trait。
+
+
 \section{\texttt{Borrow}与\texttt{BorrowMut}}\label{borrow}
+
+\texttt{std::borrow::Borrow} trait和\texttt{AsRef}很相似：如果一个类型实现了\texttt{Borrow<T>}，那么它的\texttt{borrow}方法可以高效地借用一个\texttt{\&T}。但\texttt{Borrow}有更多的限制：只有当借用的\texttt{\&T}和被借用的值的哈希值和比较方式相同时，这个类型才应该实现\texttt{Borrow<T>}。（Rust并不强迫这一点，这只是这个trait被设计的意图。）这让\texttt{Borrow}在处理哈希表和树的key时非常有用，在处理其他可能会被哈希或者比较的值也很有用。
+
+当从\texttt{String}借用时，这种不同很重要，例如：\texttt{String}实现了\texttt{AsRef<str>}、\texttt{AsRef<[u8]>}、\texttt{AsRef<Path>}，但这三种类型会有不同的哈希值。只有\texttt{\&str}保证和等价的\texttt{String}有相同的哈希值，因此\texttt{String}只实现了\texttt{Borrow<str>}。
+
+\texttt{Borrow}的定义和\texttt{AsRef}的定义几乎完全相同，只有名字变了：
+\begin{minted}{Rust}
+    trait Borrow<Borrowed: ?Sized> {
+        fn borrow(&self) -> &Borrow;
+    }
+\end{minted}
+
+\texttt{Borrow}被设计用来解决泛型哈希表和其他相关的集合类型的特性问题。例如，假设你有一个\texttt{std::collections::HashMap<String, i32>}，把字符串映射到数字。这个表的key是\texttt{String}，所以每一个表项都拥有一个\texttt{String}。那么在一个这样的表中查找一个表项的方法的签名应该是什么样的？这是第一次尝试：
+\begin{minted}{Rust}
+    impl<K, V> HashMap<K, V> where K: Eq + Hash
+    {
+        fn get(&self, key: K) -> Option<&V> { ... }
+    }
+\end{minted}
+
+这么做是有道理的：为了查找一个表项，你必须提供一个和表的key相同的类型。但在这个情况中，\texttt{K}是\texttt{String}，这样的签名会强迫你每次调用\texttt{get}时以值传递一个\texttt{String}，显然这很浪费。
 
 \section{\texttt{From}与\texttt{Into}}\label{from}
 
