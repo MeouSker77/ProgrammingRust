@@ -553,6 +553,100 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
 
 \section{\texttt{From}与\texttt{Into}}\label{from}
 
+\texttt{std::convert::From}和\texttt{std::convert::Into} trait代表消耗一个值并返回另一个值的转换。与\texttt{AsRef}和\texttt{AsMut} trait从一个类型借用另一个类型的引用不同，\texttt{From}和\texttt{Into}会获取参数的所有权，对它进行变换，然后把最后的结果的所有权返回给调用着。
+
+它们的定义完美对称：
+\begin{minted}{Rust}
+    trait Into<T>: Sized {
+        fn into(self) -> T:
+    }
+
+    trait From<T>: Sized {
+        fn from(other: T) -> Self;
+    }
+\end{minted}
+
+标准库自动实现每一个类型到自身的转换：每个类型\texttt{T}都实现了\texttt{From<T>}和\texttt{Into<T>}。
+
+尽管这两个trait看起来像是提供了两种不同的方式做同一件事情，但实际上它们用不同的用途。
+
+通常使用\texttt{Into}来让函数可以更灵活的接收参数。例如，如果你写：
+\begin{minted}{Rust}
+    use std::net::Ipv4Addr;
+    fn ping<A>(address: A) -> std::io::Result<bool>
+        where A: Into<Ipv4Addr>
+    {
+        let ipv4_address = address.into();
+        ...
+    }
+\end{minted}
+
+那么\texttt{ping}不止可以接受\texttt{Ipv4Addr}作为参数，还可以接受一个\texttt{u32}或者一个\texttt{[u8; 4]}数组，因为这些类型都实现了\texttt{Into<Ipv4Addr>}。（有时把IPv4地址当成单个32位整数或者一个四个字节的数组会很有用）因为\texttt{ping}唯一知道的就是\texttt{address}实现了\texttt{Into<Ipv4Addr>}，所以当你调用\texttt{into}时没有必要指明你想要什么类型。只有一种类型可能成功，所以类型推导会自动为你填充它。
+
+类似于上一节的\texttt{AsRef}，它的效果也很像C++中的重载函数。有了上面的\texttt{ping}定义，我们可以像下面这样调用：
+\begin{minted}{Rust}
+    println!("{:?}", ping(Ipv4Addr::new(23, 21, 68, 141))); // 传递一个Ipv4Addr
+    println!("{:?}", ping([66, 146, 219, 98]));             // 传递一个[u8; 4]
+    println!("{:?}", ping(0xd076eb94_u32));                 // 传递一个u32
+\end{minted}
+
+\texttt{From} trait则扮演不同的角色。\texttt{from}方法充当泛型的构造函数，从别的值构造一个该类型的实例。例如，\texttt{Ipv4Addr}简单地实现了\texttt{From<[u8;4]>}和\texttt{From<u32>}，而不是定义两个名叫\texttt{from\_array}和\texttt{from\_u32}的方法：
+\begin{minted}{Rust}
+    let addr1 = Ipv4Addr::from([66, 146, 219, 98]);
+    let addr2 = Ipv4Addr::from(0xd076eb94_u32);
+\end{minted}
+
+我们可以让类型推导来决定使用哪个实现。
+
+给定一个合适的\texttt{From}实现，标准库会自动生成相应的\texttt{Into} trait的实现。当你定义自己的类型时，如果它需要单个参数的构造函数，你可以将它写成\texttt{From<T>}的实现，而不是定义一个新的构造函数。你可以免费得到相应的\texttt{Into}实现。
+
+因为\texttt{from}和\texttt{into}转换会获取参数的所有权，转换可以重用原始值的资源来构造转换后的值。例如，假设你写了：
+\begin{minted}{Rust}
+    let text = "Beautiful Soup".to_string();
+    let bytes: Vec<u8> = text.into();
+\end{minted}
+
+\texttt{String}的\texttt{Into<Vec<u8>>}的实现简单地获取\texttt{String}的堆缓冲区的所有权，并重用它作为返回的vector的元素缓冲区。这个转换中不需要分配或拷贝文本。这是另一个使用move来实现高效的方法的例子。
+
+这些转换还提供了一种很好的方式来放松类型的约束，灵活的同时又没有减弱被约束类型的保证。例如，一个\texttt{String}保证它的内容总是有效的UTF-8；它的方法都有很谨慎的限制，来保证你不能引入无效的UTF-8。但这个例子高效地把一个\texttt{String}转换成了一个普通的字节块，你可以对它做任何事：也许你准备压缩它，或者将它和其他不是UTF-8的二进制数据混合。因为\texttt{into}会获取参数的所有权，转换之后\texttt{text}将变为未初始化，这意味着我们可以自由地访问之前的\texttt{String}的缓冲区，而不需要破坏任何现有的\texttt{String}。
+
+然而，低开销的转换并不是\texttt{Into}和\texttt{From}的约定的一部分。与\texttt{AsRef}和\texttt{AsMut}被期望开销很小不同，\texttt{From}和\texttt{Into}转换可能会分配、赋值、或者处理值的内容。例如，String实现了\texttt{From<\&str>}，它把字符串切片拷贝到\texttt{String}分配的新的堆上的缓冲区。还有\texttt{std::collections::BinaryHeap<T>}实现了\texttt{From<Vec<T>>}，它根据算法的要求对元素进行比较和重新排序。
+
+\texttt{?}运算符使用\texttt{From}和\texttt{Into}通过按需将特定的错误类型自动转换为通用的错误类型来帮忙处理函数中可能会失败的代码。
+
+例如，想象一个系统需要读取二进制数据并把其中一部分被写作UTF-8文本的10进制数字转换回数字。这意味着要使用\texttt{std::str::from\_utf8}和\texttt{i32}的\texttt{FromStr}实现，它们可能会返回不同类型错误。假设我们使用了在\hyperref[ch07]{第7章}中定义的\texttt{GenericError}和\texttt{GenericResult}类型，那么\texttt{?}运算符将会为我们做这个转换：
+\begin{minted}{Rust}
+    type GenericError = Box<dyn std::error::Error + Send + Sync + 'static>;
+    type GenericResult<T> = Result<T, GenericError>;
+
+    fn parse_i32_bytes(b: &[u8]) -> GenericResult<i32> {
+        Ok(std::str::from_utf8(b)?.parse::<i32>()?)
+    }
+\end{minted}
+
+类似大多数错误类型，\texttt{Utf8Error}和\texttt{ParseIntError}实现了\texttt{Error} trait，并且标准库给了我们完备的\texttt{From impl}来把任何实现了\texttt{Error}的类型转换为\texttt{Box<dyn Error>}，\texttt{?}将会自动使用它：
+\begin{minted}{Rust}
+    impl<'a, E: Error + Send + Sync + 'a> From<E>
+        for Box<dyn Error + Send + Sync + 'a> {
+            fn from(err: E) -> Box<dyn Error + Send + Sync + 'a> {
+                Box::new(err)
+            }
+        }
+\end{minted}
+
+它将原本需要两个\texttt{match}语句的复杂函数转变为只需要一行。
+
+在\texttt{From}和\texttt{Into}被添加进标准库中之前，Rust代码中充满了单独的转换trait和构造方法，每一个都用于单个类型。\texttt{From}提供了标准的转换方式，你可以使用他们来让你的类型更加易于使用，因为你的用户已经对它们很熟悉了。其他的库和语言本身也可以使用这些trait作为约定的、标准的方式来处理转换。
+
+\texttt{From}和\texttt{Into}是不可失败的trait——它们的API要求转换不能失败。不幸的是，很多转换更加复杂。例如，大整数例如\texttt{i64}可以存储比\texttt{i32}大很多的数字，将一个类似\texttt{2\_000\_000\_000\_000i64}这样的数字转换为\texttt{i32}没有意义。如果直接把前32位丢掉，那么并不会总是返回我们期望的结果：
+\begin{minted}{Rust}
+    let huge = 2_000_000_000_000i64;
+    let smaller = huge as i32;
+    println!("{}", smaller);    // -1454759936
+\end{minted}
+
+有很多处理这种问题的方法。取决于上下文，这种“折断”的方式也可能很合适。另一方面，数字信号处理和控制系统等应用通常可以使用“饱和”转换：超过最大可表示的值的数字会被限制为可表示的最大值。
+
 \section{\texttt{TryFrom}与\texttt{TryInto}}\label{tryfrom}
 
 \section{\texttt{ToOwned}}\label{toowned}
