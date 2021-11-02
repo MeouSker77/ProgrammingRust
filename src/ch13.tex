@@ -649,4 +649,56 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
 
 \section{\texttt{TryFrom}与\texttt{TryInto}}\label{tryfrom}
 
+因为这种转换到底该怎么做并不是很清楚，所以Rust并没有为\texttt{i32}实现\texttt{From<i64>}，也没有实现任何其他可能丢失信息的数制转换。作为代替，\texttt{i32}实现了\texttt{TryFrom<i64>}。\texttt{TryFrom}和\texttt{TryInto}是\texttt{From}和\texttt{Into}的可能失败的版本，实现\texttt{TryFrom}意味着\texttt{TryInto}也会自动实现。
+
+它们的定义只比\texttt{From}和\texttt{Into}复杂一点：
+\begin{minted}{Rust}
+    pub trait TryFrom<T>: Sized {
+        type Error;
+        fn try_from(value: T) -> Result<Self, Self::Error>;
+    }
+
+    pub trait TryInto<T>: Sized {
+        type Error;
+        fn try_into(self) -> Result<T, Self::Error>;
+    }
+\end{minted}
+
+\texttt{try\_into()}方法返回一个\texttt{Result}，因此我们可以选择在失败的情况下做什么，例如一个数字太大不能存放在结果类型中：
+\begin{minted}{Rust}
+    use std::convert::TryInto;
+    // 溢出时选择饱和，而不是折断
+    let smaller: i32 = huge.try_into().unwrap_or(i32::MAX);
+\end{minted}
+
+如果我们想同时处理负数的情况，我们可以使用\texttt{Result}的\texttt{unwrap\_or\_else()}的方法：
+\begin{minted}{Rust}
+    let smaller: i32 = huge.try_into().unwrap_or_else(|_| {
+        if huge >= 0 {
+            i32::MAX
+        } else {
+            i32::MIN
+        }
+    });
+\end{minted}
+
+为你自己的类型实现可能失败的转换也非常简单。\texttt{Error}类型可以简单，也可以像某个应用的需求一样复杂。这里标准库使用了一个空的结构体，没有提供转换失败的原因相关的信息，因为唯一可能失败的原因就是溢出。另一方面，在更复杂的类型之间转换可能会需要返回更多的信息：
+\begin{minted}{Rust}
+    impl TryInto<LinearShift> for Transform {
+        type Error = TransformError;
+
+        fn try_into(self) -> Result<LinearShift, Self::Error> {
+            if !self.normalized() {
+                return Err(TransformError::NotNormalized);
+            }
+            ...
+        }
+    }
+\end{minted}
+
+\texttt{From}和\texttt{Into}将只需要简单的转换的类型联系起来，\texttt{TryFrom}和\texttt{TryInto}用\texttt{Rusult}的强大的错误处理能力扩展了\texttt{From}和\texttt{Into}的简单转换。这四个trait可以一起使用来联系一个crate中的多种类型。
+
 \section{\texttt{ToOwned}}\label{toowned}
+
+
+
