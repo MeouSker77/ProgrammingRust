@@ -23,7 +23,7 @@
     \centering
     \caption{工具trait汇总}
     \label{t13-1}
-    \begin{tabular}{p{0.2\textwidth}p{0.9\textwidth}}
+    \begin{tabular}{p{0.2\textwidth}p{0.7\textwidth}}
         \hline
         \textbf{trait}  & \textbf{说明} \\
         \hline
@@ -61,7 +61,7 @@
     }
 \end{minted}
 
-一个\texttt{Appellation}拥有为字符串内容和vector的元素缓冲区分配的堆上的空间。当一个\texttt{Appellation}被drop时，Rust会清理所有这些内容，你不需要编写任何代码。然而，如果你想的话，你可以通过实现\texttt{std::ops::Drop} trait来自定义Rust如何drop你的类型的值：
+\texttt{Appellation}拥有为字符串内容和vector的元素缓冲区分配的堆上的空间。当一个\texttt{Appellation}被drop时，Rust会清理所有这些内容，你不需要编写任何代码。然而，如果你想的话，你可以通过实现\texttt{std::ops::Drop} trait来自定义Rust如何drop你的类型的值：
 \begin{minted}{Rust}
     trait Drop {
         fn drop(&mut self);
@@ -172,7 +172,7 @@ Rust不能在变量中存储大小不固定的值或者将它们传递为参数�
 
 trait对象和切片的指针是对称的。在这两种情况下，都缺乏相应的类型信息：你不能在不知道\texttt{[u8]}长度的情况下索引它，也不能在不知道被指向的值的具体\texttt{Write}实现的情况下调用\texttt{Box<dyn Write>}的方法。在这两种情况下，胖指针填充了类型缺失的信息，加上了一个长度或者vtable的指针。被省略的静态信息被替换为了动态信息。
 
-因为大小不固定的类型限制太多，所以大多数泛型类型参数都被限制为\texttt{Sized}类型。事实上，它几乎总是必须的，因此在Rust中它是默认的：如果你写\texttt{struct S<T> \{ ... \}}，Rust认为你的意思是\texttt{struct S<T: Sized> \{ ... \}}。如果你不让\texttt{T}有这个约束，你必须显式写出来，即\texttt{struct S<T: ?Sized> \{ ... \}}。\texttt{?Sized}语法专门用于这种场景，含义是”不需要是\texttt{Sized}“。例如，如果你写了\texttt{struct S<T: ?Sized> \{ b: Box<T> \}}，那么Rust将允许你写\texttt{S<Str>}和\texttt{S<dyn Write>}，这时\texttt{b}将是一个胖指针；而\texttt{S<i32>}和\texttt{S<String>}中，\texttt{b}是一个普通指针。
+因为大小不固定的类型限制太多，所以大多数泛型类型参数都被限制为\texttt{Sized}类型。事实上，它几乎总是必须的，因此在Rust中它是默认的：如果你写\texttt{struct S<T> \{ ... \}}，Rust认为你的意思是\texttt{struct S<T: Sized> \{ ... \}}。如果你不让\texttt{T}有这个约束，你必须显式写出来，即\texttt{struct S<T: ?Sized> \{ ... \}}。\texttt{?Sized}语法专门用于这种场景，含义是“不需要是\texttt{Sized}”。例如，如果你写了\texttt{struct S<T: ?Sized> \{ b: Box<T> \}}，那么Rust将允许你写\texttt{S<Str>}和\texttt{S<dyn Write>}，这时\texttt{b}将是一个胖指针；而\texttt{S<i32>}和\texttt{S<String>}中，\texttt{b}是一个普通指针。
 
 抛开它们的限制不谈，大小不固定的类型让Rust的类型系统工作得更加顺畅。如果阅读标准库的文档，你偶尔会看到类型参数中的\texttt{?Sized}约束，这几乎总是意味着给定的类型只能被指向，同时允许相关的代码既能处理普通类型、又能处理切片和trait对象。当一个类型参数有\texttt{?Sized}约束时，人们通常会说它是\emph{可能大小不固定(questionably sized)}：它可能是\texttt{Sized}，也可能不是。
 
@@ -259,7 +259,8 @@ trait对象和切片的指针是对称的。在这两种情况下，都缺乏相
 
 \section{\texttt{Deref}与\texttt{DerefMut}}\label{deref}
 
-你可以通过实现\texttt{std::ops::Deref}和\texttt{std::ops::DerefMut} trait来指定解引用运算符\texttt{*}和\texttt{.}的行为。像\texttt{Box<T>}和\texttt{Rc<T>}这样的指针类型都实现了这些triat，因此它们的行为可以和Rust内建的指针类型一样。例如，如果你有一个\texttt{Box<Complex>}类型的值\texttt{b}，那么\texttt{*b}就是\texttt{b}指向的\texttt{Complex}值，\texttt{b.re}就是它的实部。如果上下文赋值给被引用的对象，或者借用了被引用对象的可变引用，那么Rust会自动使用\texttt{DerefMut}（“可变地解引用”）trait；否则，只读的访问就已经足够了，所以它会使用\texttt{Deref}。
+你可以通过实现\texttt{std::ops::Deref}和\texttt{std::ops::DerefMut} trait来指定解引用运算符\texttt{*}和\texttt{.}的行为。像\texttt{Box<T>}\\
+和\texttt{Rc<T>}这样的指针类型都实现了这些triat，因此它们的行为可以和Rust内建的指针类型一样。例如，如果你有一个\texttt{Box<Complex>}类型的值\texttt{b}，那么\texttt{*b}就是\texttt{b}指向的\texttt{Complex}值，\texttt{b.re}就是它的实部。如果上下文赋值给被引用的对象，或者借用了被引用对象的可变引用，那么Rust会自动使用\texttt{DerefMut}（“可变地解引用”）trait；否则，只读的访问就已经足够了，所以它会使用\texttt{Deref}。
 
 这个trait的定义类似于这样：
 \begin{minted}{Rust}
@@ -371,7 +372,8 @@ Rust会报错：
 
 这可能看起来非常奇怪：为什么把函数改为泛型的就会导致这么一个错误？事实上，\texttt{Selector<\&str>}自身没有实现\texttt{Display}，但它可以解引用成\texttt{\&str}，后者实现了。
 
-因为你传递了一个\texttt{\&Selector<\&str>}类型的参数，而函数的形参类型是\texttt{\&T}，因此类型参数\texttt{T}必须是\texttt{Selector<\&str>}。然后，Rust会检查\texttt{T: Display}约束是否满足：因为Rust不会使用强制解引用来满足类型参数的约束，所以检查会失败。
+因为你传递了一个\texttt{\&Selector<\&str>}类型的参数，而函数的形参类型是\texttt{\&T}，因此类型参数\texttt{T}必须是\\
+\texttt{Selector<\&str>}。然后，Rust会检查\texttt{T: Display}约束是否满足：因为Rust不会使用强制解引用来满足类型参数的约束，所以检查会失败。
 
 为了解决这个问题，你可以使用\texttt{as}运算符显式转换：
 \begin{minted}{Rust}
@@ -412,7 +414,8 @@ Rust的所有集合类型——\texttt{Vec, HashMap, BinaryHeap}等都实现了\
     assert_eq!(impure.len(), 4);
 \end{minted}
 
-闭包\texttt{|\&n| n \& (n-1) == 0}使用了位操作来分辨一个数字是不是2的幂，\texttt{partition}使用它来产生两个\texttt{HashSet}。当然，\texttt{partition}并不是只能用于\texttt{HashSet}，你可以用它产生任何类型的集合，只要这个集合实现了\texttt{Default}来创建空的集合，以及\texttt{Extend<T>}来像集合中添加一个\texttt{T}类型的值。\texttt{String}实现了\texttt{Default}和\texttt{Extend<char>}，所以你可以写：
+闭包\texttt{|\&n| n \& (n-1) == 0}使用了位操作来分辨一个数字是不是2的幂，\texttt{partition}使用它来产生两个\texttt{HashSet}。当然，\texttt{partition}并不是只能用于\texttt{HashSet}，你可以用它产生任何类型的集合，只要这个集合实现了\texttt{Default}来创建空的集合，以及\texttt{Extend<T>}来像集合中添加一个\texttt{T}类型的值。\texttt{String}实现了\texttt{Default}和\\
+\texttt{Extend<char>}，所以你可以写：
 \begin{minted}{Rust}
     let (upper, lower): (String, String)
         = "Great Teacher Onizuka".chars().partition(|&c| c.is_uppercase());
@@ -431,7 +434,8 @@ Rust的所有集合类型——\texttt{Vec, HashMap, BinaryHeap}等都实现了\
     target.draw(..., &params).unwrap();
 \end{minted}
 
-\texttt{Default::default()}调用创建了一个\texttt{DrawParameters}的默认值，然后使用\texttt{..}语法创建一个新的只有\texttt{line\_width}和\texttt{point\_size}字段改变了的新值，最后把它传给\texttt{target.draw}。
+\texttt{Default::default()}调用创建了一个\texttt{DrawParameters}的默认值，然后使用\texttt{..}语法创建一个新的只有\\
+\texttt{line\_width}和\texttt{point\_size}字段改变了的新值，最后把它传给\texttt{target.draw}。
 
 如果一个类型\texttt{T}实现了\texttt{Default}，那么标准库会自动为\texttt{Rc<T>}、\texttt{Arc<T>}、\texttt{Box<T>}、\texttt{Cell<T>}、\texttt{RefCell<T>}、\texttt{Cow<T>}、\texttt{Mutex<T>}、\texttt{RwLock<T>}实现\texttt{Default}。例如，\texttt{Rc<T>}类型的默认值，是一个类型\texttt{T}的默认值的\texttt{Rc}指针。
 
@@ -500,7 +504,8 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
     }
 \end{minted}
 
-\texttt{Borrow}被设计用来解决泛型哈希表和其他关联集合类型的特性问题。例如，假设你有一个\texttt{std::collections::HashMap<String, i32>}，把字符串映射到数字。这个表的key是\texttt{String}，所以每一个表项都拥有一个\texttt{String}。那么在一个这样的表中查找一个表项的方法的签名应该是什么样的？这是第一次尝试：
+\texttt{Borrow}被设计用来解决泛型哈希表和其他关联集合类型的特性问题。例如，假设你有一个\\
+\texttt{std::collections::HashMap<String, i32>}，把字符串映射到数字。这个表的key是\texttt{String}，所以每一个表项都拥有一个\texttt{String}。那么在一个这样的表中查找一个表项的方法的签名应该是什么样的？这是第一次尝试：
 \begin{minted}{Rust}
     impl<K, V> HashMap<K, V> where K: Eq + Hash
     {
@@ -610,7 +615,8 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
 
 这些转换还提供了一种很好的方式来放松类型的约束，灵活的同时又没有减弱被约束类型的保证。例如，一个\texttt{String}保证它的内容总是有效的UTF-8；它的方法都有很谨慎的限制，来保证你不能引入无效的UTF-8。但这个例子高效地把一个\texttt{String}转换成了一个普通的字节块，你可以对它做任何事：也许你准备压缩它，或者将它和其他不是UTF-8的二进制数据混合。因为\texttt{into}会获取参数的所有权，转换之后\texttt{text}将变为未初始化，这意味着我们可以自由地访问之前的\texttt{String}的缓冲区，而不需要破坏任何现有的\texttt{String}。
 
-然而，低开销的转换并不是\texttt{Into}和\texttt{From}的约定的一部分。与\texttt{AsRef}和\texttt{AsMut}被期望开销很小不同，\texttt{From}和\texttt{Into}转换可能会分配、赋值、或者处理值的内容。例如，String实现了\texttt{From<\&str>}，它把字符串切片拷贝到\texttt{String}分配的新的堆上的缓冲区。还有\texttt{std::collections::BinaryHeap<T>}实现了\texttt{From<Vec<T>>}，它根据算法的要求对元素进行比较和重新排序。
+然而，低开销的转换并不是\texttt{Into}和\texttt{From}的约定的一部分。与\texttt{AsRef}和\texttt{AsMut}被期望开销很小不同，\texttt{From}和\\
+\texttt{Into}转换可能会分配、赋值、或者处理值的内容。例如，String实现了\texttt{From<\&str>}，它把字符串切片拷贝到\texttt{String}分配的新的堆上的缓冲区。还有\texttt{std::collections::BinaryHeap<T>}实现了\texttt{From<Vec<T>>}，它根据算法的要求对元素进行比较和重新排序。
 
 \texttt{?}运算符使用\texttt{From}和\texttt{Into}通过按需将特定的错误类型自动转换为通用的错误类型来帮忙处理函数中可能会失败的代码。
 
@@ -726,4 +732,42 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
     }
 \end{minted}
 
-一个\texttt{Cow<B>}可能是一个\texttt{B}的一个共享引用，也可能拥有一个我们可以借用到这样一个引用的值。因为\texttt{}
+一个\texttt{Cow<B>}可能是一个\texttt{B}的一个共享引用，也可能拥有一个我们可以借用到这样一个引用的值。因为\texttt{Cow}实现了\texttt{Deref}，你可以将它当做\texttt{B}的共享引用来调用方法；如果它是\texttt{Owned}，它会借用一个拥有的值的共享引用；如果它是\texttt{Borrowed}，它直接使用它存储的引用。
+
+你也可以通过调用\texttt{to\_mut}方法来获取一个\texttt{Cow}值的共享引用，它会返回一个\texttt{\&mut B}。如果\texttt{Cow}恰巧是\texttt{Cow::Borrowed}，\texttt{to\_mut}简单地调用\texttt{to\_owned}方法来获取它引用的值的拷贝，然后把\texttt{Cow}修改为\texttt{Cow::Owned}，然后借用新的拥有的值的可变引用。这是这个类型的名字表示的“写时克隆”的行为。
+
+类似的，\texttt{Cow}还有一个\texttt{into\_owned}方法，如果需要的话它会通过引用拷贝一个值，然后返回它，把所有权移动给调用者，然后在这个过程中消耗掉\texttt{Cow}。
+
+
+\texttt{Cow}的一个常见用途是返回一个静态分配的字符串常量或者一个计算之后得到的字符串。例如，假设你需要把一个表示错误的枚举转换为消息。大多数variatn都用固定的字符串来处理，但其中的一些有一些额外的应该被包含在消息里的数据。你可以返回一个\texttt{Cow<'static str>}：
+\begin{minted}{Rust}
+    use std::path::PathBuf;
+    use std::borrow::Cow;
+    fn describe(error: &Error) -> Cow<'static, str> {
+        match *error {
+            Error::OutOfMemory => "out of memory".into(),
+            Error::StackOverflow => "stack overflow".into(),
+            Error::MachineOnFire => "machine on fire".into(),
+            Error::Unfathomable => "machine bewildered".into(),
+            Error::FileNotFound(ref path) => {
+                format!("file not found: {}", path.display()).into()
+            }
+        }
+    }
+\end{minted}
+
+这段代码使用了\texttt{Into}的\texttt{Cow}实现来构造值。这个\texttt{match}语句的大多数分支都返回一个指向静态分配字符串的\texttt{Cow::Borrowed}。但当我们到达\texttt{FileNotFound} variant时，我们使用了\texttt{format!}来构造一个插入了给定文件名的消息。这个\texttt{match}语句的分支会产生一个\texttt{Cow::Owned}值。
+
+\texttt{describe}的调用者不需要修改值，就可以把\texttt{Cow}用作\texttt{\&str}：
+\begin{minted}{Rust}
+    println!("Disaster has struct: {}", describe(&error));
+\end{minted}
+
+需要一个拥有所有权的值的调用者可以产生一个：
+\begin{minted}{Rust}
+    let mut log: Vec<String> = Vec::new();
+    ...
+    log.push(describe(&error).into_owned());
+\end{minted}
+
+使用\texttt{Cow}可以帮助\texttt{describe}和它的调用者推迟内存分配，直到必须进行分配的时候。
