@@ -500,7 +500,7 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
     }
 \end{minted}
 
-\texttt{Borrow}被设计用来解决泛型哈希表和其他相关的集合类型的特性问题。例如，假设你有一个\texttt{std::collections::HashMap<String, i32>}，把字符串映射到数字。这个表的key是\texttt{String}，所以每一个表项都拥有一个\texttt{String}。那么在一个这样的表中查找一个表项的方法的签名应该是什么样的？这是第一次尝试：
+\texttt{Borrow}被设计用来解决泛型哈希表和其他关联集合类型的特性问题。例如，假设你有一个\texttt{std::collections::HashMap<String, i32>}，把字符串映射到数字。这个表的key是\texttt{String}，所以每一个表项都拥有一个\texttt{String}。那么在一个这样的表中查找一个表项的方法的签名应该是什么样的？这是第一次尝试：
 \begin{minted}{Rust}
     impl<K, V> HashMap<K, V> where K: Eq + Hash
     {
@@ -508,7 +508,48 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
     }
 \end{minted}
 
-这么做是有道理的：为了查找一个表项，你必须提供一个和表的key相同的类型。但在这个情况中，\texttt{K}是\texttt{String}，这样的签名会强迫你每次调用\texttt{get}时以值传递一个\texttt{String}，显然这很浪费。
+这么做是有道理的：为了查找一个表项，你必须提供一个和表的key相同的类型。但在这个情况中，\texttt{K}是\texttt{String}，这样的签名会强迫你每次调用\texttt{get}时以值传递一个\texttt{String}，显然这很浪费。你实际上只需要一个key的引用：
+\begin{minted}{Rust}
+    impl<K, V> HashMap<K, V> where K: Eq + Hash
+    {
+        fn get(&self, key: &K) -> Option<&V> { ... }
+    }
+\end{minted}
+
+这样好一点，但你现在必须传递\texttt{\&String}作为key，所以如果你想查找一个常量字符串，你必须这么写：
+\begin{minted}{Rust}
+    hashtable.get(&"twenty-two".to_string());
+\end{minted}
+
+这显然很离谱：它在堆上分配了一个\texttt{String}的缓冲区并把文本拷贝进去，然后借用它得到一个\texttt{\&String}，传给\texttt{get}之后再drop掉。
+
+如果可以传递任何可以被哈希或者可以与key比较的类型，那么显然会更好。例如，例如，一个\texttt{\&str}完美满足条件。因此这是最终的版本，你可以在标准库中找到它：
+\begin{minted}{Rust}
+    impl<K, V> HashMap<K, V> where K: Eq + Hash
+    {
+        fn get<Q: ?Sized>(&self, key: &Q) -> Option<&V>
+            where K: Borrow<Q>,
+                  Q: Eq + Hash
+        { ... }
+    }
+\end{minted}
+
+换句话说，如果你可以将一个表项的key借用为一个\texttt{\&Q}，并且引用的哈希值和比较结果就和用key本身所得的结果一样，那么\texttt{\&Q}就是一个可以接受的key类型。因此\texttt{String}实现了\texttt{Borrow<str>}和\texttt{Borrow<String>}，\texttt{get}的最终版本允许你传递\texttt{\&String}或者\texttt{\&str}作为key。
+
+\texttt{Vec<T>}和\texttt{[T; N]}实现了\texttt{Borrow<[T]>}。每一个类似字符串的类型都允许借用相应的切片类型：\texttt{String}实现了\texttt{Borrow<str>}，\texttt{PathBuf}实现了\texttt{Borrow<Path>}，等等。所有标准库的关联集合类型都使用了\texttt{Borrow}来决定哪些类型可以被传入查找函数。
+
+标准库包含了完备的实现，因此每一个类型\texttt{T}都可以从它自身借用：\texttt{T: Borrow<T>}。这保证了在一个\texttt{HashMap<K, V>}中查找表项时\texttt{\&K}总是可接受的类型。
+
+为了方便，每一个\texttt{\&mut T}类型也实现了\texttt{Borrow<T>}，返回一个共享引用\texttt{\&T}。这允许你直接向集合的查找函数传递可变引用，不需要重新借用共享引用，它模拟了Rust通常把可变引用转换为共享引用的隐式强制解引用。
+
+\texttt{BorrowMut} trait是\texttt{Borrow}的可变引用版本：
+\begin{minted}{Rust}
+    trait BorrowMut<Borrowed: ?Sized>: Borrow<Borrowed> {
+        fn borrow_mut(&mut self) -> &mut Borrowed;
+    }
+\end{minted}
+
+\texttt{Borrow}应该满足的条件也适用于\texttt{BorrowMut}。
 
 \section{\texttt{From}与\texttt{Into}}\label{from}
 
