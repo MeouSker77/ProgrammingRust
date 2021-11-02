@@ -385,6 +385,60 @@ Rust会报错：
 
 \section{\texttt{Default}}\label{default}
 
+一些类型会有一些有意义的默认值：vecotr或string的默认值就是空，默认的数字是0，默认的\texttt{Option}是\texttt{None}，等等。这样的类型可以实现\texttt{std::default::Default} trait：
+\begin{minted}{Rust}
+    trait Default {
+        fn default() -> Self;
+    }
+\end{minted}
+
+\texttt{default}方法简单地返回一个\texttt{Self}类型的新值。例如，\texttt{String}的\texttt{Default}实现非常的直观：
+\begin{minted}{Rust}
+    impl Default for String {
+        fn default() -> String {
+            String::new()
+        }
+    }    
+\end{minted}
+
+Rust的所有集合类型——\texttt{Vec, HashMap, BinaryHeap}等都实现了\texttt{Default}，它们的\texttt{default()}方法都返回一个空的集合。当你需要创建一个集合来存储一些值，但你希望代码的调用者来决定创建什么类型的集合时这会非常有用。例如，\texttt{Iterator} trait的\texttt{partition}方法把迭代器产生的值划分为两个集合，使用一个闭包来决定每个值被分到哪个集合：
+\begin{minted}{Rust}
+    use std::collections::HashSet;
+    let squares = [4, 9, 16, 25, 36, 49, 64];
+    let (powers_of_two, impure): (HashSet<i32, HashSet<i32>)
+        = squares.iter().partition(|&n| n & (n-1) == 0);
+    
+    assert_eq!(powers_of_two.len(), 3);
+    assert_eq!(impure.len(), 4);
+\end{minted}
+
+闭包\texttt{|\&n| n \& (n-1) == 0}使用了位操作来分辨一个数字是不是2的幂，\texttt{partition}使用它来产生两个\texttt{HashSet}。当然，\texttt{partition}并不是只能用于\texttt{HashSet}，你可以用它产生任何类型的集合，只要这个集合实现了\texttt{Default}来创建空的集合，以及\texttt{Extend<T>}来像集合中添加一个\texttt{T}类型的值。\texttt{String}实现了\texttt{Default}和\texttt{Extend<char>}，所以你可以写：
+\begin{minted}{Rust}
+    let (upper, lower): (String, String)
+        = "Great Teacher Onizuka".chars().partition(|&c| c.is_uppercase());
+    assert_eq!(upper, "GTO");
+    assert_eq!(lower, "reat eacher nizuka");
+\end{minted}
+
+\texttt{Default}的另一个常见用法是为一个结构体生成默认值，它代表一些固定的参数的集合。例如，\texttt{glium} crate为强大且复杂的OpenGL图形库提供Rust绑定。\texttt{glium::DrawParameters}结构体包含24个字段，每一个字段都控制一部分OpenGL渲染图形位的细节。\texttt{glium}里的\texttt{draw}函数接受一个\texttt{DrawParameters}结构体作为参数。因为\texttt{DrawParameters}实现了\texttt{Default}，你可以创建一个默认的值，然后只修改想要修改的字段，最后传给\texttt{draw}：
+\begin{minted}{Rust}
+    let params = glium::DrawParameters {
+        line_width: Some(0.02),
+        point_size: Some(0.02),
+        .. Default::default()
+    };
+
+    target.draw(..., &params).unwrap();
+\end{minted}
+
+\texttt{Default::default()}调用创建了一个\texttt{DrawParameters}的默认值，然后使用\texttt{..}语法创建一个新的只有\texttt{line\_width}和\texttt{point\_size}字段改变了的新值，最后把它传给\texttt{target.draw}。
+
+如果一个类型\texttt{T}实现了\texttt{Default}，那么标准库会自动为\texttt{Rc<T>}、\texttt{Arc<T>}、\texttt{Box<T>}、\texttt{Cell<T>}、\texttt{RefCell<T>}、\texttt{Cow<T>}、\texttt{Mutex<T>}、\texttt{RwLock<T>}实现\texttt{Default}。例如，\texttt{Rc<T>}类型的默认值，是一个类型\texttt{T}的默认值的\texttt{Rc}指针。
+
+如果一个元组类型的所有元素的类型都实现了\texttt{Default}，那么元组也会自动实现\texttt{Default}，它的默认值就是每个元素的默认值组成的元组。
+
+Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构体的所有字段都实现了\texttt{Default}，你可以使用\texttt{\#[derive(Default)]}来为结构体自动生成\texttt{Default}。
+
 \section{\texttt{AsRef}与\texttt{AsMut}}\label{asref}
 
 \section{\texttt{Borrow}与\texttt{BorrowMut}}\label{borrow}
