@@ -158,6 +158,14 @@ Rust没有垃圾收集。那么这样的代码会如何运作？为了回答这�
 
 第一个闭包\texttt{key\_fn}，获取了\texttt{stat}的所有权。然后第二个闭包获取了\texttt{cities}和\texttt{key\_fn}的所有权。
 
+因此Rust为闭包提供了两种从封闭作用域中获取数据的方式：移动和借用。实话说没有什么更多要说的了，闭包遵守我们在\hyperref[ch04]{第4章}和\hyperref[ch05]{第5章}中提到的移动和借用的规则。这里还有一些情况的解释：
+\begin{itemize}
+    \item 就像语言中其他任何部分一样，如果一个闭包\texttt{move}一个可拷贝类型，例如\texttt{i32}，那么它会拷贝这个值。因此如果\texttt{Statistic}恰巧是个可拷贝类型，那么即使创建了使用了它的\texttt{move}闭包之后，我们仍然可以继续使用\texttt{stat}。
+    \item 非拷贝类型，例如\texttt{Vec<City>}，会真的被移动：上面的代码会通过\texttt{move}闭包把\texttt{cities}移动到新线程。Rust不允许我们在创建了这个闭包之后再访问\texttt{cities}。
+    \item 这里，在闭包移动\texttt{cities}之后，我们不需要再使用\texttt{cities}。如果我们还需要用到它，那么我们告诉Rust克隆\texttt{cities}并把拷贝存储到不同的变量中。闭包将只偷取拷贝中的一个——不管它用的是哪一个。
+\end{itemize}
 
+Rust的严格规则给我们带来了很重要的一个保证：线程安全。正因为vector被移动了，而不是在线程之间共享，所以我们可以知道旧的线程不会在新的线程修改vector时释放它。
 
 \section{函数和闭包类型}\label{fn}
+
