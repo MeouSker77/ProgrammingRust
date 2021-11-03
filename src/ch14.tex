@@ -169,3 +169,104 @@ Rust的严格规则给我们带来了很重要的一个保证：线程安全。�
 
 \section{函数和闭包类型}\label{fn}
 
+在本章中，我们已经见到过一些用作值的函数和闭包。自然地，这意味着它们也有类型。例如：
+\begin{minted}{Rust}
+    fn city_population_descending(city: &City) -> i64 {
+        -city.population
+    }
+\end{minted}
+
+这个函数接受一个参数（一个\texttt{\&City}），然后返回一个\texttt{i64}。所以它的类型是\texttt{fn(\&City) -> i64}。
+
+你可以像操作其他值一样对函数进行各种操作。你可以将它们存储在变量中。你可以使用通常的Rust语法来计算函数值：
+\begin{minted}{Rust}
+    let my_key_fn: fn(&City) -> 64 =
+        if user.prefs.by_population {
+            city_population_descending
+        } else {
+            city_monster_attack_risk_descending
+        };
+    
+    cities.sort_by_key(my_key_fn);
+\end{minted}
+
+结构体也可以有函数类型的字段。泛型类型例如\texttt{Vec}可以存储函数，只要它们有相同的\texttt{fn}类型。而且一个函数类型的值非常小：一个\texttt{fn}值只是函数的机器码的内存地址，就像C++中的函数指针一样。
+
+一个函数可以获取另一个函数作为参数。例如：
+\begin{minted}{Rust}
+    /// 给定一个城市的列表和一个测试函数，
+    /// 返回有多少城市通过了测试。
+    fn count_selected_cities(cities: &Vec<City>,
+                             test_fn: fn(&City) -> bool) -> usize
+    {
+        let mut count = 0;
+        for city in cities {
+            if test_fn(city) {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    /// 一个测试函数的例子。注意这个函数的类型是
+    /// `fn(&City) -> bool`，和`count_selected_cities`
+    /// 的`test_fn`参数的类型一样。
+    fn has_monster_attacks(city: &City) -> bool {
+        city.monster_attack_risk > 0.0
+    }
+
+    // 有多少城市面临被怪物袭击的危险？
+    let n = count_selected_cities(&my_cities, has_monster_attacks);
+\end{minted}
+
+如果你熟悉C/C++中的函数指针，你会发现Rust的函数类型的值其实就是一样的东西。
+
+除了这些之外，你可能会很惊讶闭包的类型和函数\emph{不同}：
+\begin{minted}{Rust}
+    let limit = preferences.acceptable_monster_risk();
+    let n = count_selected_cities(
+        &my_cities,
+        |city| city.monster_attack_risk > limit);   // 错误：类型不匹配
+\end{minted}
+
+第二个参数会导致类型错误。为了支持闭包，我们必须修改函数的签名。它需要看起来像这样：
+\begin{minted}{Rust}
+    fn count_selected_cities<F>(cities: &Vec<City>, test_fn: F) -> usize
+        where F: Fn(&City) -> bool
+    {
+        let mut count = 0;
+        for city in cities {
+            if test_fn(city) {
+                count += 1;
+            }
+        }
+        count
+    }
+\end{minted}
+
+我们只修改了\texttt{count\_selected\_cities}的类型签名，没有修改函数体。新的版本是泛型的。它接受任何\texttt{F}类型的参数\texttt{test\_fn}，只要\texttt{F}实现了特殊的trait \texttt{Fn(\&City) -> bool}。大多数函数和接受单个\texttt{\&City}返回一个布尔值的闭包会自动实现这个trait：
+\begin{minted}{Rust}
+    fn(&City) -> bool   // fn 类型（只限函数）
+    Fn(&City) -> bool   // Fn trait（函数和闭包）
+\end{minted}
+
+这个特殊的语法是语言内建的。\texttt{->}和返回类型是可选的。如果省略，返回类型是\texttt{()}。
+
+新版本的\texttt{count\_selected\_cities}接受一个函数或者闭包：
+\begin{minted}{Rust}
+    count_selected_cities(
+        &my_cities,
+        has_monster_attacks);   // ok
+
+    count_selected_cities(
+        &my_cities,
+        |city| city.monster_attack_risk > limit);   // 也ok
+\end{minted}
+
+为什么第一次尝试不能工作？这是因为一个闭包可以调用，但不是一个\texttt{fn}。闭包\texttt{|city| city.monster\_attack\_risk > limit}有自己的类型，不是一个\texttt{fn}类型。
+
+事实上，你写的每一个闭包都有自己的类型，因为一个闭包可能包含数据：从作用域中借用或偷取的值。这可能是任意数量、任意类型的变量。因此每一个闭包都有一个编译器创建的特定的类型，大到足够存储数据。没有类型完全相同的两个闭包。但每一个闭包都实现了\texttt{Fn} trait；我们的例子中的闭包实现了\texttt{Fn(\&City) -> i64}。
+
+因为每一个闭包都有自己的类型，处理闭包的代码通常要是泛型的，比如\texttt{count\_selected\_cities}。每次都要写出这种泛型类型有些笨拙，但要了解这种设计的优点，请继续阅读。
+
+\section{闭包的性能}
