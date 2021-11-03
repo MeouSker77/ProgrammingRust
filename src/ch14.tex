@@ -331,7 +331,94 @@ Rust知道这个闭包不能被调用两次。
 
 一个只能被调用一次的闭包看起来像是一个很特殊的东西，但是我们已经在整本书中都讨论过所有权和生命周期了。值被消耗（即move）的idea是Rust的核心概念之一。它在闭包中的表现和在其他情况中一样。
 
-\subsection{FnOnce}
+\subsection{\texttt{FnOnce}}
+让我们再一次尝试骗过Rust、丢弃一个\texttt{String}两次。这次，我们使用这个泛型函数：
+\begin{minted}{Rust}
+    fn cal_twice<F>(closure: F) where F: Fn() {
+        closure();
+        closure();
+    }
+\end{minted}
+
+这个函数可能被传入任何实现了\texttt{Fn()} trait的闭包：即没有参数并且返回\texttt{()}的闭包。（和函数一样，当返回值是\texttt{()}时可以省略；\texttt{Fn()}是\texttt{Fn() -> ()}的缩写。）
+
+现在如果我们把我们的不安全的闭包传递给这个泛型函数会发生什么？
+\begin{minted}{Rust}
+    let my_str = "hello".to_string();
+    let f = || drop(my_str);
+    call_twice(f);
+\end{minted}
+
+这个闭包仍然在调用时drop \texttt{my\_str}。调用它两次将是两次释放。不过Rust仍然没有被迷惑：
+\begin{minted}{text}
+    error[E0525]: expected a closure that implements the `Fn` trait, but this closure only implements `FnOnce`
+      --> closure_twice.rs:12:13
+        |
+      8 | let f = || drop(my_str);
+        |         ^^^^^^^^______^
+        |         |       |
+        |         |       closure is `FnOnce` because it moves the variable `my_str`
+        |         |       out of its environment
+        |         this closure implements `FnOnce`, not `Fn`
+      9 | call_twice(f);
+        | ---------- the requirement to implement `Fn` derives from here
+\end{minted}
+
+错误信息告诉了我们更多有关Rust如何处理“杀死值的闭包”的信息。它们可以被整个语言禁用，但清理的闭包有时也是有用的。因此，Rust限制了它们的使用。drop值的闭包，例如\texttt{f}，不允许实现\texttt{Fn}。它们显然完全不是\texttt{Fn}。它们实现了一个相对弱小一些的trait \texttt{FnOnce}，表示只能调用一次的闭包。
+
+当你第一次调用\texttt{FnOnce}闭包时，\emph{闭包本身会被消耗掉(the closure itself is used up)}。\texttt{Fn}和\texttt{FnOnce}这两个trait就好像是这样定义的一样：
+\begin{minted}{Rust}
+    // 没有参数的`Fn`和`FnOnce` trait的伪代码
+    trait Fn() -> R {
+        fn call(&self) -> R;
+    }
+
+    trait FnOnce() -> R {
+        fn call_once(self) -> R;
+    }
+\end{minted}
+
+就像算术表达式例如\texttt{a + b}是方法调用\texttt{Add::add(a, b)}的缩写一样，Rust把\texttt{closure()}看错是上面的例子中展示的两个闭包方法之一。对于一个\texttt{Fn}闭包，\texttt{closure()}会展开为\texttt{closure.call()}。这个方法以引用获取\texttt{self}，因此闭包本身没有被移动。但如果闭包只有第一次调用时是安全的，那么\texttt{closure()}会展开为\texttt{closure\_call_once()}。这个方法以值获取\texttt{self}参数，因此闭包会被消耗掉。
+
+当然，我们一直在故意使用\texttt{drop}制造麻烦。在实际中，你只会偶尔遇到这种情况。它并不会经常发生，但偶尔你会不经意间编写出消耗掉一个值的闭包代码：
+\begin{minted}{Rust}
+    let dict = produce_glossary();
+    let debug_dump_dict = || {
+        for (key, value) in dict {  // oops!
+            println!("{:?} - {:?}", key, value);
+        }
+    };
+\end{minted}
+
+然后，当你调用\texttt{debug\_dump\_dict()}不止一次时，你会得到一个类似这样的错误信息：
+\begin{minted}{text}
+    error[E0382]: use of moved value: `debug_dump_dict`
+      --> closures_debug_dump_dict.rs:18:5
+       |
+    19 |     debug_dump_dict();
+       |     ----------------- `debug_dump_dict` moved due to this call
+    20 |     debug_dump_dict();
+       |     ^^^^^^^^^^^^^^^ value used here after move
+    note: closure cannot be invoked more than once because it moves the variable
+    `dict` out of its environment
+      --> src/main.rs:13:29
+       |
+    13 |         for (key, value) in dict {
+       |                             ^^^^
+\end{minted}
+
+为了调试这个错误，我们需要搞清楚为什么这个闭包是\texttt{FnOnce}。这里什么值被消耗了？编译器友好地指出了是\texttt{dict}，在这个例子中，它也是我们唯一使用的变量。哦，这个bug是：我们直接迭代\texttt{dict}消耗了它。我们应该迭代\texttt{\&dict}，以引用访问值，而不是迭代\texttt{dict}：
+\begin{minted}{Rust}
+    let debug_dump_dict = || {
+        for (key, value) in &dict { // 不会消耗dict
+            println!("{:?} - {:?}", key, value);
+        }
+    }
+\end{minted}
+
+这样就修复了错误；这个函数现在是\texttt{Fn}，可以被调用任意次。
+
+\subsection{\texttt{FnMut}}
 
 \section{回调}\label{callback}
 
