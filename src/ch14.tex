@@ -523,4 +523,195 @@ Rust认为non-\texttt{mut}的值可以安全在线程间共享。但在线程间
 
 \section{回调}\label{callback}
 
+很多库使用\emph{回调(callback)}作为部分API：一种由用户提供、之后会被库调用的函数。事实上，你已经在这本书中看到过一些这样的API了。回顾\hyperref[ch02]{第2章}，我们使用了\texttt{actix-web}框架编写了一个简单的web服务器。程序中很重要的一部分就是路由，看起来像这样：
+\begin{minted}{Rust}
+    App::new()
+        .route("/", web::get().to(get_index))
+        .route("/gcd", web::post().to(post_gcd))
+\end{minted}
+
+路由的目的是把到来的网络请求发送到处理特定种类请求的函数。在这个例子中，\texttt{get\_index}和\texttt{post\_gcd}是我们在程序里其他地方用\texttt{fn}关键字声明的函数的名字，但我们也可以传递一个闭包，像这样：
+\begin{minted}{Rust}
+    App::new()
+        .route("/", web::get().to(|| {
+            HttpResponse::Ok()
+                .content_type("text/html")
+                .body("<title>GCD Calculator</title>...")
+        }))
+        .route("/gcd", web::post().to(|form: web::Form<GcdParameters>| {
+            HttpResponse::Ok()
+                .content_type("text/html")
+                .body(format!("The GCD of {} and {} is {}.",
+                              form.n, form.m, gcd(form.n, form.m)))
+        }))
+\end{minted}
+
+这是因为\texttt{actix-web}被设计为可以接受任何线程安全的\texttt{Fn}作为参数。
+
+那么我们怎么在自己的程序中做到这一点呢？让我们尝试写出我们自己的简单的路由，不使用任何\texttt{actix-web}的代码。我们首先声明一些表示HTTP请求和响应的类型：
+\begin{minted}{Rust}
+    struct Request {
+        method: String,
+        url: String,
+        headers: HashMap<String, String>
+        body: Vec<u8>
+    }
+
+    struct Response {
+        code: u32,
+        headers: HashMap<String, String>
+        body: Vec<u8>
+    }
+\end{minted}
+
+现在一个路由器的任务就是简单地存储一个把URL映射到回调函数的表，这样可以按需调用正确的回调函数。（为了简单起见，我们只允许用户创建匹配单个确切的URL。）
+
+\begin{minted}{Rust}
+    struct BasicRouter<C> where C: Fn(&Request) -> Response {
+        routes: HashMap<String, C>
+    }
+
+    impl<C> BasicRouter<C> where C: Fn(&Request) -> Response {
+        /// 创建一个空的路由器。
+        fn new() -> BasicRouter<C> {
+            BasicRouter { routes: HashMap::new() }
+        }
+
+        /// 向路由器中添加一条路由。
+        fn add_route(&mut self, url: &str, callback: C) {
+            self.routes.insert(url.to_string(), callback);
+        }
+    }
+\end{minted}
+
+不幸的是，我们犯了一个错误。你注意到它了吗？
+
+如果我们只添加一个路由，那么这个路由器可以工作的很好：
+\begin{minted}{Rust}
+    let mut router = BasicRouter::new();
+    router.add_route("/", |_| get_form_response());
+\end{minted}
+
+这可以正常编译并运行。然而，如果我们添加另一个路由：
+\begin{minted}{Rust}
+    router.add_route("/gcd", |req| get_gcd_response(req));
+\end{minted}
+
+那我们会得到错误：
+\begin{minted}{text}
+    error[E0308]: mismatched types
+      --> closures_bad_router.rs:41:30
+       |
+    41 |     router.add_route("/gcd", |req| get_gcd_response(req));
+       |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+       |                              expected closure, found a different closure
+       |
+       = note: expected type `[closure@closures_bad_router.rs:40:27: 40:50]`
+                  found type `[closure@closures_bad_router.rs:41:30: 41:57]`
+    note: no two closures, even if identical, have the same type
+    help: consider boxing your closure and/or using it as a trait object
+\end{minted}
+
+我们的错误在于定义\texttt{BasicRouter}类型的方式：
+\begin{minted}{Rust}
+    struct BasicRouter<C> where C: Fn(&Request) -> Response {
+        routes: HashMap<String, C>
+    }
+\end{minted}
+
+我们不知不觉中声明了每一个\texttt{BasicRouter}都有单一的回调类型\texttt{C}，并且\texttt{HashMap}里的所有回调函数都是这个类型。回顾“\nameref{WhichToUse}”，我们展示了一个有同样问题的\texttt{Salad}类型：
+\begin{minted}{Rust}
+    struct Salad<V: Vegetable> {
+        veggies: Vec<V>
+    }
+\end{minted}
+这里的解决方法和沙拉问题的解决方法一样：因为我们想支持很多类型，我们需要使用box和trait对象：
+\begin{minted}{Rust}
+    type BoxedCallback = Box<dyn Fn(&Request) -> Response>;
+
+    struct BasicRouter {
+        routes: HashMap<String, BoxedCallback>
+    }
+\end{minted}
+
+每一个box都可以包含一个不同类型的闭包，因此一个\texttt{HashMap}可以包含很多种类的回调函数。注意类型参数\texttt{C}消失了。
+
+这需要对方法进行一些调整：
+\begin{minted}{Rust}
+    impl BasicRouter {
+        // 创建一个空的路由器。
+        fn new() -> BasicRouter {
+            BasicRouter { routes: HashMap::new() }
+        }
+
+        // 向路由器中添加一条路由。
+        fn add_route<C>(&mut self, url: &str, callback: C)
+            where C: Fn(&Request) -> Response + 'static
+        {
+            self.routes.insert(url.to_string(), Box::new(callback));
+        }
+    }
+\end{minted}
+
+\begin{note}
+    注意\texttt{add\_route}的类型签名中\texttt{C}的两个约束：一个特定的\texttt{Fn} trait和一个\texttt{'static}生命周期。Rust让我们添加这个\texttt{'static}约束。如果没有它，\texttt{Box::new(callback)}的调用将会导致错误，因为如果一个闭包包含可能会离开作用域的变量的引用，那么存储这样的闭包是不安全的。
+\end{note}
+
+最后，我们的简单路由已经准备好处理到来的请求：
+\begin{minted}{Rust}
+    impl BasicRouter {
+        fn handle_request(&self, request: &Request) -> Response {
+            match self.routes.get(&request.url) {
+                None => not_found_response(),
+                Some(callback) => callback(request)
+            }
+        }
+    }
+\end{minted}
+
+作为灵活性的代价，我们也可以使用\emph{函数指针(function pointer)}或者\texttt{fn}类型来代替trait对象，这样空间效率会高一点。像\texttt{fn(u32) -> u32}这样的类型，和闭包很像：
+\begin{minted}{Rust}
+    fn add_ten(x: u32) -> u32 {
+        x + 10
+    }
+
+    let fn_ptr: fn(u32) -> u32 = add_ten;
+    let eleven = fn_ptr(1); // 11
+\end{minted}
+
+事实上，不捕获环境中任何变量的闭包和函数指针完全相同，因为它们不需要存储关于被捕获变量的额外信息。如果你指定了合适的\texttt{fn}类型，不管是在绑定中还是在函数签名中，编译器都会乐于让你使用它们：
+\begin{minted}{Rust}
+    let closure_ptr: fn(u32) -> u32 = |x| x + 1;
+    let two = closure_ptr(1);   // 2
+\end{minted}
+
+与那些捕获的闭包不同，这些函数指针只占据一个\texttt{usize}的空间。
+
+函数指针也可以用于实现我们自己的动态分发，而不是使用编译器建议的\texttt{Box dyn Fn()}：
+\begin{minted}{Rust}
+    struct FnPointerRouter {
+        routes: HashMap<String, fn(&Request) -> Response>
+    }
+\end{minted}
+
+这里，\texttt{HashMap}只为每一个\texttt{String}存储一个\texttt{usize}，这里没有\texttt{Box}。除了\texttt{HashMap}自身，没有任何动态分配。当然，这些方法也需要被调整：
+\begin{minted}{Rust}
+    impl FnPointerRouter {
+        // 创建一个空的路由器。
+        fn new() -> FnPointerRouter {
+            FnPointerRouter { routes: HashMap::new() }
+        }
+
+        // 向路由器中添加一条路由。
+        fn add_route(&mut self, url: &str, callback: fn(&Request) -> Response)
+        {
+            self.routes.insert(url.to_string(), callback);
+        }
+    }
+\end{minted}
+
+如\autoref{f14-1}所示，闭包会有单独的类型是因为每一个闭包都捕获了不同的变量，因此它们每一个的大小都不同。如果它们不捕获任何内容，就没有任何东西需要存储。在接受回调的函数中使用\texttt{fn}指针，可以限制调用只能使用没有捕获东西的闭包，这样在代码内能获取一些性能和灵活性的改善，但对于使用你的API的用户来说要付出灵活性的代价。
+
 \section{高效地使用闭包}
+
+
