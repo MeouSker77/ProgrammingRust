@@ -378,7 +378,7 @@ Rust知道这个闭包不能被调用两次。
     }
 \end{minted}
 
-就像算术表达式例如\texttt{a + b}是方法调用\texttt{Add::add(a, b)}的缩写一样，Rust把\texttt{closure()}看错是上面的例子中展示的两个闭包方法之一。对于一个\texttt{Fn}闭包，\texttt{closure()}会展开为\texttt{closure.call()}。这个方法以引用获取\texttt{self}，因此闭包本身没有被移动。但如果闭包只有第一次调用时是安全的，那么\texttt{closure()}会展开为\texttt{closure\_call_once()}。这个方法以值获取\texttt{self}参数，因此闭包会被消耗掉。
+就像算术表达式例如\texttt{a + b}是方法调用\texttt{Add::add(a, b)}的缩写一样，Rust把\texttt{closure()}看错是上面的例子中展示的两个闭包方法之一。对于一个\texttt{Fn}闭包，\texttt{closure()}会展开为\texttt{closure.call()}。这个方法以引用获取\texttt{self}，因此闭包本身没有被移动。但如果闭包只有第一次调用时是安全的，那么\texttt{closure()}会展开为\texttt{closure.call\_once()}。这个方法以值获取\texttt{self}参数，因此闭包会被消耗掉。
 
 当然，我们一直在故意使用\texttt{drop}制造麻烦。在实际中，你只会偶尔遇到这种情况。它并不会经常发生，但偶尔你会不经意间编写出消耗掉一个值的闭包代码：
 \begin{minted}{Rust}
@@ -419,6 +419,68 @@ Rust知道这个闭包不能被调用两次。
 这样就修复了错误；这个函数现在是\texttt{Fn}，可以被调用任意次。
 
 \subsection{\texttt{FnMut}}
+还有一种闭包，这种闭包包含可变的数据或者\texttt{mut}引用。
+
+Rust认为non-\texttt{mut}的值可以安全在线程间共享。但在线程间共享这种包含\texttt{mut}数据的non-\texttt{mut}闭包不是安全的：在多个线程中调用这种闭包可能会导致各种数据竞争，就和多个线程同时读写同一份数据一样。
+
+因此，Rust又分出了一种闭包类别\texttt{FnMut}，这个类别用于有写入操作的闭包。\texttt{FnMut}闭包以\texttt{mut}引用调用，就好像它们被定义为这样：
+\begin{minted}{Rust}
+    // `Fn`, `FnMut`, `FnOnce` trait的伪代码。
+    trait Fn() -> R {
+        fn call(&self) -> R;
+    }
+
+    trait FnMut() -> R {
+        fn call_mut(&mut self) -> R;
+    }
+
+    trait FnOnce() -> R {
+        fn call_once(self) -> R;
+    }
+\end{minted}
+
+所有需要值的\texttt{mut}方法，但不会drop任何值的闭包，都是一个\texttt{FnMut}闭包。例如：
+\begin{minted}{Rust}
+    let mut i = 0;
+    let incr = || {
+        i += 1; // incr借用了i的一个可变引用
+        println!("Ding! i is now: {}", i);
+    };
+    call_twice(incr);
+\end{minted}
+
+我们编写的\texttt{call\_twice}需要一个\texttt{Fn}。因为\texttt{incr}是一个\texttt{FnMut}而不是\texttt{Fn}，所以这段代码回编译失败。然而，有一种简单的修复方法。为了理解这种修复方法，让我们后退一步，总结一下你学到的有关Rust的三种闭包的知识：
+\begin{itemize}
+    \item \texttt{Fn}是你可以没有限制地调用多次的闭包和函数家族。这个最高的类别还包括所有的\texttt{fn}函数。
+    \item \texttt{FnMut}是如果闭包本身被声明为\texttt{mut}时可以调用多次的闭包家族。
+    \item \texttt{FnOnce}是当调用者拥有它时可以调用一次的闭包家族。
+\end{itemize}
+
+每一个\texttt{Fn}都满足\texttt{FnMut}的要求，每一个\texttt{FnMut}都满足\texttt{FnOnce}的要求。如\autoref{f14-2}所示，它们并不是独立的三个类别。
+
+\texttt{Fn()}是\texttt{FnMut()}的一个子集，\texttt{FnMut()}又是\texttt{FnOnce()}的一个子集。这使得\texttt{Fn}是最独特和强大的分类。\texttt{FnMut}和\texttt{FnOnce}是范围更广一些的分类，它们包含有一些使用限制的闭包。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f14-2.png}
+    \caption{三种闭包类别的维恩图}
+    \label{f14-2}
+\end{figure}
+
+现在我们已经梳理了我们所知的内容，显然为了尽可能接受更多的闭包类型，我们的\texttt{call\_twice}实际上应该接受所有的\texttt{FnMut}闭包，像这样：
+\begin{minted}{Rust}
+    fn call_twice<F>(mut closure: F) where F: FnMut() {
+        closure();
+        closure();
+    }
+\end{minted}
+
+原本第一行的约束是\texttt{F: Fn()}，现在是\texttt{F: FnMut()}。有了这个修改之后，我们仍然可以接受所有的\texttt{Fn}闭包，并且现在还可以对可变的数据调用调用\texttt{call\_twice}：
+\begin{minted}{Rust}
+    let mut i = 0;
+    call_twice(|| i += 1);  // ok!
+    assert_eq!(i, 2);
+\end{minted}
 
 \section{回调}\label{callback}
 
