@@ -1,3 +1,163 @@
 \chapter{闭包}\label{ch14}
 
+\emph{Save the environment! Create a closure today!}
+
+\begin{flushright}
+    ——Cormac Flanagan
+\end{flushright}
+
+排序一个整数的vector非常简单：
+\begin{minted}{Rust}
+    integers.sort();
+\end{minted}
+
+然而一个悲伤的事实是，当我们想要对一些数据排序时，它们基本从来都不只是整数。我们通常要排序某种记录，内建的\texttt{sort}方法通常不能工作：
+\begin{minted}{Rust}
+    struct City {
+        name: String,
+        population: i64,
+        country: String,
+        ...
+    }
+
+    fn sort_cities(cities: &mut Vec<City>) {
+        cities.sort();  // 错误：你想让它们怎么排序？
+    }
+\end{minted}
+
+Rust会报错\texttt{City}没有实现\texttt{std::cmp::Ord}。我们需要像这样指明排序的顺序：
+\begin{minted}{Rust}
+    /// 按照人口排序城市的辅助函数
+    fn city_population_descending(city: &City) -> i64 {
+        -city.population
+    }
+
+    fn sort_cities(cities: &mut Vec<City>) {
+        cities.sort_by_key(city_population_descending); // ok
+    }
+\end{minted}
+
+这个辅助函数\texttt{city\_population\_descending}，获取一个\texttt{City}记录并提取出\emph{key}，我们根据这个字段来排序数据。（它返回一个负数是因为\texttt{sort}以递增顺序排序，但我们想以降序排序：人多最多的城市优先。）\texttt{sort\_by\_key}方法以这个返回key的函数为参数。
+
+这可以工作的很好，当如果将辅助函数写成一个\emph{闭包(closure)}（一个匿名的函数表达式）会更简洁：
+\begin{minted}{Rust}
+    fn sort_cities(cities: &mut Vec<City>) {
+        cities.sort_by_key(|city| -city.population);
+    }
+\end{minted}
+
+这里的闭包是\texttt{|city| -city.population}。它有一个参数\texttt{city}，然后返回\texttt{-city.population}。Rust会从闭包的使用中推断出参数和返回值的类型。
+
+标准库中其他接受闭包的特性的例子包括：
+\begin{itemize}
+    \item \texttt{Iterator}的方法例如\texttt{map}和\texttt{filter}。我们将在\hyperref[ch15]{第15章}介绍这些方法。
+    \item 线程的API例如\texttt{thread::spawn}，它会创建一个新的系统线程。并发就是把工作移动到其他的线程，闭包能方便的表示这种工作单元。我们将在\hyperref[ch19]{第19章}中介绍这些特性。
+    \item 一些需要根据条件计算默认值的方法，例如\texttt{HashMap}条目的\texttt{or\_insert\_with}方法。这个方法获取一个\texttt{HashMap}的表项，或者创建一个表项，当计算默认值有很大开销时会使用这个方法。只有当必须创建一个新表项的时候作为闭包传入的默认值才会被调用。
+\end{itemize}
+
+当然，现在匿名函数随处可见，即使像Java、C\#、Python、C++这些一开始没有的语言现在也有了。从现在开始我们将假设你已经见过匿名函数，并专注于介绍Rust的闭包的独特之处。本章中，你将学习到三种不同类型的闭包、如何将闭包和标准库方法一起使用、一个闭包如何“捕获”作用域内的变量、如何编写自己的以闭包为参数的函数和方法、以及如何存储闭包以待之后用于回调。我们将解释Rust的闭包是怎么实现的，以及为什么它们比你想象的更加快速。
+
+\section{捕获变量}
+一个闭包可以使用封闭函数内的数据。例如：
+\begin{minted}{Rust}
+    /// 根据统计数据排序
+    fn sort_by_statistic(cities: &mut Vec<City>, stat: Statistic) {
+        cities.sort_by_key(|city| -city.get_statistic(stat));
+    }
+\end{minted}
+
+这里的闭包使用了\texttt{stat}，它属于当前的封闭函数\texttt{sort\_by\_statistic}。我们说这个闭包“捕获”了\texttt{stat}。这是闭包最经典的特性之一。Rust自然支持它，但在Rust中，这个特性有很多需要注意的地方。
+
+在大多数有闭包的语言中，垃圾收集扮演了重要的角色。例如，考虑这段JavaScript代码：
+\begin{minted}{Rust}
+    // 开始一段动画，重新排序表格中的城市
+    function startSortingAnimation(cities, stat) {
+        // 排序表格时用到的辅助函数。
+        // 注意这个函数用到了stat
+        function keyfn(city) {
+            return city.get_statistic(stat);
+        }
+
+        if (pendingSort)
+            pendingSort.cancel();
+
+        // 现在开始动画，向它传递keyfn。
+        // 排序算法之后将会调用keyfn。
+        pendingSort = new SortingAnimation(cities, keyfn);
+    }
+\end{minted}
+
+这个闭包\texttt{keyfn}被存储在新的\texttt{SortingAnimation}对象中。这意味着它可能会在\texttt{startSortingAnimation}返回之后被调用。通常来讲当一个函数返回时，它的所有变量和参数都会离开作用域并且被丢弃。但这里，JavaScript引擎必须一直保持\texttt{stat}，因为闭包中用到了它。大多数JavaScript引擎通过在堆上分配\texttt{stat}，然后让垃圾收集器之后再回收它来做到这一点。
+
+Rust没有垃圾收集。那么这样的代码会如何运作？为了回答这个问题，我们先看两个例子。
+
+\subsection{借用的闭包}
+首先，让我们重复这一节开始时的例子：
+\begin{minted}{Rust}
+    /// 根据统计数据排序
+    fn sort_by_statistic(cities: &mut Vec<City>, stat: Statistic) {
+        cities.sort_by_key(|city| -city.get_statistic(stat));
+    }
+\end{minted}
+
+在这个例子中，当Rust创建闭包时，它会自动自动借用一个\texttt{stat}的引用。按理来说，闭包用到了\texttt{stat}，所以它必须有一个指向它的引用。
+
+剩余的部分就很简单了。闭包仍然遵循我们在\hyperref[ch05]{第5章}中介绍的有关借用和生命周期的规则。另外，因为闭包包含一个\texttt{stat}的引用，所以Rust不允许它比\texttt{stat}活得更长。因为这个闭包只在排序中使用，所以这个例子没有问题。
+
+简单来说，Rust通过使用生命周期代替垃圾收集来保证安全性。Rust的方式更加快速：即使是一个很快的GC分配器也比Rust这种把\texttt{stat}存在栈上的方式慢。
+
+\subsection{偷取的闭包}
+第二个例子更加棘手：
+\begin{minted}{Rust}
+    use std::thread;
+
+    fn start_sorting_thread(mut cities: Vec<City>, stat: Statistic) -> thread::JoinHandle<Vec<City>>
+    {
+        let key_fn = |city: &City| -> i64 { -city.get_statistic(stat) };
+
+        thread::spawn(|| {
+            cities.sort_by_key(key_fn);
+            cities
+        })
+    }
+\end{minted}
+
+这和我们上面的JavaScript的例子有一些像：\texttt{thread::spawn}获取闭包并且在一个新的系统线程中调用它。注意\texttt{||}是闭包的空参数列表。
+
+新的线程和调用者并行运行。当闭包返回时，新的线程也会退出。（闭包的返回值会通过一个\texttt{JoinHandle}值返还给调用者。我们将在\hyperref[ch19]{第19章}中讨论它）。
+
+闭包\texttt{key\_fn}仍然包含一个\texttt{stat}的引用。但这一次，Rust不能保证引用会被安全使用。因此Rust会拒绝这个程序：
+\begin{minted}{text}
+    error[E0373]: closure may outlive the current function, but it borrows `stat`,
+                  which is owned by the current function
+      --> closures_sort_thread.rs:33:18
+       |
+    33 | let key_fn = |city: &City| -> i64 { -city.get_statistic(stat) };
+       |              ^^^^^^^^^^^^^^^^^^^^                       ^^^^
+       |              |                                      `stat` is borrowed here
+       |              may outlive borrowed value `stat`
+\end{minted}
+
+事实上，这里有两个问题，因为\texttt{cities}也被不安全地共享。简单来说，\texttt{thread::spawn}新创建的线程不能保证在\texttt{cities}和\texttt{stat}在离开函数被销毁之前完成工作。
+
+解决这两个问题的方法是一样的：告诉Rust把\texttt{cities}和\texttt{stat}\emph{移动(move)}进新的闭包，而不是借用它们的引用：
+\begin{minted}{Rust}
+    fn start_sorting_thread(mut cities: Vec<City>, stat: Statistic)
+        -> thread::JoinHandle<Vec<City>>
+    {
+        let key_fn = move |city: &City| -> i64 { -city.get_statistic(stat) };
+
+        thread::spawn(move || {
+            cities.sort_by_key(key_fn);
+            cities
+        })
+    }
+\end{minted}
+
+我们唯一修改的地方就是在两个闭包前面都加上了\texttt{move}关键字。\texttt{move}关键字告诉Rust闭包并不是借用它用到的值，而是偷取它们。
+
+第一个闭包\texttt{key\_fn}，获取了\texttt{stat}的所有权。然后第二个闭包获取了\texttt{cities}和\texttt{key\_fn}的所有权。
+
+
+
 \section{函数和闭包类型}\label{fn}
