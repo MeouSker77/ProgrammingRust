@@ -482,6 +482,45 @@ Rust认为non-\texttt{mut}的值可以安全在线程间共享。但在线程间
     assert_eq!(i, 2);
 \end{minted}
 
+\subsection{闭包的\texttt{Copy}和\texttt{Clone}}
+正如Rust能自动分辨出哪些闭包只能调用一次一样，它也能分辨出哪些闭包可以实现\texttt{Copy}和\texttt{Clone}，哪些不能。
+
+正如我们之前解释的一样，闭包被表示为包含它们捕获的值（\texttt{move}闭包）或者引用（non-\texttt{move}闭包）的结构体。闭包的\texttt{Copy}和\texttt{Clone}的规则就类似于普通结构体的\texttt{Copy}和\texttt{Clone}的规则。一个没有可变变量的non-\texttt{move}的闭包只有共享引用，共享引用是\texttt{Clone}和\texttt{Copy}，所以这种闭包也是\texttt{Clone}和\texttt{Copy}：
+\begin{minted}{Rust}
+    let y = 10;
+    let add_y = |x| x + y;
+    let copy_of_add_y = add_y;                  // 这个闭包是`Copy`，因此...
+    assert_eq!(add_y(copy_of_add_y(22)), 42);   // ...我们可以使用这两个。
+\end{minted}
+
+另一方面，一个\emph{有}可变值的non-\texttt{move}闭包在内部的表示中包含可变引用。可变引用既不是\texttt{Clone}也不是\texttt{Copy}，因此这样的一个闭包既不是\texttt{Copy}也不是\texttt{Clone}：
+\begin{minted}{Rust}
+    let mut x = 0;
+    let mut add_to_x = |n| { x += n; x };
+
+    let copy_of_add_to_x = add_to_x;                // 移动，而不是拷贝
+    assert_eq!(add_to_x(copy_of_add_to_x(1)), 2);   // 错误：使用了被移动的值
+\end{minted}
+
+对于\texttt{move}闭包来说，规则变得更简单了。如果一个\texttt{move}闭包捕获的所有值都是\texttt{Copy}，那么它也是\texttt{Copy}。如果它捕获的所有值都是\texttt{Clone}，那么它也是\texttt{Clone}。例如：
+\begin{minted}{Rust}
+    let mut greeting = String::from("Hello, ");
+    let greet = move |name| {
+        greeting.push_str(name);
+        println!("{}", greeting);
+    };
+    greet.clone()("Alfred");
+    greet.clone()("Bruce");
+\end{minted}
+
+这个\texttt{.clone()(...)}语法有一点奇怪，但它只是因为着我们克隆了闭包然后调用它。这个程序输出：
+\begin{minted}{Rust}
+    Hello, Alfred
+    Hello, Bruce
+\end{minted}
+
+当\texttt{greeting}在\texttt{greet}中使用时，它会被移动进表示\texttt{greet}的内部结构体里，因为它是\texttt{move}闭包。因此，当我们克隆\texttt{greet}时，它里面的所有内容都会被克隆。这里有两个\texttt{greeting}的拷贝，当调用克隆的\texttt{greet}时它们会被独立地修改。它本身用处不大，但当你需要把同样的闭包传递给不止一个函数时，它会很有用。
+
 \section{回调}\label{callback}
 
 \section{高效地使用闭包}
