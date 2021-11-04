@@ -1,3 +1,111 @@
 \chapter{迭代器}\label{ch15}
 
-\section{Iterator与IntoIterator trait}\label{iter}
+\emph{It was the end of a very long day.}
+
+\begin{flushright}
+    ——Phil
+\end{flushright}
+
+一个\emph{迭代器(iterator)}可以产生一个指的序列，通常会使用一个循环来进行处理。Rust的标准库提供了遍历vector、字符串、哈希表和其他集合的迭代器，以及从一个输入流中产生若干行文本的迭代器、到达网络服务器的连接的迭代器、通过通道从其他线程接收到的值的迭代器，等等。当然，你可以实现自己的迭代器。Rust的\texttt{for}循环提供了一种自然地使用迭代器的语法，但迭代器自身也提供了丰富的方法集合用于映射、过滤、连接、收集等用途。
+
+Rust的迭代器灵活、表达力强、高效。考虑下面的函数，它返回前\texttt{n}个正数的和（通常也被称为\emph{第n个三角数(nth triangle number)}：
+\begin{minted}{Rust}
+    fn triangle(n: i32) -> i32 {
+        let mut sum = 0;
+        for i in 1..=n {
+            sum += i;
+        }
+        sum
+    }
+\end{minted}
+
+表达式\texttt{1..=n}是一个\texttt{RangeInclusive<i32>}值。一个\texttt{RangeInclusive<i32>}是一个产生从起点到终点的所有整数的迭代器（包含起点和终点），因此你可以将它用作\texttt{for}循环的操作数来求\texttt{1}到\texttt{n}的和。
+
+但迭代器也有一个\texttt{fold}方法，你可以使用它实现如下的等价定义：
+\begin{minted}{Rust}
+    fn triangle(n: i32) -> i32 {
+        (1..=n).fold(0, |sum, item| sum + item)
+    }
+\end{minted}
+
+以\texttt{0}作为起始的总和，\texttt{fold}会获取\texttt{1..=n}产生的每个值，然后用总和和产生的值调用闭包\texttt{|sum, item| sum + item}，每一次闭包的返回值就是新的总和。它最后返回的值就是\texttt{fold}自身返回的值——在这个例子中，就是整个序列的总和。如果你习惯使用\texttt{for}和\texttt{while}循环，那么这看起来会有些奇怪，但一旦你习惯了它，\texttt{fold}就是一个可读性强而简洁的替代方案。
+
+这种写法是函数式编程语言的标准写法，这使得表达式有更强的表现力。但Rsut的迭代器是精心设计的，为了保证编译器可以把它们翻译成优秀的机器代码。在release构建模式下构建上面第二个定义时，Rust知道\texttt{fold}的定义，并且把它内联进\texttt{triangle}。然后，闭包\texttt{|sum, item| sum + item}也会被内联。最后，Rust会检查组合之后的代码，然后发现有一种更简单的方法计算从1到\texttt{n}的和：和总是等于\texttt{n * (n+1) / 2}。Rust会把\texttt{triangle}的整个函数体，包括循环、闭包等所有内容，变成一次乘法指令和一些其他的位运算。
+
+这个例子恰巧可以转换成简单的算术，但在更复杂的使用中迭代器也可以表现的很好。它们是Rust提供灵活抽象的同时只有很小甚至没有开销的另一个例子。
+
+在本章中，我们将会解释：
+\begin{itemize}
+    \item \texttt{Iterator}和\texttt{IntoIterator} trait，它们是Rust迭代器的基础
+    \item 经典迭代器管道的三个阶段：从初始的值创建一个迭代器；通过选择或处理值将一种迭代器变成另一种；消耗迭代器产生的值
+    \item 如何为自己的类型实现迭代器
+\end{itemize}
+
+迭代器有很多方法，所以一旦你了解了大概的思路，就可以跳过一节。但迭代器在Rust的习惯用法中非常普遍，熟悉这些随附的工具对掌握这门语言至关重要。
+
+\section{\texttt{Iterator}与\texttt{IntoIterator trait}}\label{iter}
+
+一个迭代器是任何实现了\texttt{std::iter::Iterator} trait的类型：
+\begin{minted}{Rust}
+    trait Iterator {
+        type Item;
+        fn next(&mut self) -> Option<Self::Item>;
+        ... // 很多默认方法
+    }
+\end{minted}
+
+\texttt{Item}是迭代器产生的值的类型。\texttt{next}方法可能返回\texttt{Some(v)}，其中\texttt{v}是迭代器的下一个值；或者返回\texttt{None}，表示已经到达序列的终点。这里我们省略了\texttt{Iterator}的很多默认方法；我们将在本章的剩余部分分别介绍它们。
+
+如果有一种自然的方法从一个类型上迭代，那么这个类型可以实现\texttt{std::iter::IntoIterator}，它的\texttt{into\_iter}方法获取一个值并返回一个迭代它的迭代器：
+\begin{minted}{Rust}
+    trait IntoIterator where Self::IntoIterator: Iterator<Item=Self::Item> {
+        type Item;
+        type IntoIter: Iterator;
+        fn into_iter(self) -> Self::IntoIter;
+    }
+\end{minted}
+
+\texttt{IntoIter}是迭代器自身的类型，\texttt{Item}是它产生的值的类型。我们称所有实现了\texttt{IntoIterator}的类型为\emph{可迭代对象(iterable)}，因为你可以迭代它。
+
+Rust的\texttt{for}循环将这些部分漂亮地组合在一起。为了迭代一个迭代器的元素，你可以写：
+\begin{minted}{Rust}
+    println!("There's:");
+    let v = vec!["antimony", "arsenic", "alumium", "selenium"];
+
+    for element in &v {
+        println!("{}", element);
+    }
+\end{minted}
+
+在底层，每一个\texttt{for}循环只是\texttt{IntoIterator}和\texttt{Iterator}的方法调用的缩写：
+\begin{minted}{Rust}
+    let mut iterator = (&v).into_iter();
+    while let Some(element) = iterator.next() {
+        println!("{}", element);
+    }
+\end{minted}
+
+\texttt{for}循环使用了\texttt{IntoIterator::into\_iter}来把操作数\texttt{\&v}转换成一个迭代器，然后重复调用\texttt{Iterator::next}。每一次返回\texttt{Some(element)}时，\texttt{for}循环会执行循环体；如果它返回\texttt{None}，循环会终止。
+
+考虑这个例子，其中有一些迭代器的术语：
+\begin{itemize}
+    \item 正如我们所说，\emph{迭代器(iterator)}是任何实现了\texttt{Iterator}的类型。
+    \item \emph{可迭代对象(iterable)}是任何实现了\texttt{IntoIterator}的类型：你可以通过调用它的\texttt{into\_iter}方法获得一个迭代它的迭代器。这个例子中vector的引用\texttt{\&v}就是可迭代对象。
+    \item 一个迭代器\emph{产生(produce)}值。
+    \item 迭代器产生的值是\emph{item}。这里，item是\texttt{"antimony", "arsenic}，等等。
+    \item 接受迭代器产生的item的代码是\emph{消费者(consumer)}。这个例子中，\texttt{for}循环就是消费者。
+\end{itemize}
+
+尽管\texttt{for}循环总是调用操作数的\texttt{into\_iter}，你也可以直接向\texttt{for}循环传递迭代器；例如，当你在\texttt{Range}上循环时就是这种情况。所有的迭代器都会自动实现\texttt{IntoIterator}，它们的\texttt{into\_iter}方法简单地返回迭代器自身。
+
+如果在迭代器返回了\texttt{None}之后，你再调用它的\texttt{next}方法，那么\texttt{Iterator} trait并没有指定这种情况下该怎么做。大多数会再次返回\texttt{None}，但不是所有。（如果这导致了问题，“\nameref{fuse}”中介绍的\texttt{fuse}适配器可能会有帮助。）
+
+\section{创建迭代器}
+
+\section{迭代器适配器}
+
+\subsection{\texttt{fuse}}\label{fuse}
+
+\section{消耗迭代器}
+
+\section{实现自己的迭代器}
