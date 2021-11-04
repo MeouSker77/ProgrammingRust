@@ -101,6 +101,42 @@ Rust的\texttt{for}循环将这些部分漂亮地组合在一起。为了迭代�
 如果在迭代器返回了\texttt{None}之后，你再调用它的\texttt{next}方法，那么\texttt{Iterator} trait并没有指定这种情况下该怎么做。大多数会再次返回\texttt{None}，但不是所有。（如果这导致了问题，“\nameref{fuse}”中介绍的\texttt{fuse}适配器可能会有帮助。）
 
 \section{创建迭代器}
+Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器，但标准库提供了一些通用的约定来帮助你找到需要的迭代器。
+
+\subsection{\texttt{iter}和\texttt{iter\_mut}方法}
+大多数集合类型提供\texttt{iter}和\texttt{iter\_mut}方法，它们返回一个迭代器，迭代器会产生每一个item的共享引用或可变引用。数组切片例如\texttt{\&[T]}和\texttt{\&mut [T]}也有\texttt{iter}和\texttt{iter\_mut}方法。除了使用\texttt{for}循环自动处理之外，这些方法是最常用的获得迭代器的方法：
+\begin{minted}{Rust}
+    let v = vec![4, 20, 12, 8, 6];
+    let mut iterator = v.iter();
+    assert_eq!(iterator.next(), Some(&4));
+    assert_eq!(iterator.next(), Some(&20));
+    assert_eq!(iterator.next(), Some(&12));
+    assert_eq!(iterator.next(), Some(&8));
+    assert_eq!(iterator.next(), Some(&6));
+    assert_eq!(iterator.next(), None);
+\end{minted}
+
+这个迭代器的item类型是\texttt{\&i32}：每一次调用\texttt{next}都会产生下一个元素的引用，直到到达vector的终点。
+
+每一个类型都可以实现\texttt{iter}和\texttt{iter\_mut}，不管它们实现的方式是什么。\texttt{std::path::Path}的\texttt{iter}返回的迭代器一次产生路径的一段：
+\begin{minted}{Rust}
+    use std::ffi::OsStr;
+    use std::path::Path;
+
+    let path = Path::new("C:/Users/JimB/Downloads/Fedora.iso");
+    let mut iterator = path.iter();
+    assert_eq!(iterator.next(), Some(OsStr::new("C:")));
+    assert_eq!(iterator.next(), Some(OsStr::new("Users")));
+    assert_eq!(iterator.next(), Some(OsStr::new("JimB")));
+    ...
+\end{minted}
+
+这个迭代器的item类型是\texttt{\&std::ffi::OsStr}，它是操作系统调用接受的一种字符串类型的引用切片。
+
+如果某个类型有不止一种迭代方式，那么这个类型通常为每种遍历方式提供特定的方法，因为这时普通的\texttt{iter}方法将会导致歧义。例如，\texttt{\&str}字符串切片类型没有\texttt{iter}方法。作为替代，假设\texttt{s}是\texttt{\&str}，那么\texttt{s.bytes()}返回一个产生\texttt{s}的每个字节的迭代器，而\texttt{s.chars()}会以UTF-8编码解析它的内容，然后产生每一个Unicode字符。
+
+\subsection{}
+
 
 \section{迭代器适配器}
 
