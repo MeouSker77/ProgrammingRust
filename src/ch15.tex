@@ -244,6 +244,22 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
 
 注意：\texttt{from\_fn}和\texttt{successors}方法非常灵活，你可以通过传递闭包来达到你想要的行为，并将很多迭代器的使用变为一次对其中一个的调用。但这样做会忽略迭代器提供的表明数据流动和使用标准名称用于通用模式的能力。在你使用这两个函数之前请确保你已经熟悉了本章中的其他迭代器方法，它们通常是更好的完成工的方式。
 
+\subsection{\texttt{drain}方法}
+很多集合类型提供一个\texttt{drain}方法来获取集合的可变引用，并返回一个迭代器把每个元素的所有权传递给消费者。然而，和\texttt{into\_iter()}以值获取集合并消耗它不同，\texttt{drain}借用一个集合的可变引用，并且当迭代器被drop时，它会移除集合中剩余的所有元素，让集合变为空。
+
+对于可以用范围索引的类型，例如\texttt{String}、vector、\texttt{VecDeque}，\texttt{drain}方法获取一个要移除的元素的范围，而不是消耗整个序列：
+\begin{minted}{Rust}
+    use std::iter::FromIterator;
+
+    let mut outer = "Earth".to_string();
+    let inner = String::from_iter(outer.dran(1..4));
+
+    assert_eq!(outer, "Eh");
+    assert_eq!(inner, "art");
+\end{minted}
+
+如果你确实要消耗整个序列，使用整个范围\texttt{..}作为参数。
+
 
 
 \section{迭代器适配器}
