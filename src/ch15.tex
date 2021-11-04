@@ -260,9 +260,73 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
 
 如果你确实要消耗整个序列，使用整个范围\texttt{..}作为参数。
 
+\subsection{其他迭代器源}
+上面的几节基本都是关于像vector和\texttt{HashMap}这样的集合类型的，但标准库中还有很多其他类型支持迭代。\autoref{t15-1}总结了一些有趣的类型，但还有更多没有列出。我们将在专门介绍特定类型的章节（即\hyperref[ch16]{第16章}、\hyperref[ch17]{第17章}、\hyperref[ch18]{第18章}）中详细介绍其中的一些方法。
 
+\begin{longtable}{p{0.22\textwidth}p{0.23\textwidth}p{0.45\textwidth}}
+    \caption{标准库中的其他迭代器}
+    \label{t15-1}\\
+    \hline
+    \textbf{类型或trait} & \textbf{表达式} & \textbf{注意} \\
+    \hline
+    \multirow{2}{*}{\texttt{std::ops::Range}} & \texttt{1..10} & 端点必须是整数才能迭代。包括起点但不包括终点。 \\
+    & \texttt{(1..10).step\_by(2)} \cellcolor{tablecolor} & 产生1，3，5，7，9。 \cellcolor{tablecolor} \\
+    \hline
+    \texttt{std::ops::RangeFrom} & \texttt{1..} & 无限迭代。起点必须是整数。当值到达了这种类型的极限时可能会panic或者溢出。 \\
+    \hline
+    \rowcolor{tablecolor}
+    \texttt{std::ops:: RangeInclusive} & \texttt{1..=10} & 类似\texttt{Range}，但包括终点值。 \\
+    \hline
+    \texttt{Option<T>} & \texttt{Some(10).iter()} & 类似于一个长度为0(\texttt{None})或1的vector(\texttt{Some(v)})。 \\
+    \hline
+    \rowcolor{tablecolor}
+    \texttt{Result<T, E>} & \texttt{Ok("blah").iter()} & 类似于\texttt{Option}，产生\texttt{Ok}值。 \\
+    \hline
+    \multirow{7}{*}{\texttt{Vec<T>, \&[T]}} & \texttt{v.windows(16)} & 从左到右产生重叠的、连续的给定长度的切片。 \\
+    & \texttt{v.chunks(16)} \cellcolor{tablecolor} & 从左到右产生非重叠的、连续的给定长度的切片。 \cellcolor{tablecolor} \\
+    & \texttt{v.chunks\_mut(1024)} & 类似\texttt{chunks}，不过切片是可变的。 \\
+    & \texttt{v.split(|byte| byte \& 1 != 0)} \cellcolor{tablecolor} & 产生被满足条件的元素分隔的切片。 \cellcolor{tablecolor} \\
+    & \texttt{v.split\_mut(...)} & 同上，但产生可变切片。 \\
+    & \texttt{v.rsplit(...)} \cellcolor{tablecolor} & 类似\texttt{split}，但从右向左产生切片。 \cellcolor{tablecolor} \\
+    & \texttt{v.splitn(n, ...)} & 类似\texttt{split}，但最多产生\texttt{n}个切片。 \\
+    \hline
+    \multirow{5}{*}{\texttt{String, \&str}} & \texttt{s.bytes()} \cellcolor{tablecolor} & 产生UTF-8字符串的字节。 \cellcolor{tablecolor} \\
+    & \texttt{s.chars()} & 产生UTF-8字符串的\texttt{char}。 \\
+    & \texttt{s.split\_whitespace()} \cellcolor{tablecolor} & 以空格分隔字符串，产生非空字符们的切片。 \cellcolor{tablecolor} \\
+    & \texttt{s.lines()} & 产生字符串的每一行的切片。 \\
+    & \texttt{s.split('/')} \cellcolor{tablecolor} & 用给定的模式分隔字符串，产生每两个匹配之间的内容的切片。模式可以是字符、字符串或者闭包。\cellcolor    {tablecolor} \\
+    \hline
+    \multirow{5}{*}{\shortstack[l]{\texttt{std::collections::}\\\texttt{HashMap, std::}\\\texttt{collections::BTreeMap}}} & \texttt{s.matches(char:: is\_numeric)} & 产生匹配给定模式的切片。 \\
+    & \texttt{map.keys(), map.values()} \cellcolor{tablecolor} & 产生map的key或value的共享引用。 \cellcolor{tablecolor} \\
+    & \texttt{map.values\_mut()} & 产生条目的value的可变引用。 \\
+    \hline
+    \multirow{3}{*}{\shortstack[l]{\texttt{std::collections::}\\\texttt{HashSet, std::}\\\texttt{collections::BTreeSet}}} & \texttt{set1.union(set2)} \cellcolor{tablecolor} & 产生\texttt{set1}和\texttt{set2}的并集的元素的共享引用。 \cellcolor{tablecolor} \\
+    & \texttt{set1.intersection(set2)} & 产生\texttt{set1}和\texttt{set2}的交集的元素的共享引用。 \\
+    & & \\
+    \hline
+    \rowcolor{tablecolor}
+    \texttt{std::sync::mpsc:: Receiver} & \texttt{rev.iter()} & 产生另一个线程通过相应的\texttt{Sender}发送的值。 \\
+    \hline
+    \multirow{2}{*}{\texttt{std::io::Read}} & \texttt{stream.bytes()} & 产生来自I/O流的字节。 \\
+    & \texttt{stream.chars()} \cellcolor{tablecolor} & 以UTF-8解析流，产生\texttt{char}。 \cellcolor{tablecolor} \\
+    \hline
+    \multirow{2}{*}{\texttt{std::io::BufRead}} & \texttt{bufstream.lines()} & 以UTF-8解析流，产生\texttt{String}。 \\
+    & \texttt{bufstream.split(0)} \cellcolor{tablecolor} & 用给定的字节切分流，产生\texttt{Vec<u8>}缓冲区。 \cellcolor{tablecolor} \\
+    \hline
+    \texttt{std::fs::ReadDir} & \texttt{std::fs::read\_dir(path)} & 产生目录项。 \\
+    \hline
+    \rowcolor{tablecolor}
+    \texttt{std::net::TcpListener} & \texttt{listener.incoming()} & 产生到来的网络连接。 \\
+    \hline
+    \multirow{3}{*}{自由函数} & \texttt{std::iter::empty()} & 立即返回\texttt{None}。 \\
+    & \texttt{std::iter::once(5)} \cellcolor{tablecolor} & 产生给定值然后结束。 \cellcolor{tablecolor} \\
+    & \texttt{std::iter::repeat("\#9")} & 永远产生给定值。 \\
+    \hline
+\end{longtable}
 
 \section{迭代器适配器}
+
+一旦你得到了一个迭代器，\texttt{Iterator} trait还提供了广泛的\emph{适配器方法(adapter method)}，或者简称为\emph{适配器(adapter)}，它们消耗一个迭代器然后构建一个新的迭代器。
 
 \subsection{\texttt{fuse}}\label{fuse}
 
