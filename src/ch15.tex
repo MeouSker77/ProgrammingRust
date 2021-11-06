@@ -1063,7 +1063,33 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 
 只有当需要的时候这两个方法才会继续消耗item。例如，如果已经有一个item让闭包返回\texttt{true}，那么\texttt{any}会立刻返回\texttt{true}，不会再继续消耗剩余的item。
 
-\subsection{}
+\subsection{\texttt{position, rposition, ExactSizeIterator}}
+\texttt{position}方法应用到迭代器的每一个item上，返回第一个使闭包返回\texttt{true}的item的索引。更确切地说，它返回一个索引的\texttt{Option}：如果没有item使闭包返回\texttt{true}，\texttt{position}会返回\texttt{None}。只要闭包有一次返回\texttt{true}它就会立刻停止。例如：
+\begin{minted}{Rust}
+    let text = "Xerxes";
+    assert_eq!(text.chars().position(|c| c == 'e'), Some(1));
+    assert_eq!(text.chars().position(|c| c == 'z'), None);
+\end{minted}
+
+\texttt{rposition}方法功能相同，不过它是从最后一个元素往前开始搜索。例如：
+\begin{minted}{Rust}
+    let bytes = b"Xerxes";
+    assert_eq!(bytes.iter().rposition(|&c| c == b'e'), Some(4));
+    assert_eq!(bytes.iter().rposition(|&c| c == b'X'), Some(0));
+\end{minted}
+\texttt{rposition}方法需要一个可逆迭代器这样它可以从最后往前遍历。它还需要一个exact-size迭代器这样它才可以返回一个和\texttt{position}一样的索引，即最左侧的索引为\texttt{0}。exact-size迭代器是一个实现了\texttt{std::iter::ExactSizeIterator} trait的迭代器：
+\begin{minted}{Rust}
+    trait ExactSizeIterator: Iterator {
+        fn len(&self) -> usize { ... }
+        fn is_empty(&self) -> bool { ... }
+    }
+\end{minted}
+
+\texttt{len}方法返回剩余item的数量，当迭代结束时\texttt{is\_empty}方法返回\texttt{true}。
+
+自然地，不是每一个迭代器都知道它还会产生多少个item。例如，之前使用的\texttt{str::chars}迭代器就做不到（因为UTF-8是可变宽度的编码），因此你不能对字符串使用\texttt{rposition}。但一个迭代字节数组的迭代器当然知道数组的长度，因此它可以实现\texttt{ExactSizeIterator}。
+
+
 
 \subsection{构建集合：\texttt{collect}和\texttt{FromIterator}}\label{BuildColl}
 
