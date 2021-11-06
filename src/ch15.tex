@@ -1001,7 +1001,38 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 \texttt{max\_by}和\texttt{min\_by}方法以引用向比较函数传递item，这样对于任何种类的迭代器它们都可以高效工作，因此\texttt{cmp}以引用获取参数，即使我们已经使用\texttt{copied}获取过一个产生\texttt{f64} item的迭代器。
 
 \subsection{\texttt{max\_by\_key, min\_by\_key}}
-\texttt{Iterator}的\texttt{max\_by\_key}和\texttt{min\_by_key}方法
+\texttt{Iterator}的\texttt{max\_by\_key}和\texttt{min\_by_key}方法通过比较对item调用闭包返回的值来分别返回最大值和最小值。闭包可以选择item的某些字段或者对item进行计算。因为你通常对最大和最小值相关联的数据感兴趣，而不是对极值本身感兴趣，因此这些方法通常比\texttt{max}和\texttt{min}更有用。它们的签名如下：
+\begin{minted}{Rust}
+    fn min_by_key<B: Ord, F>(self, f: F) -> Option<Self::Item>
+        where Self: Sized, F: FnMut(&Self::Item) -> B;
+
+    fn max_by_key<B: Ord, F>(self, f: F) -> Option<Self::Item>
+        where Self: Sized, F: FnMut(&Self::Item) -> B;
+\end{minted}
+
+也就是说，给定一个接受一个item然后返回任意有序的类型\texttt{B}的闭包，返回一个闭包返回的\texttt{B}最大或最小的item，或者如果没有item产生时返回\texttt{None}。
+
+例如，如果你需要扫描一个城市的哈希表来查找人口最多和最少的城市，你可以写：
+\begin{minted}{Rust}
+    use std::collections::HashMap;
+
+    let mut populations = HashMap::new();
+    populations.insert("Portland",  583_776);
+    populations.insert("Fossil",        449);
+    populations.insert("Greenhorn",       2);
+    populations.insert("Boring",      7_762);
+    populations.insert("The Dalles", 15_340);
+
+    assert_eq!(populations.iter().max_by_key(|&(_name, pop)| pop),
+               Some((&"Portland", &583_776)));
+    assert_eq!(populations.iter().min_by_key(|&(_name, pop)| pop),
+               Some((&"Greenhorn", &2)));
+\end{minted}
+
+闭包\texttt{|\&(\_name, pop)| pop}会应用到迭代器产生的每个item，然后返回用于比较的值——在这个例子中，就是城市的人口。最后返回的值是整个item，而不仅仅是闭包返回的值。（自然地，如果你经常进行这样的查询，你可能会需要一种更高效的存储方式来查找，而不是在这样的表上进行线性查找。）
+
+\subsection{比较item序列}
+
 
 \subsection{构建集合：\texttt{collect}和\texttt{FromIterator}}\label{BuildColl}
 
