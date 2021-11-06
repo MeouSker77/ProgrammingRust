@@ -356,7 +356,7 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
 
 这两个适配器的签名如下：
 \begin{minted}{Rust}
-    fn map<B, F>(self, f: ) -> impl Iterator<Item=B>
+    fn map<B, F>(self, f: F) -> impl Iterator<Item=B>
         where Self: Sized, F: FnMut(Self::Item) -> B;
 
     fn filter<P>(self, predicate: P) -> impl Iterator<Item=Self::Item>
@@ -732,7 +732,36 @@ assert_eq!(chars.next(), None);
 
 大多数迭代器适配器，如果被用于可逆迭代器，会返回另一个可逆迭代器。例如，\texttt{map}和\texttt{filter}会保留可逆性。
 
-\subsection{inspect}
+\subsection{\texttt{inspect}}
+\texttt{inspect}适配器在调试迭代器适配器的管道时很有用，但通常不用在生产代码中。它简单地对每一个item的共享引用应用一个闭包然后传递它们。闭包不能影响到item，但可以做一些类似于打印或进行断言的操作。
+
+这个例子展示了一个将字符串转换为大写会改变长度的例子：
+\begin{minted}{Rust}
+    let upper_case: String = "große".chars()
+        .inspect(|c| println!("before: {:?}", c))
+        .flat_map(|c| c.to_uppercase())
+        .inspect(|c| println!(" after:     {:?}", c))
+        .collect();
+    assert_eq!(upper_case, "GROSSE");
+\end{minted}
+
+小写德语字母“ß”的大写形式是“SS”，这就是为什么\texttt{char::to_uppercase}会返回一个产生字符的迭代器，而不是单个字符。上面的代码中使用\texttt{flat\_map}来把所有\texttt{to\_uppercase}序列连接成单个\texttt{String}，它会打印出下列内容：
+\begin{minted}{text}
+    before: 'g'
+     after:     'G'
+    before: 'r'
+     after:     'R'
+    before: 'o'
+     after:     'O'
+    before: 'ß'
+     after:     'S'
+     after:     'S'
+    before: 'e'
+     after:     'E'
+\end{minted}
+
+\subsection{\texttt{chain}}
+
 
 \section{消耗迭代器}
 
