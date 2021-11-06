@@ -644,14 +644,15 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
             tokens.next();
         }
     }
+
+    let mut chars = "226153980,1766319049".chars().peekable();
+    assert_eq!(parse_number(&mut chars), 226153980);
+    // `parse_number`不会消耗逗号！因此下面不会出错。
+    assert_eq!(chars.next(), Some(','));
+    assert_eq!(parse_number(&mut chars), 1766319049);
+    assert_eq!(chars.next(), None);
 \end{minted}
 
-let mut chars = "226153980,1766319049".chars().peekable();
-assert_eq!(parse_number(&mut chars), 226153980);
-// `parse_number`不会消耗逗号！因此下面不会出错。
-assert_eq!(chars.next(), Some(','));
-assert_eq!(parse_number(&mut chars), 1766319049);
-assert_eq!(chars.next(), None);
 
 \texttt{parse\_number}函数使用\texttt{peek}方法来检查下一个字符，并且只有当它是数字时才消耗它。如果它不是数字或者迭代器被耗尽（也就是，如果\texttt{peek}返回\texttt{None}），我们将会返回已经解析的数字，将下一个字符留在迭代器里，之后再消耗。
 
@@ -745,7 +746,7 @@ assert_eq!(chars.next(), None);
     assert_eq!(upper_case, "GROSSE");
 \end{minted}
 
-小写德语字母“ß”的大写形式是“SS”，这就是为什么\texttt{char::to_uppercase}会返回一个产生字符的迭代器，而不是单个字符。上面的代码中使用\texttt{flat\_map}来把所有\texttt{to\_uppercase}序列连接成单个\texttt{String}，它会打印出下列内容：
+小写德语字母“ß”的大写形式是“SS”，这就是为什么\texttt{char::to\_uppercase}会返回一个产生字符的迭代器，而不是单个字符。上面的代码中使用\texttt{flat\_map}来把所有\texttt{to\_uppercase}序列连接成单个\texttt{String}，它会打印出下列内容：
 \begin{minted}{text}
     before: 'g'
      after:     'G'
@@ -761,7 +762,30 @@ assert_eq!(chars.next(), None);
 \end{minted}
 
 \subsection{\texttt{chain}}
+\texttt{chain}迭代器适配器讲一个迭代器附加到另一个之后。更确切地说，\texttt{i1.chain(i2)}返回的迭代器会首先产生\texttt{i1}的item，当\texttt{i1}耗尽后，再继续产生\texttt{i2}的item。
 
+\texttt{chain}适配器的签名如下：
+\begin{minted}{Rust}
+    fn chain<U>(self, other: U) -> impl Iterator<Item=Self::Item>
+        where Self: Sized, U: IntoIterator<Item=Self::Item>;
+\end{minted}
+
+换句话说，你可以将任何产生相同类型item的迭代器连接起来。
+例如：
+\begin{minted}{Rust}
+    let v: Vec<i32> = (1..4).chain(vec![20, 30, 40]).collect();
+    assert_eq!(v, [1, 2, 3, 20, 30, 40]);
+\end{minted}
+
+如果两个底层迭代器都是可逆的，那么\texttt{chain}迭代器也是可逆的：
+\begin{minted}{Rust}
+    let v: Vec<i32> = (1..4).chain(vec![20, 30, 40]).rev().collect();
+    assert_eq!(v, [40, 30, 20, 3, 2, 1]);
+\end{minted}
+
+一个\texttt{chain}迭代器会追踪是否两个底层迭代器返回过\texttt{None}，并正确地调用\texttt{next}或者\texttt{next\_back}。
+
+\subsection{\texttt{enumerate}}
 
 \section{消耗迭代器}
 
