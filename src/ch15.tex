@@ -1001,7 +1001,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 \texttt{max\_by}和\texttt{min\_by}方法以引用向比较函数传递item，这样对于任何种类的迭代器它们都可以高效工作，因此\texttt{cmp}以引用获取参数，即使我们已经使用\texttt{copied}获取过一个产生\texttt{f64} item的迭代器。
 
 \subsection{\texttt{max\_by\_key, min\_by\_key}}
-\texttt{Iterator}的\texttt{max\_by\_key}和\texttt{min\_by_key}方法通过比较对item调用闭包返回的值来分别返回最大值和最小值。闭包可以选择item的某些字段或者对item进行计算。因为你通常对最大和最小值相关联的数据感兴趣，而不是对极值本身感兴趣，因此这些方法通常比\texttt{max}和\texttt{min}更有用。它们的签名如下：
+\texttt{Iterator}的\texttt{max\_by\_key}和\texttt{min\_by\_key}方法通过比较对item调用闭包返回的值来分别返回最大值和最小值。闭包可以选择item的某些字段或者对item进行计算。因为你通常对最大和最小值相关联的数据感兴趣，而不是对极值本身感兴趣，因此这些方法通常比\texttt{max}和\texttt{min}更有用。它们的签名如下：
 \begin{minted}{Rust}
     fn min_by_key<B: Ord, F>(self, f: F) -> Option<Self::Item>
         where Self: Sized, F: FnMut(&Self::Item) -> B;
@@ -1032,7 +1032,27 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 闭包\texttt{|\&(\_name, pop)| pop}会应用到迭代器产生的每个item，然后返回用于比较的值——在这个例子中，就是城市的人口。最后返回的值是整个item，而不仅仅是闭包返回的值。（自然地，如果你经常进行这样的查询，你可能会需要一种更高效的存储方式来查找，而不是在这样的表上进行线性查找。）
 
 \subsection{比较item序列}
+你可以使用\texttt{<}和\texttt{==}运算符来比较字符串、vector、切片，假设它们的元素可以被比较。尽管迭代器不支持Rust的比较运算符，但它们确实提供了方法例如\texttt{eq}和\texttt{lt}来做相同的工作，这些方法每次从两个迭代器各取一个item进行比较，直到可以比较出结果。例如：
+\begin{minted}{Rust}
+    let packed =  "Helen of Troy";
+    let spaced =  "Helen   of    Troy";
+    let obscure = "Helen of Sandusky";  // 好人，只是没名气
 
+    assert!(packed != spaced);
+    assert!(packed.split_whitespace().eq(spaced.split_whitespace()));
+
+    // 比较为真，因为' ' < 'o'
+    assert!(spaced < obscure);
+
+    // 比较为真，因为'Troy' > 'Sandusky'
+    assert!(spaced.split_whitespace().gt(obscure.split_whitespace()));
+\end{minted}
+
+\texttt{split\_whitespace}的调用返回一个迭代字符串中空格分隔的单词的迭代器。对这些迭代器使用\texttt{eq}和\texttt{gt}方法会进行逐单词的比较，而不是逐字符比较。这些比较都是可行的，因为\texttt{\&str}实现了\texttt{PartialOrd}和\texttt{PartialEq}。
+
+迭代器提供\texttt{eq}和\texttt{ne}方法进行相等性比较，以及\texttt{lt, le, gt, ge}方法用于顺序性比较。\texttt{cmp}和\texttt{partial\_cmp}方法的行为类似于\texttt{Ord}和\texttt{PartialOrd} trait的相应方法。
+
+\subsection{\texttt{any}和\texttt{all}}
 
 \subsection{构建集合：\texttt{collect}和\texttt{FromIterator}}\label{BuildColl}
 
