@@ -689,7 +689,50 @@ assert_eq!(chars.next(), None);
 \texttt{fuse}适配器可能在需要使用不确定来源的迭代器的泛型代码中最有用。与其希望每一个要处理的迭代器都是良定义的，不如使用\texttt{fuse}来确保这种行为。
 
 \subsection{可逆迭代器和\texttt{rev}}
+一些迭代器可以从序列的任意一端产生item。你可以通过使用\texttt{rev}适配器来反转这样的迭代器。例如，一个vector的迭代器可以简单的从尾部到头部产生item。这样的迭代器可以实现\texttt{std::iter::DoubleEndedIterator} trait，它是\texttt{Iterator}的扩展：
+\begin{minted}{Rust}
+    trait DoubleEndedIterator: Iterator {
+        fn next_back(&mut self) -> Option<Self::Item>;
+    }
+\end{minted}
 
+你可以将这样的双端迭代器看做有两个标记分别指向正向和反向迭代的位置。每次从其中一个产生item，都会让它向另一个的方向移动；当它们交汇的时候，迭代就结束了：
+\begin{minted}{Rust}
+    let bee_parts = ["head", "thorax", "abdomen"];
+
+    let mut iter = bee_parts.iter();
+    assert_eq!(iter.next(),      Some(&"head"));
+    assert_eq!(iter.next_back(), Some(&"abdomen"));
+    assert_eq!(iter.next(),      Some(&"thorax"));
+
+    assert_eq!(iter.next_back(), None);
+    assert_eq!(iter.next_back(), None);
+\end{minted}
+
+切片的迭代器可以很容易的实现这种行为：它利用两个指针分别指向还未产生的元素范围的起点和终点；\texttt{next}和\texttt{next\_back}简单地从其中一个产生一个item。有序集合的迭代器例如\texttt{BTreeSet}和\texttt{BTreeMap}也是双端迭代器：它们的\texttt{next\_back}方法以最大元素或条目优先的顺序返回item。一般来说，标准库在可行时都会提供双端迭代器。
+
+但并不是所有的迭代器都可以简单地做到这一点：一个产生其他线程发给通道的\texttt{Receiver}的值的迭代器没有办法预测最后一个到达的值会是什么。一般来说，你应该检查标准库的文档来看看哪些迭代器实现了\texttt{DoubleEndedIterator}，哪些没有。
+
+如果一个迭代器是双端的，你可以使用\texttt{rev}适配器来反转它：
+\begin{minted}{Rust}
+    fn rev(self) -> impl Iterator<Item=Self>
+        where Self: Sized + DoubleEndedIterator;
+\end{minted}
+
+返回的迭代器也是一个双端迭代器：它的\texttt{next}和\texttt{next\_back}方法被简单地交换了：
+\begin{minted}{Rust}
+    let meals = ["breakfast", "lunch", "dinner"];
+
+    let mut iter = meals.iter().rev();
+    assert_eq!(iter.next(), Some(&"dinner"));
+    assert_eq!(iter.next(), Some(&"lunch"));
+    assert_eq!(iter.next(), Some(&"breakfast"));
+    assert_eq!(iter.next(), None);
+\end{minted}
+
+大多数迭代器适配器，如果被用于可逆迭代器，会返回另一个可逆迭代器。例如，\texttt{map}和\texttt{filter}会保留可逆性。
+
+\subsection{inspect}
 
 \section{消耗迭代器}
 
