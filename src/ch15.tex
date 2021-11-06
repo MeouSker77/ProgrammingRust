@@ -937,6 +937,39 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 
 \section{消耗迭代器}
 
+到目前为止，我们已经介绍了创建迭代器和用适配器将它们包装成新的迭代器；接下来我们将展示如何消耗它们来结束这个过程。
+
+当然，你可以使用\texttt{for}循环来消耗一个迭代器，或者显式地调用\texttt{next}，但有很多常见的任务没必要一次又一次地写出来。\texttt{Iterator} trait提供了许多的方法来处理很多常用的情况。
+
+\subsection{简单的累计：\texttt{count, sum, product}}
+\texttt{count}方法不断从一个迭代器获取item直到它返回\texttt{None}，然后告诉你它到底获得了多少个item。这里有一个简短的程序来统计标准输入的行数：
+\begin{minted}{Rust}
+    use std::io::predule::*;
+
+    fn main() {
+        let stdin = std::io::stdin();
+        println!("{}", stdin.lock().lines().count());
+    }
+\end{minted}
+
+\texttt{sum}和\texttt{product}方法计算迭代器的item的和或者积，item必须是整数或者浮点数：
+\begin{minted}{Rust}
+    fn triangle(n: u64) -> u64 {
+        (1..=n).sum()
+    }
+    assert_eq!(triangle(20), 210);
+
+    fn factorial(n: u64) -> u64 {
+        (1..=n).product()
+    }
+    assert_eq!(factorial(20), 2432902008176640000);
+\end{minted}
+
+（你可以通过实现\texttt{std::iter::Sum}和\texttt{std::iter::Product} trait来扩展\texttt{sum}和\texttt{product}可以用于其他类型，但本书中不会介绍。）
+
+\subsection{\texttt{max, min}}
+\texttt{Iterator}的\texttt{min}和\texttt{max}方法分别返回迭代器产生的item中最小的和最大的。
+
 \subsection{构建集合：\texttt{collect}和\texttt{FromIterator}}\label{BuildColl}
 
 \section{实现自己的迭代器}
