@@ -824,7 +824,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
     assert_eq!(v, vec![(0, 'A'), (1, 'B'), (2, 'C'), (3, 'D')]);
 \end{minted}
 
-从这个意义上讲，你可以将\texttt{zip}看做\texttt{enumerate}的泛化版：\texttt{enumerate}把索引附加序列中，\text{zip}把任意另一个迭代器的item附加到序列中。我们之前建议过\text{enumerate}可以帮助提供处理item的上下文；\texttt{zip}是一种更灵活的实现同样功能的方式。
+从这个意义上讲，你可以将\texttt{zip}看做\texttt{enumerate}的泛化版：\texttt{enumerate}把索引附加序列中，\texttt{zip}把任意另一个迭代器的item附加到序列中。我们之前建议过\texttt{enumerate}可以帮助提供处理item的上下文；\texttt{zip}是一种更灵活的实现同样功能的方式。
 
 \texttt{zip}的参数不需要是一个和调用者自己同类型的迭代器；它可以是任意的可迭代对象：
 \begin{minted}{Rust}
@@ -889,8 +889,51 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 换句话说，如果\texttt{I}是迭代器，那么\texttt{\&mut I}也是一个迭代器，它的\texttt{next}和\texttt{size\_hint}方法指向它引用的对象的相应方法。当你在一个迭代器的可变引用上调用适配器时，适配器会获取\emph{引用}的所有权，而不是迭代器本身的所有权。它只是一个当适配器离开作用域时就会结束的借用。
 
 \subsection{\texttt{cloned}和\texttt{copied}}
+\texttt{cloned}适配器获取一个产生引用的迭代器，然后返回一个产生这些引用的拷贝操作返回的值的迭代器。就类似于\texttt{iter.map(|item| item.clone())}。自然地，被引用的类型必须实现\texttt{Clone}。例如：
+\begin{minted}{Rust}
+    let a = ['1', '2', '3', '='];
+    assert_eq!(a.iter().next(),          Some(&'a'));
+    assert_eq!(a.iter().cloned().next(), Some('1'));
+\end{minted}
 
+\texttt{copied}适配器也是相同的思路，但更加严格：被引用的类型必须实现\texttt{Copy}。类似\texttt{iter.copied()}的调用类似于\texttt{iter.map(|r| *r)}。因为每一个实现了\texttt{Copy}的类型都实现了\texttt{Clone}，所以\texttt{cloned}通常更一般化，但根据item的类型不同，\texttt{clone}调用可以做任意次的分配和拷贝操作。如果你假设你的item的类型足够简单所以永远不会发生这种情况，那么最好的方法还是使用\texttt{copied}来让类型检查器检查你的假设。
 
+\subsection{\texttt{cycle}}
+\texttt{cycle}适配器返回一个无限重复底层迭代器产生的序列的迭代器。底层迭代器必须实现了\texttt{std::clone::Clone}，这样\texttt{cycle}才可以保存它的初始状态，然后在每一次循环开始时重用它。
+
+例如：
+\begin{minted}{Rust}
+    let dirs = ["North", "East", "South", "West"];
+    let mut spin = dirs.iter().cycle();
+    assert_eq!(spin.next(), Some(&"North"));
+    assert_eq!(spin.next(), Some(&"East"));
+    assert_eq!(spin.next(), Some(&"South"));
+    assert_eq!(spin.next(), Some(&"West"));
+    assert_eq!(spin.next(), Some(&"North"));
+    assert_eq!(spin.next(), Some(&"East"));
+\end{minted}
+
+或者，完全没有任何开销地使用它：
+\begin{minted}{Rust}
+    use std::iter::{once, repeat};
+
+    let fizzes = repeat("").take(2).chain(once("fize")).cycle();
+    let buzzes = repeat("").take(4).chain(once("buzz")).cycle();
+    let fizzes_buzzes = fizzes.zip(buzzes);
+
+    let fizz_buzz = (1..100).zip(fizzes_buzzes)
+        .map(|tuple|
+             match tuple {
+                 (i, ("", "")) => i.to_string(),
+                 (_, (fizz, buzz)) => format!("{}{}", fizz, buzz)
+             });
+    
+    for line in fizz_buzz {
+        println!("{}", line);
+    }
+\end{minted}
+
+这样就完成了一个小孩子的单词游戏，现在有时也会被用作程序员的面试题目。在这个游戏中，玩家要轮流计数，把任何能被3整除的数替换成单词\texttt{fizz}，任何能被5整除的数替换成\texttt{fizzbuzz}。能被3和5同时整除的数替换为\texttt{fizzbuzz}。
 
 \section{消耗迭代器}
 
