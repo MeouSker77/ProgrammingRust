@@ -58,7 +58,7 @@ Rust的迭代器灵活、表达力强、高效。考虑下面的函数，它返�
 
 如果有一种自然的方法从一个类型上迭代，那么这个类型可以实现\texttt{std::iter::IntoIterator}，它的\texttt{into\_iter}方法获取一个值并返回一个迭代它的迭代器：
 \begin{minted}{Rust}
-    trait IntoIterator where Self::IntoIterator: Iterator<Item=Self::Item> {
+    trait IntoIterator where Self::IntoIter: Iterator<Item=Self::Item> {
         type Item;
         type IntoIter: Iterator;
         fn into_iter(self) -> Self::IntoIter;
@@ -406,6 +406,88 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
 
 这一节剩余的部分将介绍\texttt{Iterator} trait可用的适配器。
 
+\subsection{\texttt{filter\_map}和\texttt{flat\_map}}
+\texttt{map}适配器适用于一个输入item产生一个输出item的情况。但如果你想删除迭代中的某些item而不是处理它们，或者想将一个item替换成0个或更多的item时该怎么做呢？\texttt{filter\_map}和\texttt{flat\_map}适配器赋予了你这种灵活性。
+
+\texttt{filter\_map}适配器类似于\texttt{map}，除了它的闭包要么将一个item转换成一个新的item（和\texttt{map}一样），要么从迭代中丢弃这个item。因此，它有些像\texttt{filter}和\texttt{map}的结合。它的签名如下：
+\begin{minted}{Rust}
+    fn filter_map<B, F>(self, f: F) -> impl Iterator<Item=B>
+        where Self: Sized, F: FnMut(Self::Item) -> Option<B>;
+\end{minted}
+
+除了闭包返回\texttt{Option<B>}之外，而不是\texttt{B}之外，它和\texttt{map}的签名是一样的。当闭包返回\texttt{None}时，这个item会从迭代器中丢弃；当它返回\texttt{Some(b)}时，\texttt{b}就是\texttt{filter\_map}迭代器产生的下一个item。
+
+例如，假设你想扫描一个字符串中空格分隔的单词，找到其中可以被解析为数字的并处理它，然后丢弃其他单词。那你可以写：
+\begin{minted}{Rust}
+    use std::str::FromStr;
+
+    let text = "1\nfrond .25 289\n3.1415 estuary\n");
+    for number in text
+        .split_whitespace()
+        .filter_map(|w| f64::from_str(w).ok())
+    {
+        println!("{:4.2}", number.sqrt());
+    }
+\end{minted}
+打印结果如下：
+\begin{minted}{text}
+    1.00
+    0.50
+    17.00
+    1.77
+\end{minted}
+
+传给\texttt{filter\_map}的闭包尝试对每一个空格分隔的切片调用\texttt{f64::from\_str}。这会返回一个\texttt{Result<f64, ParseFloatError>}，它的\texttt{.ok()}返回一个\texttt{Option<f64>}：解析错误变为\texttt{None}，成功的解析会变为\texttt{Some(v)}。\texttt{filter\_map}迭代器丢弃所有的\texttt{None}值，然后对每一个\texttt{Some(v)}产生值\texttt{v}。
+
+但为什么要将\texttt{map}和\texttt{filter}融合成这样的单个操作，而不是直接使用两个适配器？\texttt{filter\_map}适配器适用于刚刚展示过的这种情况，即只有实际尝试处理过item才知道应不应该包含这个item的情况。你可以只用\texttt{filter}和\texttt{map}做到同样的事情，但这样会很笨拙：
+\begin{minted}{Rust}
+    text.split_whitespace()
+        .map(|w| f64::from_str(w))
+        .filter(|r| r.is_ok())
+        .map(|r| r.unwrap())
+\end{minted}
+
+你可以认为\texttt{flat\_map}适配器和\texttt{map}、\texttt{filter\_map}是同一类的，区别在于现在闭包不是只能返回一个item(\texttt{map})或者0或1个item(\texttt{filter\_map})，而是可以返回任意数量的item。\texttt{flat\_map}迭代器产生闭包返回的序列的串联。
+
+\texttt{flat\_map}的签名如下：
+\begin{minted}{Rust}
+    fn flat_map<U, F>(self, f: F) -> impl Iterator<Item=U::Item>
+        where F: FnMut(Self::Item) -> U, U: IntoIterator;
+\end{minted}
+传给\texttt{flat\_map}的闭包必须返回一个可迭代对象，但任何类型的可迭代对象都可以。\footnote{事实上，因为\texttt{Option}也是一个可迭代对象，行为就像一个有0个或者1个item的序列。所以假设\texttt{closure}返回一个\texttt{Option<T>}，那么\texttt{iterator.filter\_map(closure)}等价于\texttt{iterator.flat\_map(closure)}。}
+
+例如，假设我们有一个把国家映射到主要城市的表。给定一个构架的列表，那我们怎么遍历它们的主要城市？
+\begin{minted}{Rust}
+    use std::collections::HashMap;
+
+    let mut major_cities = HashMap::new();
+    major_cities.insert("Japan", vec!["Tokyo", "Kyoto"]);
+    major_cities.insert("The United States", vec!["Portland", "Nashville"]);
+    major_cities.insert(""Brazil", vec!["São Paulo", "Brasilia"]);
+    major_cities.insert("Kenya", vec!["Nairobi", "Mombasa"]);
+    major_cities.insert("The Netherlands", vec!["Amsterdam", "Utrecht"]);
+
+    let countries = ["Japan", "Brazil", "Kenya"];
+
+    for &city in countries.iter().flat_map(|country| &major_cities[country]) {
+        println!("{}", city);
+    }
+\end{minted}
+这会打印出下列内容：
+\begin{minted}{text}
+    Tokyo
+    Kyoto
+    São Paulo
+    Brasilia
+    Nairobi
+    Mombasa
+\end{minted}
+
+这段代码的意思是，对于每一个国家，我们都获取它的城市的vector，然后将所有vector连接成单个序列，然后打印出来。
+
+但记住迭代是惰性的：只有当\texttt{for}循环调用了\texttt{flat\_map}迭代器的\texttt{next}方法时才会开始计算。完全连接的序列从来不会在内存中构造。实际上，这里只有一个小的状态机，对于每一个城市迭代器，一次打印一个item，直到耗尽，然后为下一个国家产生一个新的城市迭代器。效果就类似于嵌套的循环，但被打包用作迭代器。
+
+\subsection{\texttt{flatten}}
 
 \subsection{\texttt{fuse}}\label{fuse}
 
