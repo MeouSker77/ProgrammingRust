@@ -575,14 +575,46 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
     }
 \end{minted}
 
-回顾“”，当字符串行以反斜杠结尾时，Rust并不会把下一行的缩进包含进字符串里，因此这个字符串中的任何一行都没有前导空格。这意味着\texttt{message}的第三行是空行。\texttt{take\_while}适配器第一看到空行时就会停止迭代，一次你这段代码只会打印出两行：
+回顾“\nameref{StrLiteral}”，当字符串行以反斜杠结尾时，Rust并不会把下一行的缩进包含进字符串里，因此这个字符串中的任何一行都没有前导空格。这意味着\texttt{message}的第三行是空行。\texttt{take\_while}适配器第一看到空行时就会停止迭代，一次你这段代码只会打印出两行：
 \begin{minted}{text}
     To: jimb
     From: superego <editor@oreilly.com>
 \end{minted}
 
 \subsection{\texttt{skip}和\texttt{skip\_while}}
+\texttt{Iterator} trait的\texttt{skip}和\texttt{skip\_while}方法是\texttt{take}和\texttt{take\_while}的补充：它们丢弃迭代起始的一定数量的item，或者直到一个闭包找到一个可接受的item时，按原样传递这个和剩余的item。它们的签名如下：
+\begin{minted}{Rust}
+    fn skip(self, n: usize) -> impl Iterator<Item=Self::Item>
+        where Self: Sized;
 
+    fn skip_while<P>(self, predicate: P) -> impl Iterator<Item=Self::Item>
+        where Self: Sized, P: FnMut(&Self::Item) -> bool;
+\end{minted}
+
+\texttt{skip}适配器的一个常见用法是在迭代命令行参数时跳过命令的名字。在\hyperref[ch02]{第2章}中，我们的最大公约数计算器就用了下面的代码来迭代它的命令行参数：
+\begin{minted}{Rust}
+    for arg in std::env::args().skip(1) {
+        ...
+    }
+\end{minted}
+
+\texttt{std::env::args}函数返回一个迭代器，以\texttt{String}类型产生程序的参数，其中第一个item就是程序自身的名字。我们并不想在这个循环中处理它。对这个迭代器调用\texttt{skip(1)}返回一个新的迭代器，新的迭代器会丢弃程序名，然后产生剩余的参数。
+
+\texttt{skip\_while}适配器使用闭包来决定丢弃序列开头的多少item。你可以像这样迭代上一节的消息的主体行：
+\begin{minted}{Rust}
+    for body in message.lines()
+        .skip_while(|l| !l.is_empty())
+        .skip(1)
+        println!("{}", body);
+\end{minted}
+
+这里使用了\texttt{skip\_while}来跳过非空的行，但这个迭代器会产生那个空行——也就是使闭包返回\texttt{false}的那个item。因此我们使用了\texttt{skip}方法来丢弃那个空行，这样最后的迭代器的第一个item就是消息主体的第一行。集合上一节中\texttt{message}的生命，这段代码会打印出：
+\begin{minted}{text}
+    Did you get any writing done today?
+    When will you stop wasting time plotting fractals?
+\end{minted}
+
+\subsection{\texttt{peekable}}
 
 \subsection{\texttt{fuse}}\label{fuse}
 
