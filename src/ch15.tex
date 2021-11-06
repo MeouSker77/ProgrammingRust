@@ -816,6 +816,29 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 你可以将\texttt{enumerate}产生的\texttt{(index, item)}类比迭代\texttt{HashMap}或其他关联集合时得到的\texttt{(key, value)}对。如果你在迭代一个切片或者vector，那么\texttt{index}就是\texttt{item}出现的“key”。
 
 \subsection{\texttt{zip}}
+\texttt{zip}适配器将两个迭代器组合成单个迭代器，它一次产生一个pair，pair里分别是两个迭代器产生的item，就像是一条拉链一样把两边汇聚成单条缝隙。当两个底层迭代器中有任何一个结束时，zip迭代器也会结束。
+
+例如，你可以通过把无限范围\texttt{0..}和另一迭代器zip在一起来达到\texttt{enumerate}适配的效果：
+\begin{minted}{Rust}
+    let v: Vec<_> = (0..).zip("ABCD".chars()).collect();
+    assert_eq!(v, vec![(0, 'A'), (1, 'B'), (2, 'C'), (3, 'D')]);
+\end{minted}
+
+从这个意义上讲，你可以将\texttt{zip}看做\texttt{enumerate}的泛化版：\texttt{enumerate}把索引附加序列中，\text{zip}把任意另一个迭代器的item附加到序列中。我们之前建议过\text{enumerate}可以帮助提供处理item的上下文；\texttt{zip}是一种更灵活的实现同样功能的方式。
+
+\texttt{zip}的参数不需要是一个和调用者自己同类型的迭代器；它可以是任意的可迭代对象：
+\begin{minted}{Rust}
+    use std::iter::repeat;
+
+    let endings = vec!["once", "twice", "chicken soup with rice"];
+    let rhyme: Vec<_> = repeat("going")
+        .zip(endings)
+        .collect();
+    assert_eq!(rhyme, vec![("going", "once"),
+                           ("going), "twice"),
+                           ("going", "chicken soup with rice")]);
+\end{minted}
+
 
 
 \section{消耗迭代器}
