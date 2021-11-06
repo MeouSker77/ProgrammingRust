@@ -488,6 +488,71 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
 但记住迭代是惰性的：只有当\texttt{for}循环调用了\texttt{flat\_map}迭代器的\texttt{next}方法时才会开始计算。完全连接的序列从来不会在内存中构造。实际上，这里只有一个小的状态机，对于每一个城市迭代器，一次打印一个item，直到耗尽，然后为下一个国家产生一个新的城市迭代器。效果就类似于嵌套的循环，但被打包用作迭代器。
 
 \subsection{\texttt{flatten}}
+\texttt{flatten}适配器把迭代器的item连接起来，假设每一个item都是可迭代对象：
+\begin{minted}{Rust}
+    use std::collections::BTreeMap;
+
+    // 把城市映射到公园的表：每一个value都是一个vector。
+    let mut parks = BTreeMap::new();
+    parks.insert("Portland",  vec!["Mt. Tabor Park", "Forest Park"]);
+    parks.insert("Kyoto",     vec!["Tadasu-no-Mori Forest", "Maruyama Koen"]);
+    parks.insert("Nashville", vec!["Percy Warner Park", "Dargon Park"]);
+
+    // 构建一个所有公园的vector。`values`返回一个产生vector的迭代器，
+    // 然后`flatten`按顺序产生每一个vector的元素。
+    let all_parks: Vec<_> = parks.values().flatten().cloned().collect();
+
+    assert_eq!(all_parks,
+               vec!["Tadasu-no-Mori Forest", "Maruyama Koen", "Percy Warner Park", 
+                    "Dragon Park", "Mt. Tabor Park", "Forest Park"]);
+\end{minted}
+
+“flatten”这个名字来自于想象把一个两层的结构压扁成一层的结构：\texttt{BTreeMap}和它的\texttt{Vec}的元素被压成一个产生所有元素的迭代器。
+
+\texttt{flatten}的签名如下：
+\begin{minted}{Rust}
+    fn flatten(self) -> impl Iterator<Item=Self::Item::Item>
+        where Self::Item: IntoIterator;
+\end{minted}
+
+换句话说，迭代器的item自身必须实现了\texttt{IntoIterator}，这样它才是一个高效的序列的序列。\texttt{flatten}方法返回一个这些序列连接之后的迭代器。当然，这都是惰性完成的，只有当我们迭代完了一个序列才会从\texttt{self}产生一个新的item。
+
+\text{flatten}方法还有一些令人惊讶的用法。如果你有一个\texttt{Vec<Option<...>>}并且你想只迭代其中的\texttt{Some}值，那么\texttt{flatten}可以漂亮地工作：
+\begin{minted}{Rust}
+    assert_eq!(vec![None, Some("day"), None, Some("one")]
+               .into_iter()
+               .flatten()
+               .collect::<Vec<_>>(),
+               vec!["day", "one"]);
+\end{minted}
+
+这种方式可以工作是因为\texttt{Option}自身实现了\texttt{IntoIterator}，代表一个有0或1个元素的序列。\texttt{None}元素对迭代过程没有贡献，而每一个\texttt{Some}元素贡献一个值。类似的，你可以使用\texttt{flatten}来迭代\texttt{Option<Vec<...>>}：\texttt{None}和空vector的行为一样。
+
+\texttt{Result}也实现了\texttt{IntoIterator}，\texttt{Err}时代表一个空的序列，因此对一个产生\texttt{Result}值的迭代器调用\texttt{flatten}可以高效地排除所有\texttt{Err}，产生一个解包之后的成功值的序列。我们不推荐在代码中忽略错误，但当用户知道自己在做什么时这是一个巧妙的技巧。
+
+当你需要\texttt{flatten}时你可能会发现你真正需要的是\texttt{flat\_map}。例如，标准库的\texttt{str::to\_uppercase}方法把一个字符串转换成大写，工作方式类似于下面的代码：
+\begin{minted}{Rust}
+    fn to_uppercase(&self) -> String {
+        self.chars()
+            .map(char::to_uppercase)
+            .flatten() // 有更好的方式
+            .collect()
+    }
+\end{minted}
+
+这里必须使用\texttt{flatten}的原因是\texttt{ch.to\_uppercase()}并不是返回单个字符，而是返回一个可能产生一个或更多字符的迭代器。将每一个字符映射到大写形式会返回一个产生字符迭代器的迭代器，\texttt{flatten}将它们拼接在一起，因此我们最后可以调用\texttt{collect}把它们转换为一个\texttt{String}。
+
+但这种\texttt{map}和\texttt{flatten}的组合使用如此普遍，以至于\texttt{Iterator}提供了\texttt{flat\_map}适配器来处理这种情况。（事实上，\texttt{flat\_map}比\texttt{flatten}更先加入标准库。）因此上面的代码可以写成：
+\begin{minted}{Rust}
+    fn to_uppercase(&self) -> String {
+        self.chars()
+            .flat_map(char::to_upeprcase)
+            .collect()
+    }
+\end{minted}
+
+
+
 
 \subsection{\texttt{fuse}}\label{fuse}
 
