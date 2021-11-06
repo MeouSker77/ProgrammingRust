@@ -968,7 +968,20 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 （你可以通过实现\texttt{std::iter::Sum}和\texttt{std::iter::Product} trait来扩展\texttt{sum}和\texttt{product}可以用于其他类型，但本书中不会介绍。）
 
 \subsection{\texttt{max, min}}
-\texttt{Iterator}的\texttt{min}和\texttt{max}方法分别返回迭代器产生的item中最小的和最大的。
+\texttt{Iterator}的\texttt{min}和\texttt{max}方法分别返回迭代器产生的item中最小的和最大的。迭代器的类型必须实现了\texttt{std::cmp::Ord}，这样item才可以彼此比较。例如：
+\begin{minted}{Rust}
+    assert_eq!([-2, 0, 1, 0, -2, -5].iter().max(), Some(&1));
+    assert_eq!([-2, 0, 1, 0, -2 ,-5].iter().min(), Some(&-5));
+\end{minted}
+
+这些方法返回\texttt{Option<Self::Item>}，这样如果迭代器没产生值的时候可以返回\texttt{None}。
+
+正如“\nameref{equal}”中解释的一样，Rust的浮点数类型\texttt{f32}和\texttt{f64}只实现了\texttt{std::cmp::PartialOrd}，没有实现\texttt{std::cmp::Ord}，因此你不能使用\texttt{min}和\texttt{max}方法来计算浮点数序列中的最小值或最大值。这不是Rust设计中的优势，但它是故意的：因为不清楚这样的函数如果遇到了IEEE NaN值时该怎么处理。简单地忽略它们可能会导致代码中更严重的问题。
+
+如果你知道如何处理NaN值，你可以使用\texttt{max\_by}和\texttt{min\_by}迭代器方法作为代替，它允许你提供自己的比较函数。
+
+\subsection{\texttt{max\_by, min\_by}}
+
 
 \subsection{构建集合：\texttt{collect}和\texttt{FromIterator}}\label{BuildColl}
 
