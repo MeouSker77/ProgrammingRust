@@ -981,7 +981,27 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 如果你知道如何处理NaN值，你可以使用\texttt{max\_by}和\texttt{min\_by}迭代器方法作为代替，它允许你提供自己的比较函数。
 
 \subsection{\texttt{max\_by, min\_by}}
+\texttt{max\_by}和\texttt{min\_by}方法分别返回迭代器产生的最大值和最小值，通过一个你提供的比较函数来判断大小：
+\begin{minted}{Rust}
+    use std::cmp::Ordering;
 
+    // 比较两个f64值，如果有NaN就panic
+    fn cmp(lhs: &f64, rhs: &f64) -> Ordering {
+        lhs.partial_cmp(rhs).unwrap()
+    }
+    
+    let numbers = [1.0, 4.0, 2.0];
+    assert_eq!(numbers.iter().copied().max_by(cmp), Some(4.0));
+    assert_eq!(numbers.iter().copied().min_by(cmp), Some(1.0));
+
+    let numbers = [1.0, 4.0, std::f64::NAN, 2.0];
+    assert_eq!(numbers.iter().copied().max_by(cmp), Some(4.0)); // panic
+\end{minted}
+
+\texttt{max\_by}和\texttt{min\_by}方法以引用向比较函数传递item，这样对于任何种类的迭代器它们都可以高效工作，因此\texttt{cmp}以引用获取参数，即使我们已经使用\texttt{copied}获取过一个产生\texttt{f64} item的迭代器。
+
+\subsection{\texttt{max\_by\_key, min\_by\_key}}
+\texttt{Iterator}的\texttt{max\_by\_key}和\texttt{min\_by_key}方法
 
 \subsection{构建集合：\texttt{collect}和\texttt{FromIterator}}\label{BuildColl}
 
