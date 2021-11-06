@@ -551,7 +551,37 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
     }
 \end{minted}
 
+\subsection{\texttt{take}和\texttt{take\_while}}
+\texttt{Iterator} trait的\texttt{take}和\texttt{take\_while}适配器让你可以在迭代了一定的次数或者当一个闭包决定截断时停止迭代。它们的签名如下：
+\begin{minted}{Rust}
+    fn take(self, n: usize) -> impl Iterator<Item=Self::Item>
+        where Self: Sized;
+    
+    fn take_while<P>(self, predicate: P) -> impl Iterator<Item=Self::Item>
+        where Self: Sized, P: FnMut(&Self::Item) -> bool;
+\end{minted}
 
+这两个方法都获取一个迭代器的所有权，返回一个新的迭代器，新的迭代器从第一个item开始迭代，可能会提前终止序列。在产生最多\texttt{n}个item之后\texttt{take}迭代器会返回\texttt{None}。\texttt{take\_while}迭代器对每个item引用\texttt{predicate}，当有一个item使\texttt{predicate}返回\texttt{false}时返回\texttt{None}，之后对\texttt{next}的调用也都会返回\texttt{None}。
+
+例如，给定一个电子邮件的消息，其中消息头和消息主体用一个空行分隔，那么你就可以使用\texttt{take\_while}来只迭代器消息头：
+\begin{minted}{Rust}
+    let message = "To: jimb\r\n\
+                   From: superego <editor@oreilly.com>\r\n\
+                   \r\n\
+                   Did you get any writing done today?\r\n\
+                   When will you stop wasting time plotting fractals?\r\n";
+    for header in message.lines().take_while(|l| !l.is_empty()) {
+        println!("{}", header);
+    }
+\end{minted}
+
+回顾“”，当字符串行以反斜杠结尾时，Rust并不会把下一行的缩进包含进字符串里，因此这个字符串中的任何一行都没有前导空格。这意味着\texttt{message}的第三行是空行。\texttt{take\_while}适配器第一看到空行时就会停止迭代，一次你这段代码只会打印出两行：
+\begin{minted}{text}
+    To: jimb
+    From: superego <editor@oreilly.com>
+\end{minted}
+
+\subsection{\texttt{skip}和\texttt{skip\_while}}
 
 
 \subsection{\texttt{fuse}}\label{fuse}
