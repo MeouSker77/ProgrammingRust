@@ -1053,6 +1053,17 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 迭代器提供\texttt{eq}和\texttt{ne}方法进行相等性比较，以及\texttt{lt, le, gt, ge}方法用于顺序性比较。\texttt{cmp}和\texttt{partial\_cmp}方法的行为类似于\texttt{Ord}和\texttt{PartialOrd} trait的相应方法。
 
 \subsection{\texttt{any}和\texttt{all}}
+\texttt{any}和\texttt{all}方法对迭代器产生的每一个item都应用一个闭包，分别当任意item使闭包返回\texttt{true}和所有item都使闭包返回\texttt{true}时返回\texttt{true}：
+\begin{minted}{Rust}
+    let id = "Iterator";
+
+    assert!( id.chars().any(char::is_uppercase));
+    assert!(!id.chars().all(char::is_uppercase));
+\end{minted}
+
+只有当需要的时候这两个方法才会继续消耗item。例如，如果已经有一个item让闭包返回\texttt{true}，那么\texttt{any}会立刻返回\texttt{true}，不会再继续消耗剩余的item。
+
+\subsection{}
 
 \subsection{构建集合：\texttt{collect}和\texttt{FromIterator}}\label{BuildColl}
 
