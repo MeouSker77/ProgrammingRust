@@ -1314,5 +1314,36 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 
 但只要\texttt{collect}的参数只有一个可能的类型才可以正常工作，那么Rust会自动为你填充它。当你写出\texttt{args}的类型时，就是确保了这种情况。
 
+\subsection{\texttt{Extend} trait}
+如果一个类型实现了\texttt{std::iter::Extend} trait，那么它的\texttt{extend}方法可以把一个可迭代对象的item添加到集合中：
+\begin{minted}{Rust}
+    let mut v: Vec<i32> = (0..5).map(|i| 1 << i).collect();
+    v.extend(&[31, 57, 99, 163]);
+    assert_eq!(v, &[1, 2, 4, 8, 16, 31, 57, 99, 163]);
+\end{minted}
+
+所有的标准集合都实现了\texttt{Extend}，因此它们都有这个方法，就算是\texttt{String}也有。而数组和切片这种长度固定的集合没有这个方法。
+
+这个trait的定义如下：
+\begin{minted}{Rust}
+    trait Extend<A> {
+        fn extend<T>(&mut self, iter: T)
+            where T: IntoIterator<Item=A>;
+    }
+\end{minted}
+显然，这和\texttt{std::iter::FromIterator}非常相似：不过后者创建一个新集合，而\texttt{Extend}扩展一个已有集合。事实上，标准库中好几个类型的\texttt{FromIterator}实现都是简单地创建一个新的空集合，然后调用\texttt{extend}来填充它。例如，\texttt{std::collections::LinkedList}的\texttt{FromIterator}就是以这种方式工作：
+\begin{minted}{Rust}
+    impl<T> FromIterator<T> for LinkedList<T> {
+        fn from_iter<I: IntoIter<Item = T>>(iter: I) -> Self {
+            let mut list = Self::new();
+            list.extend(iter);
+            list
+        }
+    }
+\end{minted}
+
+\subsection{\texttt{partition}}
+
+
 
 \section{实现自己的迭代器}
