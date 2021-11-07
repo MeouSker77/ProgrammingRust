@@ -980,7 +980,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 
 如果你知道如何处理NaN值，你可以使用\texttt{max\_by}和\texttt{min\_by}迭代器方法作为代替，它允许你提供自己的比较函数。
 
-\subsection{\texttt{max\_by, min\_by}}
+\subsection{\texttt{max\_by, min\_by}}\label{MaxKey}
 \texttt{max\_by}和\texttt{min\_by}方法分别返回迭代器产生的最大值和最小值，通过一个你提供的比较函数来判断大小：
 \begin{minted}{Rust}
     use std::cmp::Ordering;
@@ -1207,6 +1207,48 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 它会消耗迭代器的所有item，即使迭代器可逆。如果你有一个可逆迭代器并且不想让它消耗所有item，那你应该调用\texttt{iter.next\_back()}。
 
 \subsection{\texttt{find, rfind, find\_map}}
+\texttt{find}方法从迭代器查找item，返回第一个使给定闭包返回\texttt{true}的item，或者如果没有任何item满足条件就返回\texttt{None}。它的签名是：
+\begin{minted}{Rust}
+    fn find<P>(&mut self, predicate: P) -> Option<Self::Item>
+        where Self: Sized,
+              P: FnMut(&Self::Item) -> bool;
+\end{minted}
+
+\texttt{rfind}方法类似，不过它需要双端迭代器并且从最后往前搜索，返回\emph{最后一个}使闭包返回\texttt{true}的item。
+
+例如，使用“\nameref{MaxKey}”中的城市和人口的表，你可以写：
+\begin{minted}{Rust}
+    assert_eq!(populations.iter().find(|&(_name, &pop)| pop > 1_000_000), None);
+    assert_eq!(populations.iter().find(|&(_name, &pop)| pop > 500_000), Some((&"Portland", &583_776)));
+\end{minted}
+
+表中没有人口超过一百万的城市，但有超过50万的城市。
+
+有时你的闭包并不是一个简单的对item进行布尔判断的判别式：它可能会更加复杂，并且返回一个它自己产生的有趣的值。在这种情况下，\texttt{find\_map}正是你需要的。它的签名是：
+\begin{minted}{Rust}
+    fn find_map<B, F>(&mut self, f: F) -> Option<B> where
+        F: FnMut(Self::Item) -> Option<B>;
+\end{minted}
+
+这类似于\texttt{find}，除了它不是返回\texttt{bool}，而是返回某些值的\texttt{Option}。\texttt{find\_map}返回第一个是\texttt{Some}的\texttt{Option}。
+
+例如，如果我们有一个每个城市的公园的数据库，我们可能想看看其中是否有火山，并且如果有的话返回公园的名字：
+\begin{minted}{Rust}
+    let big_city_with_volcano_park = populations.iter()
+        .find_map(|(&city, _)| {
+            if let Some(park) = find_volcano_park(city, &parks) {
+                // find_map返回这个值，
+                // 因此我们的调用者会知道我们找到了 *哪个* 公园
+                return Some((city, park.name));
+            }
+
+            // 继续搜索
+            None
+        });
+
+    assert_eq!(big_city_with_volcano_park,
+               Some(("Portland", "Mt. Tabor Park")));
+\end{minted}
 
 \subsection{构建集合：\texttt{collect}和\texttt{FromIterator}}\label{BuildColl}
 
