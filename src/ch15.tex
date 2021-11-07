@@ -1089,6 +1089,49 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 
 自然地，不是每一个迭代器都知道它还会产生多少个item。例如，之前使用的\texttt{str::chars}迭代器就做不到（因为UTF-8是可变宽度的编码），因此你不能对字符串使用\texttt{rposition}。但一个迭代字节数组的迭代器当然知道数组的长度，因此它可以实现\texttt{ExactSizeIterator}。
 
+\subsection{\texttt{fold}和\texttt{rfold}}
+在计算某种需要累计所有item的序列的计算时\texttt{fold}方法是非常通用的工具。给定一个初始值（我们称之为\emph{累加器(accumulator)}）和一个闭包，\texttt{fold}会重复对当前的累加器和下一个item应用这个闭包。闭包返回的值被用作新的累加器，然后和下一个item一起传递给闭包。最终累加器的值就是\texttt{fold}自身的返回值。如果序列为空，\texttt{fold}直接返回初始的累加器。
+
+很多其他消耗迭代器的方法都可以用\texttt{fold}来实现：
+\begin{minted}{Rust}
+    let a = [5, 6, 7, 8, 9, 10];
+
+    assert_eq!(a.iter().fold(0, |n, _| n+1), 6);        // count
+    assert_eq!(a.iter().fold(0, |n, i| n+i), 45);       // sum
+    assert_eq!(a.iter().fold(1, |n, i| n*i), 151200);   // product
+
+    // max
+    assert_eq!(a.iter().cloned().fold(i32::min_value(), std::cmp::max), 10);
+\end{minted}
+
+\texttt{fold}方法的签名如下：
+\begin{minted}{Rust}
+    fn fold<A, F>(self, init: A, f: F) -> A
+        where Self: Sized, F: FnMut(A, Self::Item) -> A;
+\end{minted}
+
+其中，\texttt{A}是累加器的类型。\texttt{init}参数就是一个\texttt{A}类型的值，\texttt{A}也是闭包的第一个参数和返回值的类型，也是\texttt{fold}本身的返回值的类型。
+
+注意累加器值被移动进和移动出闭包，因此你可以用非\texttt{Copy}类型的累加器类型调用\texttt{fold}：
+\begin{minted}{Rust}
+    let a = ["Pack", "my", "box", "with",
+             "five", "dozen", "liquor", "jugs"];
+    
+    // See also：切片的`join`方法，
+    // 最后不会有多余的空格。
+    let pangram = a.iter()
+        .fold(String::new(), |s, w| s + w + " ");
+    assert_eq!(pangram, "Pack my box with five dozen liquor jugs");
+\end{minted}
+
+\texttt{rfold}方法和\texttt{fold}方法相同，除了它需要双端迭代器，并且从最后开始往前处理item：
+\begin{minted}{Rust}
+    let weird_pangram = a.iter()
+        .rfold(String::new(), |s, w| s + w + " ");
+    assert_eq!(weird_pangram, "jugs liquor dozen five with box my Pack ");
+\end{minted}
+
+\subsection{\texttt{try\_fold}和\texttt{try\_rfold}}
 
 
 \subsection{构建集合：\texttt{collect}和\texttt{FromIterator}}\label{BuildColl}
