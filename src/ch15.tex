@@ -1369,6 +1369,50 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 
 其他语言提供把一个迭代器分成两个迭代器的\texttt{partition}操作，而不是构建两个集合。但这并不适合Rust：如果要实现分成两个迭代器，那么那些不适合被划分的迭代器产生的item必须被缓存；无论如何，最终都需要在内部构建某种类型的集合。
 
-\subsection{}
+\subsection{\texttt{for\_each}和\texttt{try\_for\_each}}
+\texttt{for\_each}方法简单地对每一个item应用一个闭包：
+\begin{minted}{Rust}
+    ["doves", "hens", "birds"].iter()
+        .zip(["turtle", "french", "calling"].iter())
+        .zip(2..5)
+        .rev()
+        .map(|((item, kind), quantity)| {
+            format!("{} {} {}", quantity, kind, item)
+        })
+        .for_each(|gift| {
+            println!("You have received: {}", gift);
+        });
+\end{minted}
+
+这会打印出：
+\begin{minted}{text}
+    You have received: 4 calling birds
+    You have received: 3 french hens
+    You have received: 2 turtle doves
+\end{minted}
+
+它非常类似于一个简单的\texttt{for}循环，在循环中你还可以使用\texttt{break}和\texttt{countinue}控制语句。但使用\texttt{for}循环处理这种很长的链式适配器调用会有一点尴尬：
+\begin{minted}{Rust}
+    for gift in ["doves", "hens", "birds"].iter()
+        .zip(["turtle", "french", "calling"].iter())
+        .zip(2..5)
+        .rev()
+        .map(|((item, kind), quantity)| {
+            format!("{} {} {}", quantity, kind, item)
+        })
+    {
+        println!("You have received: {}", gift);
+    }
+\end{minted}
+
+用于绑定的模式\texttt{gift}最终可能会距离使用它的循环体非常远。
+
+如果你的闭包需要容错或者提前退出，你可以使用\texttt{try\_for\_each}：
+\begin{minted}{Rust}
+    ...
+        .try_for_each(|gift| {
+            writeln!(&mut output_file, "You have received: {}", gift)
+        })?;
+\end{minted}
 
 \section{实现自己的迭代器}
