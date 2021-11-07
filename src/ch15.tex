@@ -1343,7 +1343,32 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 \end{minted}
 
 \subsection{\texttt{partition}}
+\texttt{partition}方法讲一个迭代器的item分成两个集合，使用一个闭包来决定每个item属于哪个集合：
+\begin{minted}{Rust}
+    let things = ["doorknob", "mushroom", "noodle", "giraffe", "grapefruit"];
 
+    // 一个令人震惊的事实：活物的名字都以
+    // 奇数字母开头。
+    let (living, nonliving): (Vec<&str>, Vec<&str>)
+        = things.iter().partition(|name| name.as_bytes()[0] & 1 != 0);
+    
+    assert_eq!(living,    vec!["mushroom", "giraffe", "grapefruit"]);
+    assert_eq!(nonliving, vec!["doorknob", "noodle"]);
+\end{minted}
 
+类似于\texttt{collect}，\texttt{partition}也可以创建任意类型的集合，不过两个集合的类型必须相同。类似于\texttt{collect}，你必须指明返回类型：上面的例子中写出了\texttt{living}和\texttt{nonliving}的类型并让类型推导选择合适的类型参数来调用\texttt{partition}。
+
+\texttt{partition}的签名如下：
+\begin{minted}{Rust}
+    fn partition<B, F>(self, f: F) -> (B, B)
+        where Self: Sized,
+              B: Default + Extend<Self::Item>,
+              F: FnMut(&Self::Item) -> bool;
+\end{minted}
+\texttt{collect}需要返回类型实现了\texttt{FromIterator}，而\texttt{partition}需要\texttt{std::default::Default}（所有的Rust集合都实现了它来返回一个空集合）和\texttt{std::default::Extend}。
+
+其他语言提供把一个迭代器分成两个迭代器的\texttt{partition}操作，而不是构建两个集合。但这并不适合Rust：如果要实现分成两个迭代器，那么那些不适合被划分的迭代器产生的item必须被缓存；无论如何，最终都需要在内部构建某种类型的集合。
+
+\subsection{}
 
 \section{实现自己的迭代器}
