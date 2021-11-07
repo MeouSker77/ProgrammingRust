@@ -1132,6 +1132,47 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 \end{minted}
 
 \subsection{\texttt{try\_fold}和\texttt{try\_rfold}}
+\texttt{try\_fold}方法和\texttt{fold}基本一样，除了它的迭代过程可以提前退出，不需要消耗迭代器里的所有值。传递给\texttt{try\_fold}的闭包必须返回一个\texttt{Result}：如果它是\texttt{Err(e)}，\texttt{try\_fold}会立刻返回\texttt{Err(e)}作为返回值。否则，它会继续处理成功的值。闭包也可以返回一个\texttt{Option}：返回\texttt{None}会提前退出，之后的返回值是值的\texttt{Option}。
+
+这里有一个求来自标准输入的数字之和的程序：
+\begin{minted}{Rust}
+    use std::error::Error;
+    use std::io::predule::*;
+    use std::str::FromStr;
+
+    fn main() -> Result<(), Box<dyn Error>> {
+        let stdin = std::io::stdin();
+        let sum = stdin.lock()
+            .lines()
+            .try_fold(0, |sum, line| -> Result<u64, Box<dyn Error>> {
+                Ok(sum + u64::from_str(&line?.trim())?)
+            })?;
+        println!("{}", sum);
+        Ok(())
+    }
+\end{minted}
+
+输入流的\texttt{lines}迭代器产生\texttt{Result<String, std::io::Error>}类型的item，把\texttt{String}解析为整数也可能会失败。这里使用\texttt{try\_fold}需要闭包返回\texttt{Result<u64, ...>}，所以我们可以使用\texttt{?}运算符来把闭包里的错误传播到\texttt{main}函数中。
+
+因为\texttt{try\_fold}如此灵活，它常被用于实现\texttt{Iterator}的很多其他消耗方法。例如，这里有一个\texttt{all}的实现：
+\begin{minted}{Rust}
+    fn all<P>(&mut self, mut predicate: P) -> bool
+        where P: FnMut(Self::Item) -> bool,
+              Self: Sized
+    {
+        self.try_fold((), |_, item| {
+            if predicate(item) { Some(()) } else { None }
+        }).is_some()
+    }
+\end{minted}
+
+注意这个实现不能使用普通的\texttt{fold}：\texttt{all}保证只要有一个item使\texttt{predicate}返回false就会停止消耗item，但\texttt{fold}总是消耗整个迭代器。
+
+如果你正在实现自己的迭代器类型，那么思考一下你的迭代器是否能比\texttt{Iterator} trait的默认实现更高效地实现\texttt{try\_fold}方法是值得的。如果你可以加速\texttt{try\_fold}，所有其他基于它的方法都会获益。
+
+\texttt{try\_rfold}方法，就如它的名字所示，和\texttt{try_fold}一样，除了它从最后开始往前处理item，并因此需要一个双端迭代器。
+
+\subsection{\texttt{nth, nth\_back}}
 
 
 \subsection{构建集合：\texttt{collect}和\texttt{FromIterator}}\label{BuildColl}
