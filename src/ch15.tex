@@ -1173,6 +1173,25 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 \texttt{try\_rfold}方法，就如它的名字所示，和\texttt{try_fold}一样，除了它从最后开始往前处理item，并因此需要一个双端迭代器。
 
 \subsection{\texttt{nth, nth\_back}}
+\texttt{nth}方法接受一个索引\texttt{n}，跳过迭代器中接下来\texttt{n}个item，然后返回下一个item，或者如果迭代器已经在这个过程中到达终点就返回\texttt{None}。调用\texttt{.nth(0)}等价于调用\texttt{.next()}。
+
+它不会像很多适配器一样获取迭代器的所有权，所以你可以调用它很多次：
+\begin{minted}{Rust}
+    let mut squares = (0..10).map(|i| i*i);
+
+    assert_eq!(squares.nth(4), Some(16));
+    assert_eq!(squares.nth(0), Some(25));
+    assert_eq!(squares.nth(6), None);
+\end{minted}
+
+它的签名如下：
+\begin{minted}{Rust}
+    fn nth(&mut self, n: usize) -> Option<Self::Item>
+        where Self: Sized;
+\end{minted}
+
+\texttt{nth\_back}方法类似，除了它是从双端迭代器的尾部往前移动。调用\texttt{.nth\_back(0)}等价于调用\texttt{.next\_back()}：它返回最后一个item，或者如果迭代器已经为空时返回\texttt{None}。
+
 
 
 \subsection{构建集合：\texttt{collect}和\texttt{FromIterator}}\label{BuildColl}
