@@ -6,4 +6,72 @@
     ——James Gleick, The Information: A History, a Theory, a Flood
 \end{flushright}
 
-Rust标准库里包含几种\emph{集合(collection)}，它们是在内存中存储数据的泛型类型。我们已经在本书的很多地方使用过集合，例如\texttt{Vec}和\texttt{HashMap}。
+Rust标准库里包含几种\emph{集合(collection)}，它们是在内存中存储数据的泛型类型。我们已经在本书的很多地方使用过集合，例如\texttt{Vec}和\texttt{HashMap}。在本章中，我们将详细介绍这两种类型的方法，以及其他六种标准集合。但在我们开始之前，让我们先讨论一下Rust的集合和其他语言中的集合的一些不同之处。
+
+首先，移动和借用无处不在。Rust使用移动来避免深拷贝。这就是为什么\texttt{Vec<T>::push(item)}方法以值获取参数，而不是以引用。值会被移动进vector。\hyperref[ch04]{第4章}中的图展示了实践中的表现：在Rust中把一个\texttt{String}添加到\texttt{Vec<String>}中很快，因为Rust不需要拷贝字符串的字符数据，字符串的所有权归属也总是很清楚。
+
+其次，当集合改变大小或者被修改的同时还有指向它们的数据的指针时，Rust不会有无效性错误——即悬垂指针。无效性错误是C++中另一种未定义行为的来源，即使在内存安全的语言中也可能导致\texttt{ConcurrentModificationException}。Rust借用检查器会在编译器检查出它们。
+
+最后，Rust没有\texttt{null}，因此我们将在其他语言中需要\texttt{null}的地方看到\texttt{Option}。
+
+除了这些不同之外，Rust的集合可能正是你需要的。如果你是经验丰富的程序员并且时间不多，你可以跳过这部分，但不要跳过“\nameref{entry}”。
+
+\section{概述}
+
+\autoref{t16-1}展示了Rust的8种标准集合。它们都是泛型类型。
+
+\begin{table}[htbp]
+    \centering
+    \caption{标准集合总结}
+    \label{t16-1}
+    \begin{tabular}{p{0.2\textwidth}p{0.2\textwidth}lll}
+        \hline
+        \multirow{2}{*}{\textbf{集合}}  & \multirow{2}{*}{\textbf{说明}} & \multicolumn{3}{l}{\textbf{其他语言中的类似集合类型}} \\
+        \cline{3-5}
+         & & \textbf{C++} & \textbf{Java} & \textbf{Python} \\
+        \hline
+        
+        \texttt{Vec<T>} & 可增长的数组  & \texttt{vector} & \texttt{ArrayList} & \texttt{list}  \\
+        \rowcolor{tablecolor}
+        \texttt{VecDeque<T>} & 双端队列(可增长环形缓冲区) & \texttt{deque} & \texttt{ArrayDeque} & \texttt{collections.deque} \\
+        \texttt{LinkedList<T>} & 双向链表 & \texttt{list} & \texttt{LinkedList} & —— \\
+        \rowcolor{tablecolor}
+        \texttt{BinaryHeap<T> where T: Ord} & 大顶堆 & \texttt{priority\_queue} & \texttt{PriorityQueue} & \texttt{heapq} \\
+        \texttt{HashMap<K, V> where K: Eq + Hash} & 键值哈希表 & \texttt{unordered\_map} & \texttt{HashMap} & \texttt{dict} \\
+        \rowcolor{tablecolor}
+        \texttt{BTreeMap<K, V> where K: Ord} & 有序键值表 & \texttt{map} & \texttt{TreeMap} & —— \\
+        \texttt{HashSet<T> where T: Eq + Hash} & 基于哈希的无序集合 & \texttt{unordered\_set} & \texttt{HashSet} & \texttt{set} \\
+        \rowcolor{tablecolor}
+        \texttt{BTreeSet<T> where T: Ord} & 有序集合 & \texttt{set} & \texttt{TreeSet} & —— \\
+    \end{tabular}
+\end{table}
+
+\texttt{Vec<T>}、\texttt{HashMap<K, V>}、\texttt{HashSet<T>}是最常用的集合类型。其他的集合都有适用的场景。这一章将轮流讨论每一个集合类型：
+
+\codeentry{Vec<T>}
+\hangparagraph{一个客增唱的、在堆上分配的、\texttt{T}类值的数组。本章中大约一半的篇幅专门介绍\texttt{Vec}和它的有用的方法。}
+
+\codeentry{VecDeque<T>}
+\hangparagraph{类似于\texttt{Vec<T>}，但是用作先进先出队列会更好。它支持高效地在首部和尾部添加或移除元素，但这种能力的代价是其他操作会稍微慢一点。}
+
+\codeentry{BinaryHeap<T>}
+\hangparagraph{一个优先队列。\texttt{BinaryHeap}中的值按照一定结构组织，因此总是可以高效地找到和移除最大值。}
+
+\codeentry{HashMap<K, V>}
+\hangparagraph{一个键值对的表。通过键查找值很快速。表中的条目以任意顺序存储。}
+
+\codeentry{BTreeMap<K, V>}
+\hangparagraph{类似于\texttt{HashMap<K, V>}，但按键的顺序保持条目有序。一个\texttt{BTreeMap<String, i32>}按照\texttt{String}的比较顺序存储条目。除非你需要条目保持有序，否则\texttt{HashMap}会更快。}
+
+\codeentry{HashSet<T>}
+\hangparagraph{类型\texttt{T}的值的集合。添加和删除元素都很快，查询一个值是否在集合中也很快。}
+
+\codeentry{BTreeSet<T>}
+\hangparagraph{类似于\texttt{HashSet<T>}，但保持元素有序。同样，除非你想要数据保持有序，否则\texttt{HashSet}会更快。}
+
+因为\texttt{LinkedList}很少使用（并且在大多数情况下都有更好的替代，无论是性能还是接口），因此我们不会在这里介绍它。
+
+
+
+
+

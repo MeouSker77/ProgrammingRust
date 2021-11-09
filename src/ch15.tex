@@ -330,7 +330,7 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
 
 一旦你得到了一个迭代器，\texttt{Iterator} trait还提供了广泛的\emph{适配器方法(adapter method)}，或者简称为\emph{适配器(adapter)}，它们消耗一个迭代器然后构建一个新的迭代器。为了展示适配器如何工作，我们将从两个最流行的适配器\texttt{map}和\texttt{filter}开始。然后我们会介绍其他的适配器，它们包括几乎所有你能想到的把一个序列的值变成另一个序列的方法：截断、跳过、组合、反向、连接、重复，等等。
 
-\subsection{\texttt{map}的\texttt{filter}}
+\subsection{\texttt{map}和\texttt{filter}}
 \texttt{Iterator} trait的\texttt{map}适配器让你通过对每一个item应用一个闭包来产生新迭代器。\texttt{filter}迭代器让你通过一个闭包决定保留哪些item丢弃哪些item，以此过滤迭代器中的某些item。
 
 例如，假设你在迭代文本的每一行，并且想省略每一行的前导和尾部的空格。标准库的\texttt{str::trim}方法排除一个\texttt{\&str}中的前导和尾部空格，返回一个新的新的借用\texttt{\&str}。你可以使用\texttt{map}适配器来对迭代器返回的每一行应用\texttt{str::trim}：
