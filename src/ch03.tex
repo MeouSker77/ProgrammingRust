@@ -675,7 +675,7 @@ Rust有三种表示一系列值的类型：
 
 这里，\texttt{sort}方法实际上是为切片定义的，但因为它是以调用者的引用为参数，所以Rust隐式的创建了一个引用整个数组的\texttt{\&mut [i32]}类型的切片，然后在这个切片上调用\texttt{sort}方法。事实上，我们之前提到的\texttt{len}方法最早的时候也是切片的方法。我们将在\hyperref[slice]{切片}这一节中介绍切片。
 
-\subsection{vector}
+\subsection{vector}\label{vector}
 
 一个\texttt{Vec<T>}是一个长度可变的类型\texttt{T}的数组，它的元素都存储在堆上。
 

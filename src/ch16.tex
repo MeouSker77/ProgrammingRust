@@ -71,7 +71,101 @@ Rust标准库里包含几种\emph{集合(collection)}，它们是在内存中存
 
 因为\texttt{LinkedList}很少使用（并且在大多数情况下都有更好的替代，无论是性能还是接口），因此我们不会在这里介绍它。
 
+\section{\texttt{Vec<T>}}
 
+我们假设你对\texttt{Vec}已经有了一定了解，因为我们在本书的很多地方都已经使用过它。简要的介绍见“\nameref{vector}”。这里我们只会描述它的方法以及深入它的内部工作原理。
 
+最简单的创建vector的方式是使用\texttt{vec!}宏：
+\begin{minted}{Rust}
+    // 创建一个空的vector
+    let mut numbers: Vec<i32> = vec![];
 
+    // 用给定的内容创建一个vector
+    let words = vec!["step", "on", "no", "pets"];
+    let mut buffer = vec![0u8; 1024];   // 1024个0字节
+\end{minted}
+
+正如我们在“\hyperref[ch04]{第4章}”所述，vector有三个字段：长度、容量、和一个指向堆上分配的缓冲区的指针。\autoref{f16-1}展示了上面的vector在内存中的视图。空vector，\texttt{numbers}，初始长度为0。在它添加第一个元素之前不会有堆内存被分配。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f16-1.png}
+    \caption{vector的内存布局：words的每个元素是一个由指针和长度组成的\&str值}
+    \label{f16-1}
+\end{figure}
+
+类似于所有集合，\texttt{Vec}实现了\texttt{std::iter::FromIterator}，因此你可以对任何迭代器调用\texttt{.collect()}方法来创建一个vector，正如“\nameref{BuildColl}”中所述：
+\begin{minted}{Rust}
+    // 将一个其他集合转换成vector
+    let my_vec = my_set.into_iter().collect::<Vec<String>>();
+\end{minted}
+
+\subsection{访问元素}
+通过索引访问数组、切片或vector的元素非常直观：
+\begin{minted}{Rust}
+    // 获取一个元素的引用
+    let first_line = &lines[0];
+
+    // 获取一个元素的拷贝 
+    let fifth_number = numbers[4];          // 需要Copy
+    let second_number = lines[1].clone();   // 需要Clone
+
+    // 获取一个切片的引用
+    let my_ref = &buffer[4..12];
+
+    // 获取一个切片的拷贝
+    let my_copy = buffer[4..12].to_vec();   // 需要Clone
+\end{minted}
+
+当索引越界时所有这些方式都会panic。
+
+Rust对数字类型很挑剔，vector也不例外。vector的长度和索引都是\texttt{usize}类型。尝试使用\texttt{u32}、\texttt{u64}、\texttt{isize}作为vector的索引会导致错误。必要时你可以使用\texttt{n as usize}来转换，见“\nameref{cast}”。
+
+有几种方法提供了便捷地访问vector或切片的特定元素的方法（注意所有的切片方法都能用于数组和vector）：
+\codeentry{slice.first()}
+\hangparagraph{返回\texttt{slice}的第一个元素的引用。返回类型是\texttt{Option<\&T>}，因此如果\texttt{slice}为空时返回值为\texttt{None}，不为空时返回值为\texttt{Some(\&slice[0])}}：
+\begin{minted}{Rust}
+    if let Some(item) = v.first() {
+        println!("We got one! {}", item);
+    }
+\end{minted}
+
+\codeentry{slice.last()}
+\hangparagraph{和上边相似，不过返回最有一个元素的引用。}
+
+\codeentry{slice.get(index)}
+\hangparagraph{返回\texttt{slice[index]}的引用，如果存在的话。如果\texttt{slice}的元素数量小于\texttt{index+1}，那么返回\texttt{None}}：
+\begin{minted}{Rust}
+    let slice = [0, 1, 2, 3];
+    assert_eq!(slice.get(2), Some(&2));
+    assert_eq!(slice.get(4), None);
+\end{minted}
+
+\codeentry{slice.first\_mut(), slice.last\_mut(), slice.get\_mut(index)}
+\hangparagraph{与上面的类似，不过借用\texttt{mut}引用：}
+\begin{minted}{Rust}
+    let mut slice = [0, 1, 2, 3];
+    {
+        let last = slice.last_mut().unwrap();   // 最后一个元素类型：&mut i32
+        assert_eq!(*last, 3);
+        *last = 100;
+    }
+\end{minted}
+
+因为以值返回\texttt{T}意味着移动它，因此访问元素的方法通常返回元素的引用。
+
+一个例外是\texttt{.to\_vec()}方法，它获取拷贝：
+
+\codeentry{slice.to\_vec()}
+\hangparagraph{克隆整个切片，返回一个新的vector：}
+\begin{minted}{Rust}
+    let v = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    assert_eq!(v.to_vec(),
+               vec![1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    assert_eq!(v[0..6].to_vec(),
+               vec![1, 2, 3, 4, 5, 6]);
+\end{minted}
+\hangparagraph{只有当元素可以拷贝时这个方法才可用，即\texttt{where T: Clone}}
+
+\subsection{迭代}
 
