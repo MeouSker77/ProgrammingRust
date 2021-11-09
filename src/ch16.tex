@@ -168,4 +168,19 @@ Rust对数字类型很挑剔，vector也不例外。vector的长度和索引都�
 \hangparagraph{只有当元素可以拷贝时这个方法才可用，即\texttt{where T: Clone}}
 
 \subsection{迭代}
+vector和切片可以以值或者以引用迭代，遵循“\nameref{IntoIter}”中介绍的模式：
+\begin{itemize}
+    \item 迭代\texttt{Vec<T>}会产生\texttt{T}类型的item。元素被逐个移出vector消耗掉。
+    \item 迭代\texttt{\&[T; N], \&[T], \&Vec<T>}——即数组、切片或vector的引用——会产生\texttt{\&T}类型的item，每一个item指向一个元素，不会移动元素。
+    \item 迭代\texttt{\&mut [T; N], \&mut [T], \&mut Vec<T>}产生\texttt{\&mut T}类型的item。
+\end{itemize}
 
+数组、切片和vector还有\texttt{.iter()}和\texttt{.iter\_mut()}方法（见“\nameref{IterMethod}”）创建产生元素的引用的迭代器。
+
+我们将在“\nameref{split}”中介绍一些更有趣的迭代切片的方法。
+
+\subsection{分割}\label{split}
+
+\section{\texttt{HashMap<K, V>}和\texttt{BTreeMap<K, V>}}
+
+\subsection{条目}\label{entry}
