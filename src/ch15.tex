@@ -1322,7 +1322,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 
 但只要\texttt{collect}的参数只有一个可能的类型才可以正常工作，那么Rust会自动为你填充它。当你写出\texttt{args}的类型时，就是确保了这种情况。
 
-\subsection{\texttt{Extend} trait}
+\subsection{\texttt{Extend} trait}\label{extend}
 如果一个类型实现了\texttt{std::iter::Extend} trait，那么它的\texttt{extend}方法可以把一个可迭代对象的item添加到集合中：
 \begin{minted}{Rust}
     let mut v: Vec<i32> = (0..5).map(|i| 1 << i).collect();

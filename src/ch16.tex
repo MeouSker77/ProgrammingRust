@@ -179,6 +179,132 @@ vector和切片可以以值或者以引用迭代，遵循“\nameref{IntoIter}�
 
 我们将在“\nameref{split}”中介绍一些更有趣的迭代切片的方法。
 
+\subsection{增长和缩减vector}
+数组、切片或vector的\emph{长度(length)}是它包含的元素的数量：
+
+\codeentry{slice.len()}
+\hangparagraph{返回一个\texttt{slice}的长度，类型为\texttt{usize}。}
+
+\codeentry{slice.is\_empty()}
+\hangparagraph{当\texttt{slice}不包含元素时为真（即\texttt{slice.len() == 0}）。}
+
+本节剩余的方法都是关于增长和缩减vector。它们不能用于数组和切片，因为它们一旦被创建之后就不能改变大小。
+
+vector的所有元素都存储在一个在堆上分配的连续内存块中。vector的\emph{容量(capacity)}是指当前的内存块中最多能存储的元素数量。\texttt{Vec}通常会替你管理容量，当需要增长时它会自动分配更大的缓冲区并把元素都移动过去。还有一些显式管理容量的方法：
+
+\codeentry{Vec::with\_capacity(n)}
+\hangparagraph{创建一个容量为\texttt{n}的新的空vector。}
+
+\codeentry{vec.capacity()}
+\hangparagraph{返回\texttt{vec}的容量，类型是\texttt{usize}。\texttt{vec.capacity() >= vec.len()}总是为真。}
+
+\codeentry{vec.reserve(n)}
+\hangparagraph{保证vector的剩余空间至少还能再存储\texttt{n}个或更多元素：即\texttt{vec.capacity()}至少是\texttt{vec.len() + n}。如果已经有足够的空间，它不做任何事。否则，它会分配一个更大的缓冲区并且把vector的内容移动过去。}
+
+\codeentry{vec.reserve\_exact(n)}
+\hangparagraph{类似于\texttt{vec.reserve(n)}，但告诉\texttt{vec}不要为未来的增长分配额外的空间。调用它之后，\texttt{vec.capacity()}等于\texttt{vec.len() + n}。}
+
+\codeentry{vec.shrink\_to\_fit()}
+\hangparagraph{当\texttt{vec.capacity()}大于\texttt{vec.len()}时尝试释放额外的内存。}
+
+\texttt{Vec<T>}有很多添加或移除元素的方法，同时改变vector的长度。所有这些方法都以\texttt{mut}引用获取\texttt{self}参数。
+
+下面这两个方法在vector的末尾添加或移除一个元素：
+
+\codeentry{vec.push(value)}
+\hangparagraph{把\texttt{value}添加到\texttt{vec}的末尾。}
+
+\codeentry{vec.pop()}
+\hangparagraph{移除并返回最后一个元素。返回类型是\texttt{Option<T>}。当vector已经为空时返回\texttt{None}，否则返回\texttt{Some(x)}。}
+
+注意\texttt{.push()}以值而不是以引用获取参数。类似的，\texttt{.pop()}返回被弹出的值，而不是引用。本节中剩余的大部分方法也是这样。它们从vector移出或移进值。
+
+这两个方法向vector中添加值或者从vector中移出值：
+\codeentry{vec.insert(index, value)}
+\hangparagraph{在\texttt{vec[index]}处插入给定的\texttt{value}，把\texttt{vec[index..]}中的值都向后移动一个位置来腾出空间。如果\texttt{index > vec.len()}会panic。}
+
+\codeentry{vec.remove(index)}
+\hangparagraph{移除并返回\texttt{vec[index]}，把\texttt{vec[index+1..]}中的值向左移动一个位置来消除缝隙。}
+
+\texttt{.insert()}和\texttt{.remove()}都很慢，因为有很多元素需要移动。
+
+有四个方法可以将vector的长度调整为指定值：
+
+\codeentry{vec.resize(new\_len, value)}
+\hangparagraph{将\texttt{vec}的长度设为\texttt{new\_len}。如果这会增大\texttt{vec}的长度，将会用\texttt{value}的拷贝填充新空间。元素的类型必须实现了\texttt{Clone} trait。}
+
+\codeentry{vec.resize\_with(new\_len, closure)}
+\hangparagraph{类似于\texttt{vec.resize}，但调用闭包来构造每一个新元素。它可以用于元素没有实现\texttt{Clone}的vector。}
+
+\codeentry{vec.truncate(new\_len)}
+\hangparagraph{将\texttt{vec}的长度缩减到\texttt{new\_len}，丢弃\texttt{vec[new\_len..]}范围内的所有元素。如果\texttt{vec.len()}小于等于\texttt{new\_len}，那么什么也不做。}
+
+\codeentry{vec.clear()}
+\hangparagraph{删除\texttt{vec}的所有元素。等价于\texttt{vec.truncate(0)}。}
+
+有四个方法可以一次添加或移除很多元素：
+
+\codeentry{vec.extend(iterable)}
+\hangparagraph{将\texttt{iterable}的所有item按顺序添加到\texttt{vec}的末尾。它类似于多值版本的\texttt{.push()}。\texttt{iterable}参数可以是任何实现了\texttt{IntoIterator<Item=T>}。}
+\hangparagraph{这个方法如此有用以至于有一个专门的trait \texttt{Extend}，所有的标准集合都实现了它。不幸的是，这导致\texttt{rustdoc}将\texttt{.extend()}和其他trait的方法放在生成的HTML底部的一堆方法中，因此当你需要它时很难找到它。你必须记住它！更多内容见“\nameref{extend}”。}
+
+\codeentry{vec.split\_off(index)}
+\hangparagraph{类似于\texttt{vec.truncate(index)}，除了它返回一个\texttt{Vec<T>}包含\texttt{vec}尾部被移除的元素。它类似于\texttt{.pop()}的多值版本。}
+
+\codeentry{vec.append(\&mut vec2)}
+\hangparagraph{这会把\texttt{vec2}的所有元素移动进\texttt{vec}，其中\texttt{vec2}是另一个\texttt{Vec<T>}类型的vector。调用之后，\texttt{vec2}变为空。}
+\hangparagraph{这类似于\texttt{vec.extend(vec2)}，除了调用之后\texttt{vec2}仍然存在，并且容量不变。}
+
+\codeentry{vec.drain(range)}
+\hangparagraph{这会从\texttt{vec}中移除范围\texttt{vec[range]}，并返回一个迭代被移除元素的迭代器，其中\texttt{range}是一个范围值，例如\texttt{..}或\texttt{0..4}。}
+
+还有一些选择性移除vector元素的古怪方法：
+\codeentry{vec.retain(test)}
+\hangparagraph{移除所有没有通过给定测试的方法。\texttt{test}参数是一个实现了\texttt{FnMut(\&T) -> bool}的函数或闭包。对于\texttt{vec}的每一个元素，它会调用\texttt{test(\&element)}，如果返回\texttt{false}，元素将会被移出vector然后丢弃。}
+\hangparagraph{不考虑性能的话，这类似于：}
+\begin{minted}{Rust}
+    vec = vec.into_iter().filter(test).collect();
+\end{minted}
+
+\codeentry{vec.dedup()}
+\hangparagraph{丢弃相邻的重复元素。它类似于Unix的\texttt{uniq} shell工具。它会扫描\texttt{vec}中寻找相邻的重复元素，然后丢弃掉多余的重复值，只留下一个：}
+\begin{minted}{Rust}
+    let mut byte_vec = b"Missssssissippi".to_vec();
+    byte_vec.dedup();
+    assert_eq!(&byte_vec, b"Misisipi");
+\end{minted}
+\hangparagraph{注意最后的输出中仍然有两个\texttt{'s'}字符。这个方法只移除\emph{相邻的(adjacent)}重复值。为了移除所有的重复值，你有三种选择：调用\texttt{.dedup()}之前先排序vector，将数据移动到一个“\nameref{set}”，或者（为了保持元素原本的顺序）使用这个\texttt{.retain()}技巧：}
+\begin{minted}{Rust}
+    let mut byte_vec = b"Missssssissippi".to_vec();
+
+    let mut seen = HashSet::new();
+    byte_vec.retain(|r| seen.insert(*r));
+
+    assert_eq!(&byte_vec, b"Misp");
+\end{minted}
+\hangparagraph{这段代码的原理是当集合中已经包含要插入的item时\texttt{.insert()}会返回\texttt{false}。}
+
+\codeentry{vec.dedup\_by(same)}
+\hangparagraph{类似于\texttt{vec.dedup()}，但它使用函数或者闭包\texttt{same(\&mut elem1, \&mut elem2)}，而不是\texttt{==}运算符，来检查两个相邻元素是否被认为相等。}
+
+\codeentry{vec.dedup\_by\_key(key)}
+\hangparagraph{类似于\texttt{vec.dedup()}，但当\texttt{key(\
+&mut elem1) == key(\&mut elem2)}时它认为两个元素相等。}
+\hangparagraph{例如，如果\texttt{errors}是一个\texttt{Vec<Box<dyn Error>>}，你可以写：}
+\begin{minted}{Rust}
+    // 移除消息重复的错误。
+    errors.dedup_by_key(|err| err.to_string());
+\end{minted}
+
+这一节介绍的所有方法中，只有\texttt{.resize()}可能会拷贝值。其他的通过移动值来工作。
+
+\subsection{连接}
+
+
+
+
+
+
 \subsection{分割}\label{split}
 
 \section{\texttt{HashMap<K, V>}和\texttt{BTreeMap<K, V>}}
