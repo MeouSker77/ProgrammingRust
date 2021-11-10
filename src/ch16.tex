@@ -409,7 +409,7 @@ Rust有几个方法可以一次借用数组、切片、vector的两个或更多�
 \codeentry{slice.swap(i, j)}
 \hangparagraph{交换元素\texttt{slice[i]}和\texttt{slice[j]}。}
 
-\codeentry{slice_a.swap(\&mut slice\_b)}
+\codeentry{slice\_a.swap(\&mut slice\_b)}
 \hangparagraph{交换\texttt{slice\_a}和\texttt{slice\_b}的全部内容。\texttt{slice\_a}和\texttt{slice\_b}长度必须相同。}
 
 vector有一个高效地移除任何元素的方法：
@@ -418,6 +418,68 @@ vector有一个高效地移除任何元素的方法：
 \hangparagraph{移除并返回\texttt{vec[i]}。这类似于\texttt{vec.remove(i)}，除了它不是吧剩余的元素往前移动来消除间隙，而是把\texttt{vec}的最后一个元素移动到间隙。当你不关心vector中元素的顺序时这很有用。}
 
 \subsection{排序和搜索}
+切片提供了三个用于排序的方法：
+
+\codeentry{slice.sort()}
+\hangparagraph{按增序排序元素。只有当元素类型实现了\texttt{Ord}，这个方法才可用。}
+
+\codeentry{slice.sort\_by(cmp)}
+\hangparagraph{使用函数或闭包\texttt{cmp}指定顺序来排序\texttt{slice}的元素。\texttt{cmp}必须实现了\texttt{Fn(\&T, \&T) -> std::cmp::Ordering}。}
+\hangparagraph{手动实现\texttt{cmp}很麻烦，除非你用\texttt{.cmp}方法：}
+\begin{minted}{Rust}
+    students.sort_by(|a, b| a.last_name.cmp(&b.last_name));
+\end{minted}
+\hangparagraph{如果要先比较一个字段，再比较第二个字段，可以直接比较元组：}
+\begin{minted}{Rust}
+    students.sort_by(|a, b| {
+        let a_key = (&a.last_name, &a.first_name);
+        let b_key = (&b.last_name, &b.first_name);
+        a_key.cmp(&b_key)
+    });
+\end{minted}
+
+\codeentry{slice.sort\_by\_key(key)}
+\hangparagraph{以给定的函数或闭包\texttt{key}作为排序键将\texttt{slice}的元素按照增序排序。\texttt{key}的类型必须实现了\texttt{Fn(\&T) -> K where K: Ord}}。
+\hangparagraph{当\texttt{T}包含一个或更多有序字段时这很有用，因为它可以按照多种方式排序：}
+\begin{minted}{Rust}
+    // 按照平均绩点排序，低的靠前
+    students.sort_by_key(|s| s.grade_point_average());
+\end{minted}
+\hangparagraph{注意这些排序键在排序过程中并不会被缓存，因此\texttt{key}函数可能会被调用超过\texttt{n}次。}
+\hangparagraph{出于技术上的原因，\texttt{key(element)}不能返回任何从元素借用的引用。这样不能工作：}
+\begin{minted}{Rust}
+    students.sort_by_key(|s| &s.last_name); // 错误：无法推断生命周期
+\end{minted}
+\hangparagraph{Rust无法查明生命周期。但在这种情况下，可以调用\texttt{.sort\_by()}作为替代。}
+
+这三种方法都是稳定性排序。
+
+为了实现反向排序，你可以使用\texttt{sort\_by}，然后在\texttt{cmp}闭包中交换两个参数。将参数写为\texttt{|b, a|}而不是\texttt{|a, b|}可以高效地产生相反的顺序。或者你可以在排序之后调用\texttt{.reverse()}方法：
+
+\codeentry{slice.reverse()}
+\hangparagraph{反转一个切片。}
+
+一旦一个切片被排过序，它就可以被高效地搜索：
+\codeentry{slice.binary\_search(\&value), slice.binary\_search\_by(\&value, cmp), slice.binary\_search\_by\_key(\&value, key)}
+\hangparagraph{这些方法都在有序的\texttt{slice}中搜索\texttt{value}。注意\texttt{value}是以引用传递。}
+\hangparagraph{这些方法的返回类型都是\texttt{Result<usize, usize>}。如果\texttt{slice[index]}在指定的排序顺序下等于\texttt{value}它们会返回\texttt{Ok(index)}。如果没有这样的元素，它们会返回\texttt{Err(insertion\_point)}，在\texttt{insertion_point}处插入\texttt{value}将保持有序。}
+
+当然，二分搜索只在切片在指定的顺序下有序时才能工作。否则，结果将是任意值——garbage in, garbage out。
+
+因为\texttt{f32}和\texttt{f64}有NaN值，它们没有实现\texttt{Ord}，因此不能被直接用作排序或二分搜索的键。为了得到可以用于浮点数的类似方法，使用\texttt{ord\_subset} crate。
+
+还有一个在无序vector中搜索元素的方法：
+
+\codeentry{slice.contains(\&value)}
+\hangparagraph{如果\texttt{slice}中有任何元素等于\texttt{value}时返回\texttt{true}。它简单地检查切片的每个元素，直到找到要查找的值。还有，\texttt{value}也是以引用传递。}
+
+为了查找一个切片中某一个值的位置，类似于JavaScript中的\texttt{array.indexOf(value)}，使用迭代器：
+\begin{minted}{Rust}
+    slice.iter().position(|x| *x == value)
+\end{minted}
+这会返回\texttt{Option<usize>}。
+
+\subsection{比较切片}
 
 \section{\texttt{HashMap<K, V>}和\texttt{BTreeMap<K, V>}}
 
