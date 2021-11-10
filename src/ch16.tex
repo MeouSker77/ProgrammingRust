@@ -299,11 +299,21 @@ vector的所有元素都存储在一个在堆上分配的连续内存块中。ve
 这一节介绍的所有方法中，只有\texttt{.resize()}可能会拷贝值。其他的通过移动值来工作。
 
 \subsection{连接}
+两个方法可以用于\emph{数组的数组(array of array)}，即元素类型是数组、切片、vector的数组、切片、vector：
 
+\codeentry{slices.concat()}
+\hangparagraph{返回一个所有切片连接成的vector：}
+\begin{minted}{Rust}
+    assert_eq!([[1, 2], [3, 4], [5, 6]].concat(),
+               vec![1, 2, 3, 4, 5, 6]);
+\end{minted}
 
-
-
-
+\codeentry{slices.join(\&separator)}
+\hangparagraph{同上，除了会在切片之间插入\texttt{separator}的拷贝：}
+\begin{minted}{Rust}
+    assert_eq!([[1, 2], [3, 4], [5, 6]].join(&0),
+               vec![1, 2, 0, 3, 4, 0, 5, 6]);
+\end{minted}
 
 \subsection{分割}\label{split}
 
