@@ -167,7 +167,7 @@ Rust对数字类型很挑剔，vector也不例外。vector的长度和索引都�
 \end{minted}
 \hangparagraph{只有当元素可以拷贝时这个方法才可用，即\texttt{where T: Clone}}
 
-\subsection{迭代}
+\subsection{迭代}\label{Iteration}
 vector和切片可以以值或者以引用迭代，遵循“\nameref{IntoIter}”中介绍的模式：
 \begin{itemize}
     \item 迭代\texttt{Vec<T>}会产生\texttt{T}类型的item。元素被逐个移出vector消耗掉。
@@ -288,8 +288,7 @@ vector的所有元素都存储在一个在堆上分配的连续内存块中。ve
 \hangparagraph{类似于\texttt{vec.dedup()}，但它使用函数或者闭包\texttt{same(\&mut elem1, \&mut elem2)}，而不是\texttt{==}运算符，来检查两个相邻元素是否被认为相等。}
 
 \codeentry{vec.dedup\_by\_key(key)}
-\hangparagraph{类似于\texttt{vec.dedup()}，但当\texttt{key(\
-&mut elem1) == key(\&mut elem2)}时它认为两个元素相等。}
+\hangparagraph{类似于\texttt{vec.dedup()}，但当\texttt{key(\&mut elem1) == key(\&mut elem2)}时它认为两个元素相等。}
 \hangparagraph{例如，如果\texttt{errors}是一个\texttt{Vec<Box<dyn Error>>}，你可以写：}
 \begin{minted}{Rust}
     // 移除消息重复的错误。
@@ -315,7 +314,96 @@ vector的所有元素都存储在一个在堆上分配的连续内存块中。ve
                vec![1, 2, 0, 3, 4, 0, 5, 6]);
 \end{minted}
 
-\subsection{分割}\label{split}
+\subsection{切分}\label{split}
+很容易一次获得数组、切片、vector中的很多元素的非\texttt{mut}引用：
+\begin{minted}{Rust}
+    let v = vec![0, 1, 2, 3];
+    let a = &v[i];
+    let b = &v[j];
+
+    let mid = v.len() / 2;
+    let front_half = &v[..mid];
+    let back_half = &v[mid..];
+\end{minted}
+
+但一次获得多个\texttt{mut}引用不是这么容易：
+\begin{minted}{Rust}
+    let mut v = vec![0, 1, 2, 3];
+    let a = &mut v[i];
+    let b = &mut v[j];  // error: 不能同时借用`v`的
+                        // 多个可变引用。
+
+    *a = 6;             // 引用`a`和`b`在这里使用了，
+    *b = 7;             // 因此它们的生命周期一定会重叠。
+\end{minted}
+
+Rust禁止这样，因为如果\texttt{i == j}，那么\texttt{a}和\texttt{b}将是同一个整数的两个\texttt{mut}引用，这违背了Rust的安全性的规则。（见“\nameref{ShareVSMut}”）。
+
+Rust有几个方法可以一次借用数组、切片、vector的两个或更多元素的\texttt{mut}引用。和上面的代码不同，这些方法是安全的，因为它们从设计上保证了只会把数组分割成\emph{非重叠(nonoverlapping)区域}。这些方法也可以用于非\texttt{mut}切片，因此它们有\texttt{mut}和非\texttt{mut}版本。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f16-2.png}
+    \caption{分隔方法展示（注意：\texttt{slice.split()}输出中的小矩形是空的切片，因为两侧都是分隔符，\texttt{rsplitn}的输出是按照从后往前的顺序，这一点和其他的不同。}
+    \label{f16-2}
+\end{figure}
+
+这些方法中没有一个会直接修改数组、切片或vector；它们都返回部分数据的引用：
+\codeentry{slice.iter(), slice.iter\_mut()}
+\hangparagraph{产生\texttt{slice}的每个元素的引用。我们在“\nameref{Iteration}”中已经介绍过它们。}
+
+\codeentry{slice.split\_at(index), slice.split\_at\_mut(index)}
+\hangparagraph{将一个切片划分为两个，返回一个pair。\texttt{slice.split\_at(index)}等价于\texttt{(\&slice[..index], \&slice[index..])}。如果\texttt{index}越界会panic。}
+
+\codeentry{slice.split\_first(), slice.split\_first\_mut()}
+\hangparagraph{也返回一个pair：第一个元素的引用(\texttt{slice[0]})和其余所有元素的切片引用(\texttt{slice[1..]})。}
+\hangparagraph{\texttt{.spilt\_first()}的返回值类型是\texttt{Option<(\&T, \&[T])>}；如果\texttt{slice}为空，返回\texttt{None}。}
+
+\codeentry{slice.split\_last(), slice.split\_last\_mut()}
+\hangparagraph{类似上一个，不过划分出最后一个元素而不是第一个。}
+\hangparagraph{\texttt{.split\_last()}的返回类型是\texttt{Option<(\&T, \&[T])>}。}
+
+\codeentry{slice.split(is\_sep), slice.split\_mut(is\_sep)}
+\hangparagraph{将\texttt{slice}切分成一个或更多子切片，使用函数或闭包\texttt{is\_sep}来判断在哪里切分。它们返回一个迭代子切片的迭代器。}
+\hangparagraph{当你消耗迭代器时，它会对切片中的每个元素调用\texttt{is\_sep(\&element)}。如果\texttt{is\_sep(\&element)}返回\texttt{true}，那么这个元素就是一个分隔符。分隔符不包含在任何输出的字切片中。}
+\hangparagraph{输出总是包含至少一个子切片，每有一个分隔符就加一个子切片。如果有相邻的分隔符或者\texttt{slice}的两端是分隔符都会产生空的子切片。}
+
+\codeentry{slice.rsplit(is\_sep), slice.rsplit\_mut(is\_sep)}
+\hangparagraph{类似于\texttt{slice}和\texttt{slice\_mut}，但从最后一个切片开始。}
+
+\codeentry{slice.splitn(n, is\_sep), slice.splitn\_mut(n, is\_sep)}
+\hangparagraph{类似上面的方法，不过最多产生\texttt{n}个子切片。当发现了前\texttt{n-1}个切片之后就不会再调用\texttt{is\_sep}。最后一个字切片将包含剩余的所有元素。}
+
+\codeentry{slice.rsplitn(n, is\_sep), slice.rsplitn\_mut(n, is\_sep)}
+\hangparagraph{类似于\texttt{.splitn()}和\texttt{.splitn\_mut()}，除了反向扫描切片。就是说，这个方法会在切片中\emph{最后}\texttt{n-1}个分隔符处切分，而不是前\texttt{n-1}个，并且从尾部开始产生子切片。}
+
+\codeentry{slice.chunks(n), slice.chunks\_mut(n)}
+\hangparagraph{返回一个产生长度为\texttt{n}的非重叠子切片的迭代器。如果\texttt{n}不能整除\texttt{slice.len()}，最后一个块的元素数量将小于\texttt{n}。}
+
+\codeentry{slice.rchunks(n), slick.rchunks\_mut(n)}
+\hangparagraph{类似于\texttt{slice.chunks()}和\texttt{slice.chunks\_mut()}，但是从切片的尾部开始。}
+
+\codeentry{slice.chunks\_exact(n), slice.chunks\_exact\_mut(n)}
+\hangparagraph{返回一个产生长度为\texttt{n}的非重叠子切片的迭代器。如果\texttt{n}不能整除\texttt{slice.len()}，最后一个块(元素数量小于\texttt{n})可以通过结果的\texttt{remainder()}方法获得。}
+
+\codeentry{slice.rchunks\_exact(n), slice.rchunks\_exact\_mut(n)}
+\hangparagraph{类似于\texttt{slice.chunks\_exact}和\texttt{slice.chunks\_exact\_mut}，但从切片的尾部开始。}
+
+还有一些其他迭代子切片的方法：
+\codeentry{slice.windows(n)}
+\hangparagraph{返回一个效果类似于“滑动窗口”的迭代器。它产生\texttt{slice}中相邻的\texttt{n}个元素的子切片。第一个产生的值是\texttt{\&slice[0..n]}，第二个是\texttt{\&slice[1..n+1]}，以此类推。}
+\hangparagraph{如果\texttt{n}大于\texttt{slice}的长度，将不会产生切片。如果\texttt{n}是0，这个方法会panic。}
+\hangparagraph{例如，如果\texttt{days.len() == 31}，那么我们可以调用\texttt{days.windows(7)}产生\texttt{days}中所有7天的区间。}
+\hangparagraph{在探索数据列的变化趋势时一个大小为2的滑动窗口会很有用：}
+\begin{minted}{Rust}
+    let changes = daily_high\_temperatures
+                      .windows(2)           // 获得相邻天的温度
+                      .map(|w| w[1] - w[0]) // 温度改变了多少
+                      .collect::<Vec<_>>();
+\end{minted}
+\hangparagraph{因为子切片是重叠的，所以这个方法没有返回\texttt{mut}引用的版本。}
+
+\subsection{交换}
 
 \section{\texttt{HashMap<K, V>}和\texttt{BTreeMap<K, V>}}
 
