@@ -404,6 +404,20 @@ Rust有几个方法可以一次借用数组、切片、vector的两个或更多�
 \hangparagraph{因为子切片是重叠的，所以这个方法没有返回\texttt{mut}引用的版本。}
 
 \subsection{交换}
+有一些交换切片内容的便捷方法：
+
+\codeentry{slice.swap(i, j)}
+\hangparagraph{交换元素\texttt{slice[i]}和\texttt{slice[j]}。}
+
+\codeentry{slice_a.swap(\&mut slice\_b)}
+\hangparagraph{交换\texttt{slice\_a}和\texttt{slice\_b}的全部内容。\texttt{slice\_a}和\texttt{slice\_b}长度必须相同。}
+
+vector有一个高效地移除任何元素的方法：
+
+\codeentry{vec.swap\_remove(i)}
+\hangparagraph{移除并返回\texttt{vec[i]}。这类似于\texttt{vec.remove(i)}，除了它不是吧剩余的元素往前移动来消除间隙，而是把\texttt{vec}的最后一个元素移动到间隙。当你不关心vector中元素的顺序时这很有用。}
+
+\subsection{排序和搜索}
 
 \section{\texttt{HashMap<K, V>}和\texttt{BTreeMap<K, V>}}
 
