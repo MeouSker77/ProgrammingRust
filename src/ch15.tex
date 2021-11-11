@@ -790,7 +790,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 
 一个\texttt{chain}迭代器会追踪是否两个底层迭代器返回过\texttt{None}，并正确地调用\texttt{next}或者\texttt{next\_back}。
 
-\subsection{\texttt{enumerate}}
+\subsection{\texttt{enumerate}}\label{enumerate}
 \texttt{Iterator} trait的\texttt{enumerate}适配器把一个索引附加到序列中，它以一个产生\texttt{A, B, C, ...}的迭代器为参数，返回一个查收讷会给你\texttt{(0, A), (1, B), (2, C), ...}的迭代器。第一样可能会觉得它没多大用，但实际上它非常常用。
 
 消费者可以使用索引来区分不同的item并建立起处理每个item的上下文。例如，\hyperref[ch02]{第2章}中的曼德勃罗集绘制器将图像分割成了8个水平的条带，并把每个条带分到不同的线程中进行处理。那段代码使用了\texttt{enumerate}来告诉每个线程它的条带是图像中的哪一部分。

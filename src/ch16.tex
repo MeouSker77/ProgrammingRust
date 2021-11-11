@@ -462,7 +462,7 @@ vector有一个高效地移除任何元素的方法：
 一旦一个切片被排过序，它就可以被高效地搜索：
 \codeentry{slice.binary\_search(\&value), slice.binary\_search\_by(\&value, cmp), slice.binary\_search\_by\_key(\&value, key)}
 \hangparagraph{这些方法都在有序的\texttt{slice}中搜索\texttt{value}。注意\texttt{value}是以引用传递。}
-\hangparagraph{这些方法的返回类型都是\texttt{Result<usize, usize>}。如果\texttt{slice[index]}在指定的排序顺序下等于\texttt{value}它们会返回\texttt{Ok(index)}。如果没有这样的元素，它们会返回\texttt{Err(insertion\_point)}，在\texttt{insertion_point}处插入\texttt{value}将保持有序。}
+\hangparagraph{这些方法的返回类型都是\texttt{Result<usize, usize>}。如果\texttt{slice[index]}在指定的排序顺序下等于\texttt{value}它们会返回\texttt{Ok(index)}。如果没有这样的元素，它们会返回\texttt{Err(insertion\_point)}，在\texttt{insertion\_point}处插入\texttt{value}将保持有序。}
 
 当然，二分搜索只在切片在指定的顺序下有序时才能工作。否则，结果将是任意值——garbage in, garbage out。
 
@@ -516,7 +516,49 @@ Rust的标准库中并不包含随机数。\texttt{rand} crate提供了它们，
     my_vec.shuffle(&mut thread_rng());
 \end{minted}
 
-\subsection{}
+\subsection{Rust排除了无效性错误}
+大多数主流编程语言都有集合和迭代器，而且都有这个规则的变体：不要在遍历集合的同时修改它。例如，Python中vecotr等价的是list：
+\begin{minted}{Rust}
+    my_list = [1, 3, 5, 7, 9]
+\end{minted}
+
+假设我们想移除\texttt{my\_list}中大于4的元素；
+\begin{minted}{Rust}
+    for index, val in enumerate(my_list):
+        if val > 4:
+            del my_list[index]  # bug: 在迭代的同时修改
+    
+    print(my_list)
+\end{minted}
+（Python中的\texttt{enumerate}函数等价于Rust中的\texttt{.enumerate()}方法，见“\nameref{enumerate}”。）
+
+这个程序令人惊讶地打印出\texttt{[1, 3, 7]}。但7比4大，为什么它没被移除？这就是无效性错误：程序在迭代数据的同时修改它，将迭代器\emph{无效化(invalidate)}。在Java中，结果可能是一个异常；在C++中是未定义行为。而在Python中，这个行为是有定义的，虽然不太直观：
+迭代器会跳过一个元素。\texttt{val}永远不会是\texttt{7}。
+
+让我们尝试在Rust中复现这个bug：
+\begin{minted}{Rust}
+    fn main() {
+        let mut my_vec = vec![1, 3, 5, 7, 9];
+        
+        for (index, &val) in my_vec.iter().enumerate() {
+            if val > 4 {
+                my_vec.remove(index);   // error: can't borrow `my_vec` as mutable
+            }
+        }
+        println!("{:?}", my_vec);
+    }
+\end{minted}
+
+Rust自然会在编译期拒绝这个程序。当我们调用\texttt{my\_vec.iter()}时，它借用了vector的一个共享（非\texttt{mut}）引用。引用的生命周期和迭代器一样长，也就是直到\texttt{for}循环的结尾。我们不能在有非\texttt{mut}引用存在时调用\texttt{my\_vec.remove(index)}修改vector。
+
+编译器能指出这个错误非常好，但当然，你仍然需要一种方法来得到期望的行为！这里最简单的修复方法是：
+\begin{minted}{Rust}
+    my_vec.retain(|&val| val <= 4);
+\end{minted}
+
+或者，你可以采用在Python或其他任何语言中也可以实现的方法：使用\texttt{filter}来创建一个新的vector。
+
+\section{\texttt{VecDeque<T>}}
 
 \section{\texttt{HashMap<K, V>}和\texttt{BTreeMap<K, V>}}
 
