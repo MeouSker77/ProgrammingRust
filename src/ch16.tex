@@ -485,6 +485,7 @@ vector有一个高效地移除任何元素的方法：
 如果\texttt{T}支持运算符\texttt{<}、\texttt{<=}、\texttt{>}、\texttt{>=}（\texttt{PartialOrd} trait，见“\nameref{cmp}”），那么\texttt{T}的数组、切片和vector也支持。切片的比较按照字典序进行。
 
 有两个便捷的方法进行常用的切片比较：
+
 \codeentry{slice.starts\_with(other)}
 \hangparagraph{如果\texttt{slice}起始的值序列等于\texttt{other}的元素则返回\texttt{true}：}
 \begin{minted}{Rust}
@@ -499,6 +500,23 @@ vector有一个高效地移除任何元素的方法：
 \end{minted}
 
 \subsection{随机元素}
+Rust的标准库中并不包含随机数。\texttt{rand} crate提供了它们，还提供了两个方法从数组、切片、vector中获取随机元素：
+
+\codeentry{slice.choose(\&mut rng)}
+\hangparagraph{返回切片中随机一个元素的引用。类似于\texttt{slice.first()}和\texttt{slice.last()}，除了它返回一个\texttt{Option<\&T>}，如果切片为空，返回值为\texttt{None}。}
+
+\codeentry{slice.shuffle(\&mut rng)}
+\hangparagraph{随机打乱切片中的元素的顺序。切片必须以\texttt{mut}引用传递。}
+
+这些是\texttt{rand::Rng} trait的方法，因此为了调用它们你需要一个\texttt{Rng}，它是一个随机数生成器。幸运的是，可以调用\texttt{rand::thread\_rng()}来获得一个。要想打乱vector \texttt{my\_vec}，你可以写：
+\begin{minted}{Rust}
+    use rand::seq::SliceRandom;
+    use rand::thread_rng;
+
+    my_vec.shuffle(&mut thread_rng());
+\end{minted}
+
+\subsection{}
 
 \section{\texttt{HashMap<K, V>}和\texttt{BTreeMap<K, V>}}
 
