@@ -560,6 +560,68 @@ Rust自然会在编译期拒绝这个程序。当我们调用\texttt{my\_vec.ite
 
 \section{\texttt{VecDeque<T>}}
 
+\texttt{Vec}只支持在尾部高效地添加和删除元素。当一个程序需要存储“排队”的值时，\texttt{Vec}会变得很慢。
+
+Rust的集合\texttt{std::collections::VecDeque<T>}是一个\emph{双端队列(deque)}（读作“deck”）。它支持在头部和尾部高效地添加和移除元素：
+
+\codeentry{deque.push\_front(value)}
+\hangparagraph{在队列的头部添加一个值。}
+
+\codeentry{deque.push\_back(value)}
+\hangparagraph{在尾部添加一个值。（这个方法比\texttt{.push\_front()}用得更多，因为队列的通常用法是从尾部添加并从头部移除，就像人在排队一样。}
+
+\codeentry{deque.pop\_front()}
+\hangparagraph{移除并返回队列头部的值，返回\texttt{Option<T>}，如果队列为空则返回\texttt{None}，类似于\texttt{vec.pop()}。}
+
+\codeentry{deque.pop\_back()}
+\hangparagraph{移除并返回尾部的元素，同样返回\texttt{Option<T>}。}
+
+\codeentry{deque.front(), deque.back()}
+\hangparagraph{类似于\texttt{vec.first()}和\texttt{vec.last()}。它们返回队列中头部或者尾部元素的引用。返回类型是\texttt{Option<\&T>}，当队列为空时为\texttt{None}。}
+
+\codeentry{deque.front\_mut(), deque.back\_mut()}
+\hangparagraph{类似于\texttt{vec.first\_mut()}和\texttt{vec.last\_mut()}，返回\texttt{Option<\&mut T>}}。
+
+\texttt{VecDeque}的实现是一个环形缓冲区，如\autoref{f16-3}所示。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f16-3.png}
+    \caption{\texttt{VecDeque}在内存中如何存储}
+    \label{f16-3}
+\end{figure}
+
+类似于\texttt{Vec}，它有一个堆上分配的缓冲区用来存储元素。和\texttt{Vec}不同的是，数据并不总是从区域的起点开始存储，并且可以在结尾处“回环”。图中这个队列的元素，按顺序分别是\texttt{['A', 'B', 'C', 'D', 'E']}。\texttt{VecDeque}有私有的字段标记图中的\texttt{start}和\texttt{stop}，用来记录缓冲区中数据的起点和终点。
+
+向队列首部或者尾部添加值，意味着要占用一个未使用的位置（图中颜色较深的块），如果需要的话可能会回环或者分配更大的内存块。
+
+\texttt{VecDeque}负责管理回环，因此你不需要考虑它。\autoref{f16-3}是Rust如何保证\texttt{.pop\_frong()}快速的幕后视图。
+
+很多时候，当你需要双端队列的时候，你可能只需要\texttt{.push\_back()}和\texttt{.pop\_front()}两个方法。类型关联函数\texttt{VecDeque::new()}和\texttt{VecDeque::with\_capacity(n)}用于创建队列，类似于\texttt{Vec}的相应函数。很多\texttt{Vec}的方法在\texttt{VecDeque}中都有实现：\texttt{.len(), .is\_empty(), .insert(index, value), .remove(index), .extend(iterable)}，等等。
+
+双端队列和vector一样可以以值、以共享引用或者以\texttt{mut}引用迭代。它们都有三个迭代器方法\texttt{.into\_iter(), .iter(), .iter\_mut()}。它可以用通常的方式索引：\texttt{deque[index]}。
+
+因为双端队列在内存中并不是连续存储元素，因此它不能继承切片的方法。但如果你愿意承受移动元素的开销，\texttt{VecDeque}提供了一个方法来修复它：
+
+\codeentry{deque.make\_contiguous()}
+\hangparagraph{以\texttt{\&mut self}为参数，把\texttt{VecDeque}重新排布到连续的内存中，返回\texttt{\&mut [T]}。}
+
+\texttt{Vec}和\texttt{VecDeque}高度相关，标准库提供了两个trait实现来轻松地互相转换：
+
+\codeentry{Vec::from(deque)}
+\hangparagraph{\texttt{Vec<T>}实现了\texttt{From<VecDeque<T>>}，因此这回把一个双端队列变成一个vector。这会消耗O(n)时间，因为它可能要重新排布元素。}
+
+\codeentry{VecDeque::from(vec)}
+\hangparagraph{\texttt{VecDeque<T>}实现了\texttt{From<Vec<T>>}，因此这会把一个vector转换成一个双端队列。这也是O(n)复杂度，但它通常会很快，即使vecotr很大，因为vector的堆缓冲区可以简单地移动到新的双端队列中。}
+\hangparagraph{这个方法让我们能更简单地用指定元素创建一个双端队列，即使没有标准的\texttt{vec\_deque![]}宏：}
+\begin{minted}{Rust}
+    use std::collections::VecDeque;
+
+    let v = VecDeque::from(vec![1, 2, 3, 4]);
+\end{minted}
+
+\section{\texttt{BinaryHeap<T>}}
+
 \section{\texttt{HashMap<K, V>}和\texttt{BTreeMap<K, V>}}
 
 \subsection{条目}\label{entry}
