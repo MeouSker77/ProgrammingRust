@@ -480,6 +480,25 @@ vector有一个高效地移除任何元素的方法：
 这会返回\texttt{Option<usize>}。
 
 \subsection{比较切片}
+如果类型\texttt{T}支持\texttt{==}和\texttt{!=}运算符（\texttt{PartialEq} trait，见“\nameref{equal}”），那么数组\texttt{[T; N]}、切片\texttt{[T]}、vector \texttt{Vec<T>}也支持这些运算符。当两个切片的长度和相应的元素都相等时两个切片才相等。数组和vector也是一样。
+
+如果\texttt{T}支持运算符\texttt{<}、\texttt{<=}、\texttt{>}、\texttt{>=}（\texttt{PartialOrd} trait，见“\nameref{cmp}”），那么\texttt{T}的数组、切片和vector也支持。切片的比较按照字典序进行。
+
+有两个便捷的方法进行常用的切片比较：
+\codeentry{slice.starts\_with(other)}
+\hangparagraph{如果\texttt{slice}起始的值序列等于\texttt{other}的元素则返回\texttt{true}：}
+\begin{minted}{Rust}
+    assert_eq!([1, 2, 3, 4].starts_width(&[1, 2]), true);
+    assert_eq!([1, 2, 3, 4].starts_width(&[2, 3]), false);
+\end{minted}
+
+\codeentry{slice.ends\_with(other)}
+\hangparagraph{和上边类似但检查\texttt{slice}的末尾：}
+\begin{minted}{Rust}
+    assert_eq!([1, 2, 3, 4].ends_with(&[3, 4]), true);
+\end{minted}
+
+\subsection{随机元素}
 
 \section{\texttt{HashMap<K, V>}和\texttt{BTreeMap<K, V>}}
 
