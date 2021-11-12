@@ -622,6 +622,63 @@ Rust的集合\texttt{std::collections::VecDeque<T>}是一个\emph{双端队列(d
 
 \section{\texttt{BinaryHeap<T>}}
 
+\texttt{BinaryHeap<T>}是一个元素一直保持有组织状态的集合，其中最大的元素总是会被移动到队列的首部。这里是\texttt{BinaryHeap}最常用的三个方法：
+
+\codeentry{heap.push(value)}
+\hangparagraph{向堆中添加一个元素}
+
+\codeentry{heap.pop()}
+\hangparagraph{移除并返回堆中最大的值。它返回\texttt{Option<T>}，如果堆为空时返回\texttt{None}。}
+
+\codeentry{heap.peek()}
+\hangparagraph{返回堆中最大的值的引用。返回类型是\texttt{Option<\&T>}。}
+
+\codeentry{heap.peek\_mut()}
+\hangparagraph{返回一个\texttt{PeekMut<T>}，它可以用作堆中最大值的一个可变引用，并提供类型关联函数\texttt{pop()}来从堆中弹出这个值。使用这个方法，我们可以根据最大的元素的值选择要不要从堆中弹出这个元素：}
+\begin{minted}{Rust}
+    use std::collections::binary_heap::PeekMut;
+
+    if let Some(top) = heap.peek_mut() {
+        if *top > 10 {
+            PeekMut::pop(top);
+        }
+    }
+\end{minted}
+
+\texttt{BinaryHeap}也支持\texttt{Vec}的方法的一个子集，包括\texttt{BinaryHeap::new(), .len(), .is\_empty(), .capacity(), .clear(), .append(\&mut heap2)。}
+
+例如，假设我们用一些数字填充一个\texttt{BinaryHeap}：
+\begin{minted}{Rust}
+    use std::collections::BinaryHeap;
+
+    let mut heap = BinaryHeap::from(vec![2, 3, 8, 6, 9, 5, 4]);
+\end{minted}
+
+值\texttt{9}在堆的顶部：
+\begin{minted}{Rust}
+    assert_eq!(heap.peek(), Some(&9));
+    assert_eq!(heap.pop(), Some(9));
+\end{minted}
+
+移除\texttt{9}也会重新排布其他元素，把\texttt{8}移动到头部，等等：
+\begin{minted}{Rust}
+    assert_eq!(heap.pop(), Some(8));
+    assert_eq!(heap.pop(), Some(6));
+    assert_eq!(heap.pop(), Some(5));
+    ...
+\end{minted}
+
+当然，\texttt{BinaryHeap}并不仅限于数字。它可以包含任何实现了内建的\texttt{Ord} trait的类型。
+
+这让\texttt{BinaryHeap}可以用作一个工作队列。你可以定义一个任务结构体，然后根据任务的优先级实现\texttt{Ord}，让高优先级的任务比低优先级的任务\texttt{Greater}。然后，创建一个\texttt{BinaryHeap}来保存所有代办的任务。它的\texttt{.pop()}方法蒋总是返回最重要的任务。
+
+注意：\texttt{BinaryHeap}是可迭代的对象，并且它有\texttt{.iter()}方法，但这个迭代器以任意顺序产生堆中的元素，而不是按照从大到小的顺序。为了按照大小顺序消耗\texttt{BinaryHeap}中的值，可以使用\texttt{while}循环：
+\begin{minted}{Rust}
+    while let Some(task) = heap.pop() {
+        handle(task);
+    }
+\end{minted}
+
 \section{\texttt{HashMap<K, V>}和\texttt{BTreeMap<K, V>}}
 
 \subsection{条目}\label{entry}
