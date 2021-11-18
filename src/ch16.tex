@@ -681,4 +681,187 @@ Rust的集合\texttt{std::collections::VecDeque<T>}是一个\emph{双端队列(d
 
 \section{\texttt{HashMap<K, V>}和\texttt{BTreeMap<K, V>}}
 
+\emph{map(映射)}是键值对（称为\emph{条目(entry)}的集合。任何两个条目的键都不同，所有的条目按照一定结构组织，如果你有一个键你可以高效地在map中查找到相应的值。简而言之，map是一个查找表。
+
+Rust提供两者两种map类型：\texttt{HashMap<K, V>}和\texttt{BTreeMap<K, V>}。这两种类型共享了很多相同的方法；不同之处在于它们组织条目的方式。
+
+\texttt{HashMap}把键和值都存储在哈希表中，因此它要求键的类型\texttt{K}实现了\texttt{Hash}和\texttt{Eq}，这两个trait分别用于哈希和相等性比较。
+
+\autoref{f16-4}展示了\texttt{HashMap}如何在内存中排布。深色区域表示没有使用。所有的键、值和缓存的哈希值都被存储在单个堆上分配的表中。添加条目最终会迫使\texttt{HashMap}分配更大的表，并把所有数据移动进去。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f16-4.png}
+    \caption{\texttt{HashMap}的内存布局}
+    \label{f16-4}
+\end{figure}
+
+\texttt{BTreeMap}按照键的顺序在树形结构中存储条目，因此它要求键的类型\texttt{K}实现了\texttt{Ord}。\autoref{f16-5}展示了一个\texttt{BTreeMap}。同样，深色区域表示没有被使用的空间。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f16-5.png}
+    \caption{\texttt{BTreeMap}的内存布局}
+    \label{f16-5}
+\end{figure}
+
+\texttt{BTreeMap}把条目存储在\emph{节点(node)}中。一个\texttt{BTreeMap}中大多数的节点都只包含键值对。而非叶节点，例如图中所示的根节点，还需要存储指向子节点的指针。\texttt{(20, 'q')}和\texttt{(30, 'r')}之间的指针指向包含\texttt{20}和\texttt{30}之间的键的子节点。添加条目通常需要把某个节点的部分现有条目向右移动，来保持它们有序，有时还需要分配新的节点。
+
+图中的示例经过简化来适应页面。例如，实际的\texttt{BTreeMap}节点有11个条目的空间，而不是\texttt{4}个。
+
+Rust标准库使用B树而不是二叉平衡树，因为在现代硬件上B树更快。查找时二叉树可能比B树的比较次数更少，但在B树中查找有更好的\emph{局部性(locality)}——即，内存被成组访问，而不是扫描整个堆。这让CPU缓存的命中率更高，这能显著地提高速度。
+
+这里有几种创建map的方法：
+
+\codeentry{HashMap::new(), BTreeMap::new()}
+\hangparagraph{创建新的空map。}
+
+\codeentry{iter.collect()}
+\hangparagraph{用于从键值对创建或填充新的\texttt{HashMap}或\texttt{BTreeMap}。\texttt{iter}必须是一个\texttt{Iterator<Item=(K, V)>}。}
+
+\codeentry{HashMap::with\_capacity(n)}
+\hangparagraph{创建一个新的空哈希表，并分配至少能存储\texttt{n}个条目的空间。\texttt{HashMap}和vector类似，把数据存储在单个堆上的内存中，因此它也有容量，以及相关的方法\texttt{hash\_map.capacity(), \texttt{hash\_map.reserve(additional)}, hash\_map.shrink\_to\_fit()}。\texttt{BTreeMap}则没有。}
+
+\texttt{HashMap}和\texttt{BTreeMap}有相同的处理键和值的核心方法：
+
+\codeentry{map.len()}
+\hangparagraph{返回条目的数量。}
+
+\codeentry{map.is\_empty()}
+\hangparagraph{返回\texttt{map}里是否没有条目}
+
+\codeentry{map.contains\_key(\&key)}
+\hangparagraph{如果\texttt{map}里有给定\texttt{key}的条目则返回\texttt{true}。}
+
+\codeentry{map.get(\&key)}
+\hangparagraph{在\texttt{map}中查找给定\texttt{key}的条目。如果找到了匹配的条目，就返回\texttt{Some(r)}，其中\texttt{r}是相应的值的引用。否则返回\texttt{None}。}
+
+\codeentry{map.get\_mut(\&key)}
+\hangparagraph{与上面类似，但返回值的\texttt{mut}引用。}
+\hangparagraph{一般来讲，map让你可以获取值的\texttt{mut}访问能力，但不能获取键的\texttt{mut}访问。值属于你，你可以随意修改它。但键术语map本身，它需要保证键不会改变，因为条目按照键来组织。原地修改键将会导致bug。}
+
+\codeentry{map.insert(key, value)}
+\hangparagraph{向\texttt{map}中插入条目\texttt{(key, value)}，并返回旧的值（如果有的话）。返回类型是\texttt{Option<V>}，如果map中已经有了\texttt{key}的条目，那么新插入的\texttt{value}会覆盖旧值。}
+
+\codeentry{map.extend(iterable)}
+\hangparagraph{迭代\texttt{iterable}中的\texttt{(K, V)} item，并把每一个键值对插入\texttt{map}。}
+
+\codeentry{map.append(\&mut map2)}
+\hangparagraph{把\texttt{map2}中的所有条目移动到\texttt{map}中。完成之后，\texttt{map2}变为空。}
+
+\codeentry{map.remove(\&key)}
+\hangparagraph{查找并移除\texttt{map}中给定的\texttt{key}的条目，返回被移除的值（如果有的话）。返回类型是\texttt{Option<V>}。}
+
+\codeentry{map.remove\_entry(\&key)}
+\hangparagraph{查找并移除\texttt{map}中给定的\texttt{key}的条目，返。回被移除的键和值（如果有的话）。返回类型是\texttt{Option<(K, V)>}。}
+
+\codeentry{map.retain(test)}
+\hangparagraph{移除所有未通过测试的元素。参数\texttt{test}参数是一个实现了\texttt{FnMut(\&K, \&mut V) -> bool}的函数或者闭包。它会对\texttt{map}中的每一个元素调用\texttt{test(\&key, \&mut value)}，如果返回\texttt{false}，就移除掉这个元素并丢弃。}
+\hangparagraph{不考虑性能的话，这类似于如下写法：}
+\begin{minted}{Rust}
+    map = map.into_iter().filter(test).collect();
+\end{minted}
+
+\codeentry{map.clear()}
+\hangparagraph{移除所有元素。}
+
+map可以使用方括号\texttt{map[\&key]}进行查询。这是因为map实现了内建的\texttt{Index} trait。然而，如果没有给定的\texttt{key}的条目存在，这会panic，就类似越界访问数组一样。因此只有当你确定要查找的条目在map中时再使用这个语法。
+
+\texttt{.contains\_key(), .get(), .get\_mut(), .remove()}方法的\texttt{key}参数不一定要有精确的\texttt{\&K}类型。这些方法都是泛型方法，只要能从\texttt{K}类型借用参数的类型的引用即可。假设\texttt{fish\_map}是一个\texttt{HashMap<String, Fish>}，那么可以调用\texttt{fish\_map.contains\_key("conger")}，即使\texttt{"conger"}并不是\texttt{String}。因为\texttt{String}实现了\texttt{Borrow<\&str>}，所以可以从\texttt{String}借用一个\texttt{\&str}。详情见“\nameref{borrow}”。
+
+因为一个\texttt{BTreeMap<K, V>}按照键的顺序保存条目，所以它支持一个附加的操作：
+\codeentry{btree\_map.split\_off(\&key)}
+\hangparagraph{把\texttt{btree\_map}分割成两个。键小于\texttt{key}的条目被留在\texttt{btree\_map}中，返回一个新的\texttt{BTreeMap<K, V>}包含其余条目。}
+
 \subsection{条目}\label{entry}
+\texttt{HashMap}和\texttt{BTreeMap}都有相应的\texttt{Entry}类型。这个类型的意义是避免重复的查找。例如，这里有一些代码获取或者创建一个学生的记录：
+\begin{minted}{Rust}
+    // 我们已经有了这名学生的记录了吗？
+    if !student_map.contains_key(name) {
+        // 没有：创建一条记录
+        student_map.insert(name.to_string(), Student::new());
+    }
+    // 现在确定这条记录肯定存在了。
+    let record = student_map.get_mut(name).unwrap();
+    ...
+\end{minted}
+
+这可以正常工作，但它访问了\texttt{student\_map}两次或者三次，每次都做相同的查找。
+
+条目的思路是我们只查找一次，产生一个\texttt{Entry}值，然后后续的操作都通过它进行。下面的单行代码等于上面的所有代码，除了它只查找一次：
+\begin{minted}{Rust}
+    let record = student_map.entry(name.to_string()).or_insert_with(Student::new);
+\end{minted}
+
+\texttt{student\_map.entry(name.to\_string())}返回的\texttt{Entry}值就像一个可变的引用，它指向map中一个已经被键值对\emph{占据(occupied)}的位置，或者是\emph{空的(vacant)}，意思是还没有条目占据这个位置。如果为空，条目的\texttt{.or\_insert\_with()}方法会插入一个新的\texttt{Student}。条目的大多数使用都类似这样：简短而方便。
+
+所有的\texttt{Entry}值都只能用同一个方法创建：
+\codeentry{map.entry(key)}
+\hangparagraph{对给定的\texttt{key}返回一个\texttt{Entry}。如果map中没有这个key，它会返回一个空的\texttt{Entry}。}
+\hangparagraph{这个方法以\texttt{mut}引用获取\texttt{self}参数，并返回一个生命周期相同的\texttt{Entry}：}
+\begin{minted}{Rust}
+    pub fn entry<'a>(&'a mut self, key: K) -> Entry<'a, K, V>
+\end{minted}
+\hangparagraph{\texttt{Entry}类型有一个生命周期参数\texttt{'a}，因为它高效地借用了map的\texttt{mut}引用。只要\texttt{Entry}存在，它就有map的独占访问权限。}
+\hangparagraph{回顾“\nameref{refstruct}”，我们看到过如何在一个类型中存储引用以及这样对生命周期的影响。现在我们从用户的视角看看它是什么样的。也正是\texttt{Entry}的情况。}
+\hangparagraph{不幸的是，如果map的键的类型为\texttt{String}，那么不能向这个方法传递\texttt{\&str}类型的参数。这种情况下的\texttt{.entry()}方法需要一个真实的\texttt{String}。}
+
+\texttt{Entry}值提供了三个处理空条目的方法：
+
+\codeentry{map.entry(key).or\_insert(value)}
+\hangparagraph{确保\texttt{map}包含给定的\texttt{key}的条目，如果需要的话用给定的\texttt{value}插入一个新的条目。它返回新插入的或者现有的值的\texttt{mut}引用。}
+\hangparagraph{假设我们需要计数投票。我们可以写：}
+\begin{minted}{Rust}
+    let mut vote_counts: HashMap<String, usize> = HashMap::new();
+    for name in ballots {
+        let count = vote_counts.entry(name).or_insert(0);
+        *count += 1;
+    }
+\end{minted}
+\hangparagraph{\texttt{.or\_insert()}返回一个可变引用，因此\texttt{count}的类型是\texttt{\&mut usize}。}
+
+\codeentry{map.entry(key).or\_default()}
+\hangparagraph{确保\texttt{map}包含给定的\texttt{key}的条目，如果需要的话用\texttt{Default::default()}返回的值插入一个新条目。只有当值的类型实现了\texttt{Default}时这个方法才能工作。类似于\texttt{or\_insert}，这个方法返回新插入的或者现有的值的\texttt{mut}引用。}
+
+\codeentry{map.entry(key).or\_insert\_with(default\_fn)}
+\hangparagraph{这个方法也一样，除了当它需要创建新的条目时，它会调用\texttt{default\_fn()}来产生默认值。如果\texttt{map}中已经有了\texttt{key}的条目，那么\texttt{default\_fn}将不会被调用。}
+\hangparagraph{假设我们想知道哪个单词在哪个文件中出现。我们可以写：}
+\begin{minted}{Rust}
+    // 这个map中包含每个单词和出现它的文件的集合。
+    let mut word_occurrence: HashMap<String, HashSet<String>> = HashMap::new();
+    for file in files {
+        for word in read_words(file)? {
+            let set = word_occurrence
+                .entry(word)
+                .or_insert_with(HashSet::new);
+            set.insert(file.clone());
+        }
+    }
+\end{minted}
+
+\texttt{Entry}还提供了一个只修改现存条目的便捷方法。
+
+\codeentry{map.entry(key).and\_modify(closure)}
+\hangparagraph{如果给定的\texttt{key}的条目存在就调用\texttt{closure}，把值的可变引用传进闭包。它返回一个\texttt{Entry}，因此它可以和其它方法链式调用。}
+\hangparagraph{例如，我们可以使用它来统计一个字符串中每个单词出现的次数：}
+\begin{minted}{Rust}
+    // 这个map包含给定字符串中的所有单词，
+    // 以及它们出现的次数。
+    let mut word_frequency: HashMap<&str, u32> = HashMap::new();
+    for c in text.split_whitespace() {
+        word_frequency.entry(c)
+            .and_modify(|count| *count += 1)
+            .or_insert(1);
+    }
+\end{minted}
+
+\texttt{Entry}类型是一个枚举，\texttt{HashMap}的\texttt{Entry}定义类似于这样（\texttt{BTreeMap}的\texttt{Entry}类似）：
+\begin{minted}{Rust}
+    // (in std::collections::hash_map)
+    pub enum Entry<'a, K, V> {
+        Occupied(OccupiedEntry<'a, K, V>),
+        Vacant(VacantEntry<'a, K, V>)
+    }
+\end{minted}
+
+\texttt{OccupiedEntry}和\texttt{VacantEntry}类型的方法用于在不需要重复查找的情况下插入、移除和访问条目。你可以在在线文档中找到它们。偶尔可以使用这些附加的方法来减少一次或两次查找，但\texttt{.or\_insert()}和\texttt{.or\_insert\_with()}就能覆盖大多数的情况。
