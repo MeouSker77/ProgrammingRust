@@ -1134,4 +1134,8 @@ Rust的默认哈希算法是知名的SipHash-1-3算法。SipHash很快，并且�
 
 \section{标准集合之外}
 
+在Rust中创建一个新的自定义集合类型和在其他语言中差不多。通过组合语言提供的各个部分来排列数据：结构体和枚举、标准集合、\texttt{Option}、\texttt{Box}等等。例如，“\autoref{GenEnum}”中定义的\texttt{BinaryTree<T>}类型。
 
+如果你习惯在C++中使用原始指针、手动内存管理、placement \texttt{new}、和手动析构调用来实现数据结构以获得最佳的性能，那么毫无疑问你会遇到安全Rust中的很多限制。所有这些工具都是天然不安全的。它们在Rust中也是可行的，但只能用于unsafe代码。\hyperref[ch22]{第22章}展示了为什么；它还包含了一个使用unsafe代码实现safe的自定义集合的示例。
+
+到目前为止，我们都沉浸在标准集合及其安全、高效的API的温暖光芒中。和Rust标准库中很多其他部分一样，它们设计的目的之一是确保\texttt{unsafe}代码的需求尽可能减少。
