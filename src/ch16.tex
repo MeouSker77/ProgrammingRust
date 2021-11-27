@@ -886,3 +886,67 @@ map可以使用方括号\texttt{map[\&key]}进行查询。这是因为map实现�
 \hangparagraph{返回一个只迭代值的迭代器，以\texttt{mut}引用的形式返回。}
 
 所有的\texttt{HashMap}迭代器都会以任意顺序访问map的条目。\texttt{BTreeMap}的迭代器会按照键的顺序访问它们。
+
+\section{\texttt{HashSet<T>}和\texttt{BTreeSet<T>}}
+
+\emph{set}是值的集合，它可以快速地测试元素：
+\begin{minted}{Rust}
+    let b1 = large_vector.contains(&"needle");      // 很慢，检查每一个元素
+    let b2 = large_hash_set.contains(&"needle");    // 很快，哈希查找
+\end{minted}
+
+一个set绝不会包含同一个值的多个拷贝。
+
+map和set有不同的方法，但其实一个set就是一个只有键而不是键值对的map。事实上，Rust的两种集合类型：\texttt{HashSet<T>}和\texttt{BTreeSet<T>}，被实现为\texttt{HashMap<T, ()>}和\texttt{BTreeMap<T, ()>}的包装。
+
+\codeentry{HashSet::new(), BTreeSet::new()}
+\hangparagraph{创建新的set。}
+
+\codeentry{iter.collect()}
+\hangparagraph{可以用于从任何迭代器创建set。如果\texttt{iter}产生某个值不止一次，那么重复的值将会被丢弃。}
+
+\codeentry{HashSet::with\_capacity(n)}
+\hangparagraph{创建一个空的\texttt{HashSet}，有至少能存储\texttt{n}的空间。}
+
+\texttt{HashSet<T>}和\texttt{BTreeSet<T>}有相同的公共基础方法：
+
+\codeentry{set.len()}
+\hangparagraph{返回set中值的数量。}
+
+\codeentry{set.is\_empty()}
+\hangparagraph{如果set不包含任何元素则返回\texttt{true}。}
+
+\codeentry{set.contains(\&value)}
+\hangparagraph{如果set包含给定的\texttt{value}则返回\texttt{true}。}
+
+\codeentry{set.insert(value)}
+\hangparagraph{向set中添加一个\texttt{value}。如果添加了值则返回\texttt{true}，如果set中已经有这个值了则返回\texttt{false}。}
+
+\codeentry{set.remove(\&value)}
+\hangparagraph{从set中删除\texttt{value}。如果有值被删除则返回\texttt{true}，如果没有这个值则返回\texttt{false}。}
+
+\codeentry{set.retain(test)}
+\hangparagraph{删除没有通过测试的元素。\texttt{test}参数是一个实现了\texttt{FnMut(\&T) -> bool}的函数或者闭包。对于\texttt{set}的每一个元素，都会调用\texttt{test(\&value)}，如果返回\texttt{false}，这个元素就会从set中删除，并且被丢弃。}
+\hangparagraph{不考虑性能的话，这类似于：}
+\begin{minted}{Rust}
+    set = set.into_iter().filter(test).collect();
+\end{minted}
+
+和map一样，通过引用查找值的方法接受任何可以从\texttt{T}借用的类型。细节见“\autoref{borrow}”。
+
+\subsection{迭代set}
+有两种迭代set的方法:
+\begin{enumerate}
+    \item 以值迭代(\texttt{for v in set})产生set的成员(并消耗这个set)。
+    \item 以共享引用迭代(\texttt{for v in \&set})产生set中成员的共享引用。
+\end{enumerate}
+
+不支持以\texttt{mut}引用迭代set。没有方法获取set中值的\texttt{mut}引用。
+
+\codeentry{set.iter()}
+\hangparagraph{返回一个以共享引用方式迭代\texttt{set}的迭代器。}
+
+\texttt{HashSet}迭代器类似于\texttt{HashMap}的迭代器，也会以任意顺序产生值。\texttt{BTreeSet}迭代器按照顺序产生值，类似于一个排序过的vector。
+
+
+
