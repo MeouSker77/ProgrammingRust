@@ -1085,7 +1085,53 @@ set也支持使用\texttt{==}和\texttt{!=}进行相等性测试；如果两个s
 
 如上面的代码所示，即使你手动实现了\texttt{Hash}，你也不需要知道有关哈希算法的信息。\texttt{.hash()}接受一个\texttt{Hasher}的引用，后者代表哈希算法。你只需要把所有和\texttt{==}运算符相关的数据喂给\texttt{Hasher}。\texttt{Hasher}会从你给的内容计算出一个哈希值。
 
-\section{}
+\section{使用一个自定义的哈希算法}
 
+\texttt{hash}算法是泛型的，因此上面的\texttt{Hash}实现可以把数据喂给任何实现了\texttt{Hasher}的类型。这是Rust支持可插拔哈希算法的方式。
+
+第三个trait，\texttt{std::hash::BuildHasher}，用于表示一个哈希算法的初始状态。每个\texttt{Hasher}只能使用一次，类似于一个迭代器：你只能使用它一次，然后就丢弃掉它。\texttt{BuildHasher}可以重用。
+
+每一个\texttt{HashMap}都包含一个\texttt{BuildHasher}，每当需要计算一个哈希值都会使用它一次。\texttt{BuildHasher}值包含一个键，初始状态，或者其他哈希算法每次运行时需要的参数。
+
+计算一个哈希值的完整流程看起来像这样：
+\begin{minted}{Rust}
+    use std::hash::{Hash, Hasher, BuildHasher};
+
+    fn compute_hash<B, T>(builder: &B, value: &T) -> u64
+        where B: BuildHasher, T: Hash
+    {
+        let mut hasher = builder.build_hasher();  // 1. 开始算法
+        value.hash(&mut hasher);                  // 2. 喂数据
+        hasher.finish()                           // 3. 结束，产生一个u64
+    }
+\end{minted}
+
+\texttt{HashMap}每次需要计算哈希值时都会调用这三个方法。所有的方法都是内联的，因此它的速度很快。
+
+Rust的默认哈希算法是知名的SipHash-1-3算法。SipHash很快，并且擅长最小化哈希冲突。事实上，它是一种密码学安全算法：没有已知的有效方法来产生SipHash-1-3冲突。只要哈希表使用不同、不可预知的键，Rust可以抵御一种称为HashDos的拒绝服务攻击，这种攻击中攻击者故意利用哈希冲突来触发服务器性能最差的情况。
+
+但你自己的应用可能不需要这样。如果你正在存储很多很小的键，例如整数或很短的字符串，那么你可以牺牲HashDos安全性来实现更快的哈希函数。\texttt{fnv} crate实现了这样一个算法，Fowler-Noll-Vo(FNV)哈希。在\emph{Cargo.toml}中加上一行来尝试它：
+\begin{minted}{toml}
+    [dependencies]
+    fnv = "1.0"
+\end{minted}
+
+然后从\texttt{fnv}中导入map和set类型：
+\begin{minted}{Rust}
+    use fnv::{FnvHashMap, FnvHashSet};
+\end{minted}
+
+你可以用这两种类型作为\texttt{HashMap}和\texttt{HashSet}的替代。看一眼\texttt{fnv}的源码就知道它们是如何定义的：
+\begin{minted}{Rust}
+    /// 一个使用默认FNV hasher的 `HashMap`
+    pub type FnvHashMap<K, V> = HashMap<K, V, FnvBuildHasher>;
+
+    /// 一个使用默认FNV hasher的 `HashSet`
+    pub type FnvHashSet<T> = HashSet<T, FnvBuildHasher>;
+\end{minted}
+
+标准的\texttt{HashMap}和\texttt{HashSet}集合接受一个可选的额外类型参数来指定哈希算法；\texttt{FnvHashMap}和\texttt{FnvHashSet}是\texttt{HashMap}和\texttt{HashSet}的泛型类型别名，它将最后一个参数指定为FNV hasher。
+
+\section{标准集合之外}
 
 
