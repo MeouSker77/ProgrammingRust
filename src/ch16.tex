@@ -948,5 +948,84 @@ map和set有不同的方法，但其实一个set就是一个只有键而不是�
 
 \texttt{HashSet}迭代器类似于\texttt{HashMap}的迭代器，也会以任意顺序产生值。\texttt{BTreeSet}迭代器按照顺序产生值，类似于一个排序过的vector。
 
+\subsection{当相等的值不同时}
+set还有一些方法，只有当你关心“相等”值的差异时才会用到。
+
+这样的差异经常出现。例如，两个完全相同的\texttt{String}值，在内存中的不同位置存储它们的字符：
+
+\begin{minted}{Rust}
+    let s1 = "hello".to_string();
+    let s2 = "hello".to_string();
+    println!("{:p}", &s1 as &str);  // 0x7f8b32060008
+    println!("{:p}", &s2 as &str);  // 0x7f8b32060010
+\end{minted}
+
+通常我们并不会关心这些。
+
+但在你需要的情况下，你可以使用下面的方法获得set中存储的值。这些方法都返回一个\texttt{Option}，当\texttt{set}不包含匹配的值时为\texttt{None}：
+
+\codeentry{set.get(\&value)}
+\hangparagraph{返回\texttt{set}中等于\texttt{value}的成员的共享引用，如果有的话。返回一个\texttt{Option<\&T>}。}
+
+\codeentry{set.take(\&value)}
+\hangparagraph{类似于\texttt{set.remove(\&value)}，但它会返回被删除的值，如果有的话。返回一个\texttt{Option<T>}。}
+
+\codeentry{set.replace(value)}
+\hangparagraph{类似于\texttt{set.insert(value)}，但如果\texttt{set}已经包含一个等于\texttt{value}的值，它会替换并返回旧的值。返回一个\texttt{Option<T>}。}
+
+\subsection{集合操作}
+到目前为止，我们看到的set方法都只关注单个set中的单个值。set还有一些操作整个集合的方法：
+
+\codeentry{set1.intersection(\&set2)}
+\hangparagraph{返回一个迭代器，迭代所有既在\texttt{set1}又在\texttt{set2}中的值。}
+\hangparagraph{例如，如果我们想打印出所有同时选择了脑外科和火箭课程的学生的名字，我们可以写：}
+\begin{minted}{Rust}
+    for student in &brain_class {
+        if rocket_class.contains(student) {
+            println!("{}", student);
+        }
+    }
+\end{minted}
+\hangparagraph{或者，更短的写法：}
+\begin{minted}{Rust}
+    for student in brain_class.intersection(&rocket_class) {
+        println!("{}", student);
+    }
+\end{minted}
+
+令人惊奇的是，有专门的运算符来进行这种操作。
+
+\texttt{\&set1 \& \&set2}返回一个新的set，它是\texttt{set1}和\texttt{set2}的交集。这是一元的按位AND运算符，用于两个引用。它会找到既在\texttt{set1}中又在\texttt{set2}中的值：
+\begin{minted}{Rust}
+    let overachievers = &brain_class & &rocket_class;
+\end{minted}
+
+\codeentry{set1.union(\&set2)}
+\hangparagraph{返回一个迭代器，迭代要么在\texttt{set1}中要么在\texttt{set2}中的值。}
+\hangparagraph{\&set1 | \&set2返回一个新的set，包含所有在\texttt{set1}\emph{或}\texttt{set2}中的值。}
+
+\codeentry{set1.difference(\&set2)}
+\hangparagraph{返回一个迭代器，迭代在\texttt{set1}中但不在\texttt{set2}中的值。}
+\hangparagraph{\&set1 - \&set2返回一个新的set，包含所有这样的值。}
+
+\codeentry{set1.symmetric\_difference(\&set2)}
+\hangparagraph{返回一个迭代器，迭代\texttt{set1}或\texttt{set2}独有的值。}
+\hangparagraph{\&set1 \^{} \&set2返回一个新的set，包含所有这样的值。}
+
+还有三个方法用来测试两个set的关系：
+
+\codeentry{set1.is\_disjoint(set2)}
+\hangparagraph{如果\texttt{set1}和\texttt{set2}没有相同的元素则返回\texttt{true}——即它们的交集为空。}
+
+\codeentry{set1.is\_subset(set2)}
+\hangparagraph{如果\texttt{set1}是\texttt{set2}的子集则返回\texttt{true}——即\texttt{set1}中的所有值也都在\texttt{set2}。}
+
+\codeentry{set1.is\_superset(set2)}
+\hangparagraph{和上面相反，如果\texttt{set1}是\texttt{set2}的超集则返回true。}
+
+set也支持使用\texttt{==}和\texttt{!=}进行相等性测试；如果两个set包含相同的值则它们相等。
+
+
+
 
 
