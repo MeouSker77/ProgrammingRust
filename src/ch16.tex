@@ -20,7 +20,7 @@ Rust标准库里包含几种\emph{集合(collection)}，它们是在内存中存
 
 \autoref{t16-1}展示了Rust的8种标准集合。它们都是泛型类型。
 
-\begin{table}[htbp]
+\begin{table}[htb]
     \centering
     \caption{标准集合总结}
     \label{t16-1}
@@ -344,7 +344,7 @@ Rust有几个方法可以一次借用数组、切片、vector的两个或更多�
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.9\textwidth]{../img/f16-2.png}
-    \caption{分隔方法展示（注意：\texttt{slice.split()}输出中的小矩形是空的切片，因为两侧都是分隔符，\texttt{rsplitn}的输出是按照从后往前的顺序，这一点和其他的不同。}
+    \caption{分割方法展示（注意：\texttt{slice.split()}输出中的小矩形是空的切片，因为两侧都是分隔符，\texttt{rsplitn}的输出是按照从后往前的顺序，这一点和其他的不同。}
     \label{f16-2}
 \end{figure}
 
@@ -353,7 +353,8 @@ Rust有几个方法可以一次借用数组、切片、vector的两个或更多�
 \hangparagraph{产生\texttt{slice}的每个元素的引用。我们在“\nameref{Iteration}”中已经介绍过它们。}
 
 \codeentry{slice.split\_at(index), slice.split\_at\_mut(index)}
-\hangparagraph{将一个切片划分为两个，返回一个pair。\texttt{slice.split\_at(index)}等价于\texttt{(\&slice[..index], \&slice[index..])}。如果\texttt{index}越界会panic。}
+\hangparagraph{将一个切片划分为两个，返回一个pair。\texttt{slice.split\_at(index)}等价于\texttt{(\&slice[..index], \\
+\&slice[index..])}。如果\texttt{index}越界会panic。}
 
 \codeentry{slice.split\_first(), slice.split\_first\_mut()}
 \hangparagraph{也返回一个pair：第一个元素的引用(\texttt{slice[0]})和其余所有元素的切片引用(\texttt{slice[1..]})。}
@@ -396,7 +397,7 @@ Rust有几个方法可以一次借用数组、切片、vector的两个或更多�
 \hangparagraph{例如，如果\texttt{days.len() == 31}，那么我们可以调用\texttt{days.windows(7)}产生\texttt{days}中所有7天的区间。}
 \hangparagraph{在探索数据列的变化趋势时一个大小为2的滑动窗口会很有用：}
 \begin{minted}{Rust}
-    let changes = daily_high\_temperatures
+    let changes = daily_high_temperatures
                       .windows(2)           // 获得相邻天的温度
                       .map(|w| w[1] - w[0]) // 温度改变了多少
                       .collect::<Vec<_>>();
@@ -523,7 +524,7 @@ Rust的标准库中并不包含随机数。\texttt{rand} crate提供了它们，
 \end{minted}
 
 假设我们想移除\texttt{my\_list}中大于4的元素；
-\begin{minted}{Rust}
+\begin{minted}{python}
     for index, val in enumerate(my_list):
         if val > 4:
             del my_list[index]  # bug: 在迭代的同时修改
@@ -597,7 +598,8 @@ Rust的集合\texttt{std::collections::VecDeque<T>}是一个\emph{双端队列(d
 
 \texttt{VecDeque}负责管理回环，因此你不需要考虑它。\autoref{f16-3}是Rust如何保证\texttt{.pop\_frong()}快速的幕后视图。
 
-很多时候，当你需要双端队列的时候，你可能只需要\texttt{.push\_back()}和\texttt{.pop\_front()}两个方法。类型关联函数\texttt{VecDeque::new()}和\texttt{VecDeque::with\_capacity(n)}用于创建队列，类似于\texttt{Vec}的相应函数。很多\texttt{Vec}的方法在\texttt{VecDeque}中都有实现：\texttt{.len(), .is\_empty(), .insert(index, value), .remove(index), .extend(iterable)}，等等。
+很多时候，当你需要双端队列的时候，你可能只需要\texttt{.push\_back()}和\texttt{.pop\_front()}两个方法。类型关联函数\texttt{VecDeque::new()}和\texttt{VecDeque::with\_capacity(n)}用于创建队列，类似于\texttt{Vec}的相应函数。很多\texttt{Vec}的方法在\texttt{VecDeque}中都有实现：\texttt{.len(), .is\_empty(), .insert(index, value), .remove(index), \\
+.extend(iterable)}，等等。
 
 双端队列和vector一样可以以值、以共享引用或者以\texttt{mut}引用迭代。它们都有三个迭代器方法\texttt{.into\_iter(), .iter(), .iter\_mut()}。它可以用通常的方式索引：\texttt{deque[index]}。
 
@@ -864,7 +866,8 @@ map可以使用方括号\texttt{map[\&key]}进行查询。这是因为map实现�
     }
 \end{minted}
 
-\texttt{OccupiedEntry}和\texttt{VacantEntry}类型的方法用于在不需要重复查找的情况下插入、移除和访问条目。你可以在在线文档中找到它们。偶尔可以使用这些附加的方法来减少一次或两次查找，但\texttt{.or\_insert()}和\texttt{.or\_insert\_with()}就能覆盖大多数的情况。
+\texttt{OccupiedEntry}和\texttt{VacantEntry}类型的方法用于在不需要重复查找的情况下插入、移除和访问条目。你可以在在线文档中找到它们。偶尔可以使用这些附加的方法来减少一次或两次查找，但\texttt{.or\_insert()}和\\
+\texttt{.or\_insert\_with()}就能覆盖大多数的情况。
 
 \subsection{迭代map}
 有几种迭代map的方法：
@@ -927,6 +930,7 @@ map和set有不同的方法，但其实一个set就是一个只有键而不是�
 
 \codeentry{set.retain(test)}
 \hangparagraph{删除没有通过测试的元素。\texttt{test}参数是一个实现了\texttt{FnMut(\&T) -> bool}的函数或者闭包。对于\texttt{set}的每一个元素，都会调用\texttt{test(\&value)}，如果返回\texttt{false}，这个元素就会从set中删除，并且被丢弃。}
+
 \hangparagraph{不考虑性能的话，这类似于：}
 \begin{minted}{Rust}
     set = set.into_iter().filter(test).collect();
@@ -1130,7 +1134,8 @@ Rust的默认哈希算法是知名的SipHash-1-3算法。SipHash很快，并且�
     pub type FnvHashSet<T> = HashSet<T, FnvBuildHasher>;
 \end{minted}
 
-标准的\texttt{HashMap}和\texttt{HashSet}集合接受一个可选的额外类型参数来指定哈希算法；\texttt{FnvHashMap}和\texttt{FnvHashSet}是\texttt{HashMap}和\texttt{HashSet}的泛型类型别名，它将最后一个参数指定为FNV hasher。
+标准的\texttt{HashMap}和\texttt{HashSet}集合接受一个可选的额外类型参数来指定哈希算法；\texttt{FnvHashMap}和\texttt{FnvHashSet}是\\
+\texttt{HashMap}和\texttt{HashSet}的泛型类型别名，它将最后一个参数指定为FNV hasher。
 
 \section{标准集合之外}
 
