@@ -1025,7 +1025,67 @@ set还有一些方法，只有当你关心“相等”值的差异时才会用�
 
 set也支持使用\texttt{==}和\texttt{!=}进行相等性测试；如果两个set包含相同的值则它们相等。
 
+\section{哈希}
 
+\texttt{std::hash::Hash}是标准库用于可哈希类型的trait。\texttt{HashMap}的键和\texttt{HashSet}的元素必须实现了\texttt{Hash}和\texttt{Eq}。
+
+大多数实现了\texttt{Eq}的内建类型也都实现了\texttt{Hash}。整数类型、\texttt{char}、\texttt{String}都是可哈希类型；当元素是可哈希类型时，元组、数组、切片、vector也是可哈希类型。
+
+标准库的一个原则是不管你把一个值存储到哪里或者如何指向它，它必须有相同的哈希值。因此，引用和被引用的值有相同的哈希值。\texttt{Box}和被装箱的值有相同的哈希值。一个vector \texttt{vec}和包含它的所有元素的切片\texttt{\&vec[..]}有相同的哈希值。一个\texttt{String}和一个有相同字符的\texttt{\&str}有相同的哈希值。
+
+结构和枚举默认没有实现\texttt{Hash}，但可以派生实现：
+\begin{minted}{Rust}
+    /// 大英博物馆藏品中的对象的ID
+    #[derive(Clone, PartialEq, Eq, Hash)]
+    enum MuseumNumber {
+        ...
+    }
+\end{minted}
+只要所有的字段都是可哈希的就可以正常工作。
+
+如果你手动为一个类型实现了\texttt{PartialEq}，那你也应该手动实现\texttt{Hash}。例如，假设我们有一个类型表示无价的文物：
+\begin{minted}{Rust}
+    struct Artifact {
+        id: MuseumNumber,
+        name: String,
+        cultures: Vec<Culture>,
+        date: RoughTime,
+        ...
+    }
+\end{minted}
+
+并且有相同ID的两个\texttt{Artifact}被认为相等：
+\begin{minted}{Rust}
+    impl PartialEq for Artifact {
+        fn eq(&self, other: &Artifact) -> bool {
+            self.id == other.id
+        }
+    }
+
+    impl Eq for Artifact {}
+\end{minted}
+
+因为我们比较两个文物时只根据ID进行比较，因此我们必须用相同的方式哈希它们：
+\begin{minted}{Rust}
+    use std::hash::{Hash, Hasher};
+
+    impl Hash for Artifact {
+        fn hash<H: Hasher>(&self, hasher: &mut H) {
+            // 把哈希操作委托给MuseumNumber
+            self.id.hash(hasher);
+        }
+    }
+\end{minted}
+（否则，\texttt{HashSet<Artifact>}将不能合适地工作；和所有哈希表一样，它要求如果\texttt{a == b}那么\texttt{hash(a) == hash(b)}。）
+
+这样我们就可以创建一个\texttt{Artifact}的\texttt{HashSet}：
+\begin{minted}{Rust}
+    let mut collection = HashSet::<Artifact>::new();
+\end{minted}
+
+如上面的代码所示，即使你手动实现了\texttt{Hash}，你也不需要知道有关哈希算法的信息。\texttt{.hash()}接受一个\texttt{Hasher}的引用，后者代表哈希算法。你只需要把所有和\texttt{==}运算符相关的数据喂给\texttt{Hasher}。\texttt{Hasher}会从你给的内容计算出一个哈希值。
+
+\section{}
 
 
 
