@@ -89,7 +89,37 @@ Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt
 这里的\texttt{self}关键字声明了\texttt{io}作为\texttt{std::io}模块的一个别名。这样，\texttt{std::io::Result}和\texttt{std::io::Error}可以用\texttt{io::Result}和\texttt{io::Error}更精确地表示出来，等等。
 
 \subsection{Reader}
+\texttt{std::io::Read}有几个方法用于读取数据。所有这些方法都通过\texttt{mut}引用获取self参数。
 
+\codeentry{reader.read(\&mut buffer)}
+\hangparagraph{从数据源读取一些字节，并存储到给定的\texttt{buffer}中。\texttt{buffer}参数的类型是\texttt{\&mut [u8]}。它最多读取\texttt{buffer.len()}个字节。}
+\hangparagraph{返回类型是\texttt{io::Result<u64>}，它是\texttt{Result<u64, io::Error>}的类型别名。当成功时，\texttt{u64}值是读取到的字节数——可能等于或着小于\texttt{buffer.len()}，\emph{即使还有更多的数据可以读取}。\texttt{Ok(0)}意味着没有更多的输入可以读取。}
+\hangparagraph{当出错时，\texttt{.read()}返回\texttt{Err(err)}，其中\texttt{err}是一个\texttt{io::Error}值。\texttt{io::Error}是可打印的，为了便于阅读；对于程序来讲，它有一个\texttt{.kind()}方法返回一个\texttt{io::ErrorKind}类型的错误码。这个枚举的成员有例如\texttt{PermissionDenied}和\texttt{ConnectionReset}的名称。大多数的错误类型都不能被忽略，但有一种错误应该进行特殊处理。\texttt{io::ErrorKind::Interrupted}对应Unix的错误码\texttt{EINTR}，它意味着读取过程恰好被一个信号打断。除非你的程序想设计为根据信号做一些聪明的操作，否则它应该简单地重试读取操作。上一节中的\texttt{copy()}的代码，就是一个例子。}
+\hangparagraph{如你所见，\texttt{.read()}方法非常底层，甚至直接继承了底层操作系统的怪癖。如果你要为一个新的数据源类型实现\texttt{Read} trait，这会赋予你极大的灵活性。但如果你尝试读取一些数据，就会非常难受。因此，Rust提供了几个更高级的便捷方法。它们都有基于\texttt{.read()}的默认实现。它们都处理了\texttt{ErrorKind::Interrupted}，因此你不需要再处理。}
+
+\codeentry{reader.read\_to\_end(\&mut byte\_vec)}
+\hangparagraph{读取reader种剩余的所有输入，将读到的数据附加到\texttt{byte\_vec}尾部，\texttt{byte\_vec}是一个\texttt{Vec<u8>}。返回一个\texttt{io::Result<uszie>}，表示读取到的字节数。}
+\hangparagraph{这个方法读取的数据的大小没有限制，因此不要将它用于不受信任的源。（你可以使用\texttt{.take()}方法施加限制，如后文所述。}
+
+\codeentry{reader.read\_to\_string(\&mut string)}
+\hangparagraph{和上面相同，不过把数据附加到给定的\texttt{String}。如果流不是有效的UTF-8，它会返回一个\texttt{ErrorKind::InvalidData}错误。}
+\hangparagraph{在一些编程语言中，字节输入和字符输入由不同的类型来处理。如今，UTF-8占据主导地位，Rust承认这一事实标准，并且完全支持UTF-8。其他字符集由开源的\texttt{encoding} crate提供支持。}
+
+\codeentry{reader.read\_exact(\&mut buf)}
+\hangparagraph{读取恰好足够的数据来填充给定的缓冲区。参数的类型是\texttt{\&mut [u8]}，如果在读取够\texttt{buf.len()}个字节之前reader的数据就已经耗光，那么它会返回一个\texttt{ErrorKind::UnexpectedEof}错误。}
+
+上面这些是\texttt{Read} trait的主要方法。除此之外，还有三个以值获取\texttt{reader}的适配器方法，将它转换为一个迭代器或者一个不同的reader：
+
+\codeentry{reader.bytes()}
+\hangparagraph{返回一个输入流的字节的迭代器。item的类型是\texttt{io::Result<u8>}，因此每一个字节都需要进行错误检查。另外，它会逐字节调用\texttt{reader.read()}，因此如果reader没有缓存的话会非常低效。}
+
+\codeentry{reader.chain(reader2)}
+\hangparagraph{返回一个新的reader，首先产生\texttt{reader}的所有输入，然后产生\texttt{reader2}的所有输入。}
+
+\codeentry{reader.take(n)}
+\hangparagraph{返回一个新的reader，从和\texttt{reader}相同的数据源读取数据，但最多只读取\texttt{n}个字节。}
+
+没有关闭reader的方法。reader和writer通常实现了\texttt{Drop}，因此它们会自动关闭。
 
 \subsection{Buffered Reader}
 
