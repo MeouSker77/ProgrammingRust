@@ -1,8 +1,95 @@
 \chapter{输入输出}\label{ch18}
 
+\emph{Doolittle: What concrete evidence do you have that you exist?
+Bomb \#20: Hmmmm... well... I think, therefore I am.
+Doolittle: That’s good. That’s very good. But how do you know that anything else exists?
+Bomb \#20: My sensory apparatus reveals it to me.}
+
+\begin{flushright}
+    ——Dark Star
+\end{flushright}
+
+Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt{BufRead}、\texttt{Write}来组织：
+\begin{enumerate}
+    \item 实现了\texttt{Read}的值有读取字节输入的方法。它们被称为\emph{读者(reader)}。
+    \item 实现了\texttt{BufRead}的值是\emph{buffered reader(有缓存的读者)}。它们支持\texttt{Read}的所有方法，加上读取文本的一行的方法，等等。
+    \item 实现了\texttt{Write}的值支持字节和UTF-8文本输出。它们被称为\emph{写者(writer)}。
+\end{enumerate}
+
+\autoref{f18-1}展示了这三个trait以及一些reader和writer类型的示例。
+
+在本章中，我们将解释如何使用这些trait和它们的方法，包括图中出现的reader和writer类型，还有一些其他的和文件、终端、网络交互的方法。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f18-1.png}
+    \caption{Rust的三个主要的I/O trait以及一些实现了它们的类型}
+    \label{f18-1}
+\end{figure}
+
 \section{Reader和Writer}
 
+\emph{Reader}是你的程序可以从中读取字节的值。例如：
+\begin{enumerate}
+    \item 使用\texttt{std::fs::File::open(filename)}打开的文件
+    \item 用于从网络中接收数据的\texttt{std::net::TcpStream}
+    \item 进程用来读取标准输入的\texttt{std::io::stdin()}
+    \item \texttt{std::io::Cursor<\&[u8]>}和\texttt{std::io::Cursor<Vec<u8>>}值，它们是从内存中的字节数组或vector中“读取”数据的reader
+\end{enumerate}
+
+\emph{Writer}是你的程序可以向其中写入字节的值。例如：
+\begin{enumerate}
+    \item 使用\texttt{std::fs::File::create(filename)}打开的文件
+    \item 用于向网络中发送数据的\texttt{std::net::TcpStream}
+    \item 用于写入到终端的\texttt{std::io::stdout()}和\texttt{std::io::stderr()}
+    \item \texttt{Vec<u8>}，它也是一个writer，它的\texttt{write}方法把数据附加到尾部
+    \item std::io::Cursor<Vec<u8>>，类似于上面，但允许你同时读取和写入数据，并可以在vector中定位到不同位置
+    \item std::io::Cursor<\&mut [u8]>，和\texttt{std::io::Cursor<Vec<u8>>}很像，除了它不能让缓冲区增长，因为它只是已经存在的字节数组的切片
+\end{enumerate}
+
+因为有为reader和writer设计的标准trait（\texttt{std::io::Read}和\texttt{std::io::Write}），所以编写可以处理多种输入输出通道的泛型代码是非常普遍的。例如，这里有一个函数拷贝任意reader中的所有字节到任意writer：
+\begin{minted}{Rust}
+    use std::io::{self, Read, Write, ErrorKind};
+
+    const DEFAULT_BUF_SIZE: usize = 8 * 1024;
+
+    pub fn copy<R: ?Sized, W: ?Sized>(reader: &mut R, writer: &mut W)
+        -> io::Result<u64>
+        where R: Read, W: Write
+    {
+        let mut buf = [0; DEFAULT_BUF_SIZE];
+        let mut written = 0;
+        loop {
+            let len = match reader.read(&mut buf) {
+                Ok(0) => return Ok(written),
+                Ok(len) => len,
+                Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
+                Err(e) => return Err(e),
+            };
+            writer.write_all(&buf[..len])?;
+            written += len as u64;
+        }
+    }
+\end{minted}
+
+这是Rust的标准库中的\texttt{std::io::copy()}的实现。因为它是泛型的，你可以使用它从\texttt{File}中读取数据然后写入到\texttt{TcpStream}，或者从\texttt{Stdin}读取，然后写入到内存中的\texttt{Vec<u8>}，等等。
+
+如果你看不明白这里的错误处理代码，请复习\hyperref[ch07]{第7章}。我们将在接下来的页面中一直使用\texttt{Result}类型；掌握它的工作原理很重要。
+
+这三个\texttt{std::io}的trait：\texttt{Read}、\texttt{BufRead}、\texttt{Write}，以及\texttt{Seek}如此常用，以至于有一个只包含这些trait的\texttt{prelude}模块：
+\begin{minted}{Rust}
+    use std::io::prelude::*;
+\end{minted}
+
+本章中你还会见到它一到两次。我们通常也习惯于导入\texttt{std::io}模块自身：
+\begin{minted}{Rust}
+    use std::io::{self, Read, Write, ErrorKind};
+\end{minted}
+
+这里的\texttt{self}关键字声明了\texttt{io}作为\texttt{std::io}模块的一个别名。这样，\texttt{std::io::Result}和\texttt{std::io::Error}可以用\texttt{io::Result}和\texttt{io::Error}更精确地表示出来，等等。
+
 \subsection{Reader}
+
 
 \subsection{Buffered Reader}
 
