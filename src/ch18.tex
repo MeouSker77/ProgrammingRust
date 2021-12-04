@@ -519,4 +519,63 @@ Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt
     {"location":"Cobble Crawl","items":["a wand"],"health":3}
 \end{minted}
 
- 
+\section{文件和目录}
+现在我们已经展示了如何使用reader和writer，下面的几节将介绍Rust中处理文件和目录的特性，它们在\texttt{std::path}和\texttt{std::fs}模块中。这些特性都涉及到文件名，所以我们将以文件名类型开始。
+
+\subsection{\texttt{OsStr}和\texttt{Path}}
+很不方便的一点是，你的操作系统并不一定强制文件名是有效的Unicode。这里有两个创建文本文件的Linux shell命令。只有第一个是有效的UTF-8文件名：
+\begin{minted}{text}
+    $ echo "hello world" > ô.txt
+    $ echo "O brave new world, that has such filenames in't" > $'\xf4'.txt
+\end{minted}
+
+两条命令都可以运行，因为Linux内核不知道来自Ogg Vorbis的UTF-8。对于内核来说，任何字节（除了null字节和斜杠）组成的字符串都是可接受的文件名。Windows上也类似：几乎任何16位“宽字符”组成的字符串都是可接受的文件名，即使字符串并不是有效的UTF-16。操作系统处理的其他字符串也是这样，例如命令行参数和环境变量。
+
+Rust的字符串总是有效的Unicode。在实践中文件名\emph{几乎}总是Unicode，但Rust必须提供方式以应对少数不是Unicode的情况。这就是为什么Rust有\texttt{std::ffi::OsStr}和\texttt{OsString}。
+
+\texttt{OsStr}是一个作为UTF-8超集的字符串类型。它的任务是能表示当前系统中的所有文件名、命令行参数、环境变量，\emph{不管它们是不是Unicode}。在Unix上，\texttt{OsStr}可以存储任意字节序列。在Windows上，\texttt{OsStr}使以UTF-8的扩展格式存储，它可以编码任何16位值的序列。
+
+所以我们有了两种字符串类型：\texttt{str}用于实际的Unicode字符串；\texttt{OsStr}用于操作系统可能用到的字符串。我们将介绍另一个：\texttt{std::path::Path}，用于文件名。它纯粹是为了方便。\texttt{Path}实际上很像\texttt{OsStr}，但它添加了很多和文件名相关的方法，我们将在下一节中介绍。使用\texttt{Path}表示绝对路径和相对路径。对于路径中每个单独的部分，使用\texttt{OsStr}。
+
+最后，对每个字符串类型，都有一个相应的\emph{有所有权的(owning)}类型：\texttt{String}拥有一个堆上分配的\texttt{str}，一个\texttt{std::ffi::OsString}拥有一个堆上分配的\texttt{OsStr}，一个\texttt{std::path::PathBuf}拥有一个堆上分配的\texttt{Path}。\autoref{t18-1}列出了每个类型的一些特性。
+
+\begin{table}[htbp]
+    \centering
+    \caption{文件名类型}
+    \label{t18-1}
+    \begin{tabular}{llll}
+        \hline
+        & \textbf{str} & \textbf{OsStr} & \textbf{Path} \\
+        \hline
+        非固定大小类型，总是以引用传递 & 是 & 是 & 是 \\
+        \rowcolor{tablecolor}
+        包含任意Unicode文本 & 是 & 是 & 是 \\
+        通常看起来就像UTF-8 & 是 & 是 & 是 \\
+        \rowcolor{tablecolor}
+        可以包含非Unicode数据 & 否 & 是 & 是 \\
+        文本处理方法    & 是 & 否 & 否 \\
+        \rowcolor{tablecolor}
+        文件名相关方法  & 否 & 是 & 是 \\
+        对应的有所有权、可增长的、堆上分配的类型 & \texttt{String} & \texttt{OsString} & \texttt{PathBuf} \\
+        \rowcolor{tablecolor}
+        转换为有所有权的类型  & \texttt{.to\_string()} & \texttt{.to\_os\_string()} & \texttt{.to\_path\_buf()} \\
+    \end{tabular}
+\end{table}
+
+所有这些类型都实现了一个公共的trait：\texttt{AsRef<Path>}，所以我们可以轻易地声明一个泛型函数接受“任何文件名类型”作为参数。这使用到了我们之前展示过的“\nameref{asref}”：
+\begin{minted}{Rust}
+    use std::path::Path;
+    use std::io;
+
+    fn swizzle_file<P>(path_arg: P) -> io::Result<()>
+        where P: AsRef<Path>
+    {
+        let path = path_arg.as_ref();
+        ...
+    }
+\end{minted}
+
+所有接受\texttt{path}参数的标准函数和方法都使用了这项技术，因此你可以自由地向它们传递字符串字面量。
+
+
+
