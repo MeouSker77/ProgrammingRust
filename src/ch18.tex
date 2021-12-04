@@ -669,4 +669,50 @@ Rust的字符串总是有效的Unicode。在实践中文件名\emph{几乎}总�
 \hangparagraph{它返回的值并不是一个字符串，但它实现了\texttt{std::fmt::Display}，所以它可以和\texttt{format!(), println!()}等一起使用。如果路径不是有效的UTF-8，输出可能会含有�字符。}
 
 \subsection{文件系统访问函数}
+\autoref{t18-2}展示了\texttt{std::fs}中的一些函数和它们在Unix和Windows中的类似等价物。所有这些函数都返回\texttt{io::Result}值。除非特意提及不然就是\texttt{io::Result<()>}。
 
+\begin{table}[htbp]
+    \centering
+    \caption{文件系统访问函数总结}
+    \label{t18-2}
+    \begin{tabular}{llll}
+        \hline
+        & \textbf{Rust函数} & \textbf{Unix} & \textbf{Windows} \\
+        \hline
+        \multirow{5}{*}{创建和删除} & \texttt{create\_dir(path)} & \texttt{mkdir()} & \texttt{CreateDirectory()} \\
+        & \texttt{create\_dir\_all(path)} \cellcolor{tablecolor} & 类似\texttt{mkdir -p} \cellcolor{tablecolor} & 类似\texttt{mkdir} \cellcolor{tablecolor} \\
+        & \texttt{remove\_dir(path)} & \texttt{rmdir()} & \texttt{RemoveDirectory()} \\
+        & \texttt{remove\_dir\_all(path)} \cellcolor{tablecolor} & 类似\texttt{rm -r} \cellcolor{tablecolor} & 类似\texttt{rmdir /s} \cellcolor{tablecolor} \\
+        & \texttt{remove\_file(path)} & \texttt{unlink()} & \texttt{DeleteFile()} \\
+        \hline
+        \multirow{3}{*}{拷贝，移动和链接} & \texttt{copy(src\_path, dest\_path) -> Result<u64>} \cellcolor{tablecolor} & 类似\texttt{cp -p} \cellcolor{tablecolor} & \texttt{CopyFileEx()} \cellcolor{tablecolor} \\
+        & \texttt{rename(src\_path, dest\_path)} & \texttt{rename()} & \texttt{MoveFileex()} \\
+        & \texttt{hard\_link(src\_path, dest\_path)} \cellcolor{tablecolor} & \texttt{link()} \cellcolor{tablecolor} &
+        \texttt{CreateHardLink()} \cellcolor{tablecolor} \\
+        \hline
+        \multirow{5}{*}{检查} & \texttt{canonicalize(path) -> Result<PathBuf>} & \texttt{realpath} & \texttt{GetFinalPathNameByHandle()} \\
+        & \texttt{metadata(path) -> Result<Metadata>} \cellcolor{tablecolor} & \texttt{stat()} \cellcolor{tablecolor} &
+        \texttt{GetFileInformationByHandle()} \cellcolor{tablecolor} \\
+        & \texttt{symlink\_metadata(path) -> Result<Metadata>} & \texttt{lstat()} & \texttt{GetFileInformationByHandle} \\
+        & \texttt{read\_dir(path) -> Result<ReadDir>} \cellcolor{tablecolor} & \texttt{opendir()} \cellcolor{tablecolor} & \texttt{FindFirstFile()} \cellcolor{tablecolor} \\
+        & \texttt{read\_link(path) -> Result<PathBuf>} & \texttt{readlink()} & \texttt{FSCTL\_GET\_REPARSE\_POINT} \\
+        \hline 
+        权限 & \texttt{set\_permission(path, perm)} \cellcolor{tablecolor} & \texttt{chmod()} \cellcolor{tablecolor} & \texttt{SetFileAttributes()} \cellcolor{tablecolor} \\
+    \end{tabular}
+\end{table}
+
+（\texttt{copy()}返回的数字是被拷贝的文件的大小，以字节为单位。有关创建符号链接，见“\nameref{PlatSpec}”。）
+
+如你所见，Rust努力提供可以在Windows、macOS、Linux以及其他Unix系统上工作的可移植函数。
+
+文件系统的完整说明超出了这本书的范围，但如果你对这些函数的某些更感兴趣，你可以在网上轻松地找到有关他们的更多信息。我们将在下一节中展示更多示例。
+
+所有这些函数都是通过调用操作系统的功能来实现。例如\texttt{std::fs::canonicalize(path)}不只是使用字符串处理来消除给定的\texttt{path}中的\texttt{.}和\texttt{..} 。它使用当前的工作目录来解析相对路径，并且它会解析符号链接。如果路径不存在它会报错。
+
+\texttt{std::fs::metadata(path)}和\texttt{std::fs::symlink\_metadata(path)}产生的\texttt{Metadata}类型包含类似于文件类型和大小、权限、时间戳等信息。同样，详细的内容请查阅文档。
+
+为了方便，\texttt{Path}类型将一些这样的函数内建为方法：例如\texttt{path.metadata()}和\texttt{std::fs::metadata(path)是一样的。}
+
+\subsection{读取目录}
+
+\subsection{平台特定特性}\label{PlatSpec}
