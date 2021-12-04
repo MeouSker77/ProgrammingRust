@@ -255,6 +255,39 @@ Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt
 \end{minted}
 
 \subsection{收集行}
+包括\texttt{.lines()}在内的几个reader方法返回产生\texttt{Result}的迭代器。当你第一次尝试将一个文件的每一行收集到一个很大的vector中时，你可能会遇到需要摆脱\texttt{Result}的问题：
+\begin{minted}{Rust}
+    // ok，但不是你想要的
+    let results: Vec<io::Result<String>> = reader.lines().collect();
+
+    // error: 不能将Result的集合转换成Vec<String>
+    let lines: Vec<String> = reader.lines().collect();
+\end{minted}
+
+第二次尝试不能编译：哪里出错了？直观的解决方法是编写一个\texttt{for}循环并为每一个item检查错误：
+\begin{minted}{Rust}
+    let mut lines = vec![];
+    for line_result in reader.lines() {
+        lines.push(line_result?);
+    }
+\end{minted}
+
+不错；但这里如果使用\texttt{.collect()}会更好，并且我们确实可以这么做。我们只需要知道需要什么样的类型：
+\begin{minted}{Rust}
+    let lines = reader.lines().collect::<io::Result<Vec<String>>>()?;
+\end{minted}
+
+为什么这能工作？标准库里为\texttt{Result}包含了一个\texttt{FromIterator}的实现——在在线文档中容易忽略——让这变为了可能：
+\begin{minted}{Rust}
+    impl<T, E, C> FromIterator<Result<T, E>> for Result<C, E>
+        where C: FromIterator<T>
+    {
+        ...
+    }
+\end{minted}
+这个签名需要仔细阅读，但它是一个漂亮的技巧。假设\texttt{C}是任意集合类型，例如\texttt{Vec}或者\texttt{HashSet}。只要我们已经知道了如何从一个产生\texttt{T}值的迭代器构建一个\texttt{C}，我们就可以从一个产生\texttt{Result<T, E>}值的迭代器构建一个\texttt{Result<C, E>}。我们只需要遍历迭代器产生的值，用其中的\texttt{Ok}值构建集合，但如何遇到了一个\texttt{Err}，就停止并传递它。
+
+换句话说，\texttt{io::Result<Vec<String>>}是一个集合类型，所以\texttt{.collect()}方法可以创建并填充这种类型的值。
 
 \subsection{Writer}
 
