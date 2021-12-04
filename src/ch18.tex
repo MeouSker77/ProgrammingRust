@@ -122,6 +122,35 @@ Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt
 没有关闭reader的方法。reader和writer通常实现了\texttt{Drop}，因此它们会自动关闭。
 
 \subsection{Buffered Reader}
+出于性能考虑，reader和writer可以进行\emph{缓存(buffer)}，意思是它们有一块内存（缓冲区）用来存储一些输入或输出数据。这样可以减少系统调用的次数，如\autoref{f18-2}所示。在这个例子中，应用调用\texttt{.read\_line()}方法从\texttt{BufReader}中读取数据，\texttt{BufReader}从操作系统获取更大块的输入。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f18-2.png}
+    \caption{一个有缓冲的文件reader}
+    \label{f18-2}
+\end{figure}
+
+这张图并不是按比例的，一个\texttt{BufReader}的实际大小是几千字节，因此一次系统的\texttt{read}调用可以提供上百次\texttt{.read\_line()}调用。这么做之所以能提高性能是因为系统调用很慢。（如图所示，操作系统也有一个缓冲区，原因与此相同：系统调用很慢，但从磁盘读取数据更慢。）
+
+有缓冲的reader实现了\texttt{Read}和另一个trait \texttt{BufRead}，它添加了下面的方法：
+
+\codeentry{reader.read\_line(\&mut line)}
+\hangparagraph{读取一行文本并将它附加到\texttt{line}，\texttt{line}是一个\texttt{String}。行尾的换行符\texttt{'\\n'}}也会包含在\texttt{line}中。如果输入中有Windows风格的换行符\texttt{"\\r\\n"}，这两个字符都会包含进\texttt{line}。
+\hangparagraph{返回值是一个\texttt{io::Result<usize>}，代表读取到的字节数，包括行尾的换行符。}
+\hangparagraph{如果reader到达输入结尾，\texttt{line}会保持不变，并返回\texttt{Ok(0)}。}
+
+\codeentry{reader.lines()}
+\hangparagraph{返回一个迭代输入中每一行的迭代器。item的类型是\texttt{io::Result<String>}。换行符\emph{不}包含在字符串中。如果输入中有Windows风格的换行符\texttt{"\\r\\n"}，这两个字符都会被丢球。}
+\hangparagraph{这个方法几乎总是你需要的文本输入方法。下面的两节会通过例子展示如何使用它。}
+
+\codeentry{reader.read\_until(stop\_byte, \&mut byte\_vec), reader.split(stop\_byte)}
+\hangparagraph{这两个方法类似于\texttt{.read\_line()}和\texttt{.lines()}，但是是面向字节的，产生\texttt{Vec<u8>}而不是\texttt{String}。你可以选择终止符\texttt{stop\_byte}。}
+
+\texttt{BufRead}还提供两个底层的方法\texttt{.fill\_buf()}和\texttt{.consume(n)}，用来直接访问reader的内部缓冲区。更多有关这些方法的信息，可以查阅在线文档。
+
+接下来的两节详细介绍了有缓冲的reader。
+
 
 \subsection{读取行}
 
