@@ -445,3 +445,78 @@ Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt
 \hangparagraph{返回一个无限重复给定字节的reader。}
 
 \subsection{二进制数据，压缩和序列化}
+有很多基于\texttt{std::io}框架的开源crate提供额外的特性。
+
+\texttt{byteorder} crate提供\texttt{ReadBytesExt}和\texttt{WriteBytesExt} trait，它们为所有reader和writer添加二进制输入和输出的方法：
+\begin{minted}{Rust}
+    use byteorder::{ReadBytesExt, WriteBytesExt, LittleEndian};
+
+    let n = reader.read_u32::<LittleEndian>()?;
+    writer.write_i64::<LittleEndian>(n as i64)?;
+\end{minted}
+
+\texttt{flate2} crate提供读取和写入\texttt{gzip}数据的适配器方法：
+\begin{minted}{Rust}
+    use flate2::read::GzDecoder;
+    let file = File::open("access.log.gz")?;
+    let mut gzip_reader = GzDecoder::new(file);
+\end{minted}
+
+\texttt{serde} crate，和它的关联的格式化crate例如\texttt{serde\_json}，实现了序列化和反序列化：它们在Rust结构体和字节流之间来回转换。我们之前在“\nameref{OrphanRule}”中提到过它们一次。现在让我们仔细看看。
+
+假设我们有一些数据——一个文字冒险游戏的地图——存储在一个\texttt{HashMap}中：
+\begin{minted}{Rust}
+    type RoomId = String;                       // 每一个房间有一个独一无二的名字
+    type RoomExits = Vec<(char, RoomId)>;       // ...和一个通向的房间的名字的列表
+    type RoomMap = HashMap<RoomId, RoomExits>;
+
+    // 创建一个简单的地图。
+    let mut map = RoomMap::new();
+    map.insert("Cobble Crawl".to_string(),
+               vec![('W', "Debris Room".to_string())]);
+    map.insert("Debris Room".to_string(),
+               vec![('E', "Cobble Crawl".to_string()),
+                    ('W', "Sloping Canyon".to_string())]);
+    ...
+\end{minted}
+
+将这个数据转换为JSON并输出只需要一行代码：
+\begin{minted}{Rust}
+    serde_json::to_writer(&mut std::io::stdout(), &map)?;
+\end{minted}
+
+在内部，\texttt{serde\_json::to\_writer}使用了\texttt{serde::Serialize} trait的\texttt{serialize}方法。这个库给所有它知道如何序列化的类型附加了这个trait，其中包括我们的数据中出现的类型：字符串、字符、元组、vector、\texttt{HashMap}。
+
+\texttt{serde}非常灵活。在我们的程序中，输出是JSON数据，因为我们选择了\texttt{serde\_json}序列化器。其他格式例如\texttt{MessagePack}也是可用的。同样地，你可以把输出送到文件、\texttt{Vec<u8>}或其他任何writer中。上面的代码通过\texttt{stdout}打印了数据，内容如下：
+\begin{minted}{json}
+    {"Debris Room":[["E","Cobble Crawl"],["W","Sloping Canyon"]],"Cobble Crawl": [["W","Debris Room"]]}
+\end{minted}
+
+\texttt{serde}还包括派生两个关键trait的支持：
+\begin{minted}{Rust}
+    #[derive(Serialize, Deserialize)]
+    struct Player {
+        location: String,
+        items: Vec<String>,
+        health: u32
+    }
+\end{minted}
+
+这个\texttt{\#[derive]}属性会让你的编译过程稍微变长，因此当你在\emph{Cargo.toml}文件中将\texttt{serde}作为依赖时需要要求它支持这个特性。这是我们上面的代码用到的依赖：
+\begin{minted}{toml}
+    [dependencies]
+    serde = { version = "1.0", features = ["derive"] }
+    serde_json = "1.0"
+\end{minted}
+
+更多的细节可以查阅\texttt{serde}的文档。简单来说，构建系统可以自动为\texttt{Player}生成\texttt{serde::Serialize}和\texttt{serde::Deserialize}，因此序列化一个\texttt{Player}值非常简单：
+\begin{minted}{Rust}
+    serde_json::to_writer(&mut std::io::stdout(), &player)?;
+\end{minted}
+
+输出看起来是这样的：
+\begin{minted}{json}
+    {"location":"Cobble Crawl","items":["a wand"],"health":3}
+\end{minted}
+
+ 
