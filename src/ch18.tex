@@ -339,4 +339,44 @@ Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt
 当\texttt{BufWriter}被丢弃时，它剩余的所有被缓存的数据都会被写入到底层的writer。然而，如果这次写入时出现了错误，这个错误会被\emph{忽略}。（因为这个错误是在\texttt{BufWriter}的\texttt{.drop()}方法中发生，没有汇报错误的地方。）为了保证你的应用能够注意到所有的输出错误，可以在drop有缓存的writer之前手动调用\texttt{.flush()}。
 
 \subsection{File}\label{file}
+我们已经看到过两种打开文件的方式：
+\codeentry{File::open(filename)}
+\hangparagraph{打开一个已存在的文件。它返回一个\texttt{io::Result<File>}，如果文件不存在将返回一个错误。}
+
+\codeentry{File::create(filename)}
+\hangparagraph{创建一个新的文件用于写入。如果已经有同名文件，它会被截断。}
+
+注意\texttt{File}类型在文件系统模块\texttt{std::fs}中，而不是在\texttt{std::io}中。
+
+当这两个文件都不符合要求时，你可以使用\texttt{OpenOptions}来指定额外的期望行为：
+\begin{minted}{Rust}
+    use std::fs::OpenOptions;
+
+    let log = OpenOptions::new()
+        .append(true)   // 如果文件存在，就追加到末尾
+        .open("server.log")?;
+
+    let file = OpenOptions::new()
+        .write(true)
+        .create_new(true)   // 如果文件存在就失败
+        .open("new_file.txt")?;
+\end{minted}
+
+方法\texttt{.append(), .write(), .create\_new()}等，被设计用来进行类似这样的链式调用：每一个都返回\texttt{self}。这种链式方法的设计模式在Rust中太过普遍以至于有一个专门的名字：它被称为\emph{builder(构建器)}。\texttt{std::process::Command}是另一个例子。更多关于\texttt{OpenOptions}的细节可以查阅在线文档。
+
+\texttt{File}被打开后，它的行为就类似于其他的reader和writer。如果需要的话你可以添加一个缓冲区。当你drop一个\texttt{File}时它会自动关闭。
+
+\subsection{Seek}
+\texttt{File}还实现了\texttt{Seek} trait，它意味着你可以在一个\texttt{File}中跳来跳去，而不是只能从开始单调地读到尾。\texttt{Seek}的定义类似如下：
+\begin{minted}{Rust}
+    pub trait Seek {
+        fn seek(&mut self, pos: SeekFrom) -> io::Result<u64>;
+    }
+
+    pub enum SeekFrom {
+        Start(u64),
+        End(i64),
+        Current(i64)
+    }
+\end{minted}
 
