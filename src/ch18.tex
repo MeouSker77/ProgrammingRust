@@ -380,3 +380,7 @@ Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt
     }
 \end{minted}
 
+得益于这个枚举，\texttt{seek}方法变得很有表达力：使用\texttt{file.seek(SeekFrom::Start(0))}来定位到开始，使用\texttt{file.seek(SeekFrom::Current(-8))}来回退一些字节，等等。
+
+在一个文件中定位很慢。不管你是在硬盘还是固态盘(SSD)上，定位都要消耗和读取几M数据一样长的时间。
+
