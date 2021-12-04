@@ -151,8 +151,108 @@ Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt
 
 接下来的两节详细介绍了有缓冲的reader。
 
-
 \subsection{读取行}
+这里有一个实现了Unix \texttt{grep}工具的函数。它搜索文本的每一行，文本通常通过管道从另一个命令输入。对于一个给定的字符串：
+\begin{minted}{Rust}
+    use std::io;
+    use std::io::prelude::*;
+
+    fn grep(target: &str) -> io::Result<()> {
+        let stdin = io::stdin();
+        for line_result in stdin.lock().lines() {
+            let line = line_result?;
+            if line.contains(target) {
+                println!("{}", line);
+            }
+        }
+        Ok(())
+    }
+\end{minted}
+
+因为我们想要调用\texttt{.lines()}，所以我们需要一个实现了\texttt{BufRead}的输入源。在这个例子中，我们调用了\texttt{io::stdin()}来获取通过管道传入的数据。然而，Rust标准库使用了一个mutex来保护\texttt{stdin}，我们调用\texttt{.lock()}来锁住\texttt{stdin}以让当前的线程独占使用，它返回一个实现了\texttt{BufRead}的\texttt{StdinLock}值。在循环的结尾，\texttt{StdinLock}被丢弃，释放mutex。（如果没有mutex，那么如果两个线程同时从\texttt{stdin}中读取数据，会导致未定义行为。C里也有这个问题，它通过这种方式解决它：C中所有的输入和输出函数会在幕后获取一个锁。Rust中唯一的不同就是锁是API的一部分。）
+
+函数的剩余部分非常直观：它调用\texttt{.lines()}并迭代返回的迭代器。因为这个迭代器产生\texttt{Result}值，所以我们使用\texttt{?}操作符来检查错误。
+
+假设我们想进一步扩展我们的\texttt{grep}程序，让它支持搜索磁盘中的文件。我们可以把函数修改为泛型的：
+\begin{minted}{Rust}
+    fn grep<R>(target: &str, reader: R) -> io::Result<()>
+        where R: BufRead
+    {
+        for line_result in reader.lines() {
+            let line = line_result?;
+            if line.contains(target) {
+                println!("{}", line);
+            }
+        }
+        Ok(())
+    }
+\end{minted}
+
+现在我们可以向它传递一个\texttt{StdinLock}或者一个有缓存的\texttt{File}：
+\begin{minted}{Rust}
+    let stdin = io::stdin();
+    grep(&target, stdin.lock())?;   // ok
+
+    let f = File::open(file)?;
+    grep(&target, BufReader::new(f))?;  // ok
+\end{minted}
+
+注意\texttt{File}并不是自动缓存的。\texttt{File}实现了\texttt{Read}但没有实现\texttt{BufRead}。然而，很容易为\texttt{File}或者其他任何无缓存的reader创建一个有缓存的reader。\texttt{BufReader::new(reader)可以实现这个功能。（为了设置缓冲区的大小，可以使用\texttt{BufReader::with\_capacity(size, reader)}。}
+
+在大多数语言中，文件都是默认有缓存的。如果你想要无缓存的输入或输出，你必须知道如何关闭缓存。在Rust中，\texttt{File}和\texttt{BufReader}是两个单独的库特性，因为有时你可能需要没有缓冲的文件，或者需要缓存文件之外的内容（例如，你可能会想要缓存来自网络的输入）。
+
+包含错误处理和一些参数解析的完成的程序，如下所示：
+\begin{minted}{Rust}
+    // grep - 搜索stdin或文件中匹配给定string的行
+    use std::error::Error;
+    use std::io::{self, BufReader};
+    use std::io::prelude::*;
+    use std::fs::File;
+    use std::path::PathBuf;
+
+    fn grep<R>(target: &str, reader: R) -> io::Result<()>
+        where R: BufRead
+    {
+        for line_result in reader.lines() {
+            let line = line_result?;
+            if line.contains(target) {
+                println!("{}", line);
+            }
+        }
+        Ok(())
+    }
+
+    fn grep_main() -> Result<(), Box<dyn Error>> {
+        // 获取命令行参数。第一个参数是要搜索的字符串；
+        // 剩余的是文件名。
+        let mut args = std::env::args().skip(1);
+        let target = match args.next() {
+            Some(s) => s,
+            None => Err("usage: grep PATTERN FILE...")?
+        };
+        let files: Vec<PathBuf> = args.map(PathBuf::from).collect();
+
+        if files.is_empty() {
+            let stdin = io::stdin();
+            grep(&target, stdin.lock())?;
+        } else {
+            for file in files {
+                let f = File::open(file)?;
+                grep(&target, BufReader::new(f))?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn main() {
+        let result = grep_main();
+        if let Err(err) = result {
+            eprintln!("{}", err);
+            std::process::exit(1);
+        }
+    }
+\end{minted}
 
 \subsection{收集行}
 
