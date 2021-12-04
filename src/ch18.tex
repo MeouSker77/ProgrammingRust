@@ -151,7 +151,7 @@ Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt
 
 接下来的两节详细介绍了有缓冲的reader。
 
-\subsection{读取行}
+\subsection{读取行}\label{ReadLines}
 这里有一个实现了Unix \texttt{grep}工具的函数。它搜索文本的每一行，文本通常通过管道从另一个命令输入。对于一个给定的字符串：
 \begin{minted}{Rust}
     use std::io;
@@ -384,3 +384,64 @@ Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt
 
 在一个文件中定位很慢。不管你是在硬盘还是固态盘(SSD)上，定位都要消耗和读取几M数据一样长的时间。
 
+\subsection{其他Reader和Writer类型}
+到目前为止，本章中使用了\texttt{File}作为主要的示例，但还有很多其他有用的reader和writer类型：
+\codeentry{io::stdin()}
+\hangparagraph{返回一个标准输入流的reader。它的类型是\texttt{io::Stdin}。因为它被多个线程共享，所以每一次读取需要请求并释放mutex。}
+\hangparagraph{\texttt{Stdin}有一个\texttt{.lock()}方法获取mutex并返回一个\texttt{io::StdinLock}，这是一个有缓存的reader，它会持有mutex，直到它被丢弃。因此对\texttt{StdinLock}的单独操作可以避免mutex的开销。我们在“\nameref{ReadLines}”中展示过使用这个方法的示例代码。}
+\hangparagraph{出于技术原因，\texttt{io::stdin().lock()}不能工作。这个锁持有一个\texttt{Stdin}值的引用，这意味着\texttt{Stdin}值必须被存储起来，这样它才能生存的足够久：}
+\begin{minted}{Rust}
+    let stdin = io::stdin();
+    let lines = stdin.lock().lines();   // ok
+\end{minted}
+
+\codeentry{io::stdout(), io::stderr()}
+\hangparagraph{返回标准输出和标准错误流的\texttt{Stdout}和\texttt{Stderr} writer类型。这两个类型也有mutex和\texttt{.lock()}方法。}
+
+\codeentry{Vec<u8>}
+\hangparagraph{实现了\texttt{Write}。写入到一个\texttt{Vec<u8>}会把新的数据附加到vector尾部。}
+\hangparagraph{然而，\texttt{String}\emph{并没有}实现\texttt{Write}。为了使用\texttt{Write}构建一个字符串，首先要写入到一个\texttt{Vec<u8>}，然后使用\texttt{String::from\_utf8(vec)}来把vector转换为字符串。}
+
+\codeentry{Cursor::new(buf)}
+\hangparagraph{创建一个\texttt{Cursor}，它是一个从\texttt{buf}中读取的有缓存的reader。这也是一个创建从\texttt{String}读取的reader的方法。参数\texttt{buf}可以是任何实现了\texttt{AsRef<[u8]>}的类型，因此你也可以传递一个\texttt{\&[u8], \&str, Vec<u8>}。}
+\hangparagraph{Cursor内部的结构非常简单。它只有两个字段：\texttt{buf}和一个整数，用来表示下一次读取开始的偏移量。初始时为0。}
+\hangparagraph{Cursor实现了\texttt{Read, BufRead, Seek}。如果\texttt{buf}的类型是\texttt{\&mut [u8]}或\texttt{Vec<u8>}，那么\texttt{Cursor}还会实现\texttt{Write}。写入一个Cursor会覆盖\texttt{buf}中从当前位置开始的字节。如果你试图越界写入一个\texttt{\&mut [u8]}，结果会是部分写入或者一个\texttt{io::Error}。使用Cursor越界写入一个\texttt{Vec<u8>}没有问题，因为它会让vector变长。因此\texttt{Cursor<\&mut [u8]>}和\texttt{Cursor<Vec<u8>>}实现了\texttt{std::io::prelude}中全部的4个trait。}
+
+\codeentry{std::net::TcpStream}
+\hangparagraph{代表一个TCP网络连接。因为TCP允许双向连接，所以它既是reader又是writer。}
+\hangparagraph{类型关联函数\texttt{TcpStream::connect(("hostname", PORT))}尝试连接到服务器，并返回一个\texttt{io::Result<TcpStream>}。}
+
+\codeentry{std::process::Command}
+\hangparagraph{支持创建一个子进程并把数据管道连接到它的标准输入，例如：}
+\begin{minted}{Rust}
+    use std::process::{Command, Stdio};
+
+    let mut child =
+        Command::new("grep")
+         .arg("-e")
+         .arg("a.*e.*i.*o.*u")
+         .stdin(Stdio::piped())
+         .spawn()?;
+    
+    let mut to_child = child.stdin.take().unwrap();
+    for word in my_words {
+        writeln!(to_child, "{}", word)?;
+    }
+
+    drop(to_child); // 关闭grep的stdin，所以它会退出
+    child.wait()?;
+\end{minted}
+\hangparagraph{\texttt{child.stdin}的类型是\texttt{Option<std::process:ChildStdin>}；这里我们在创建子进程的时候使用了\texttt{.stdin(Stdio::piped())}，因此当\texttt{.spawn()}成功时\texttt{child.stdin}肯定是\texttt{Some}。否则，\texttt{child.stdin}将是\texttt{None}。}
+\hangparagraph{\texttt{Command}还有类似的\texttt{.stdout()}和\texttt{.stderr()}方法，它们可以用来请求\texttt{child.stdout}和\texttt{child.stderr}中的reader。}
+
+\texttt{std::io}模块还提供了很多返回简单reader和writer的函数：
+\codeentry{io::sink()}
+\hangparagraph{这是一个无操作writer。所有的写入方法都会返回\texttt{Ok}，但数据都会被丢弃。}
+
+\codeentry{io::empty()}
+\hangparagraph{这是一个无操作reader。所有的读取都会成功，但总是返回输入结束。}
+
+\codeentry{io::repeat(byte)}
+\hangparagraph{返回一个无限重复给定字节的reader。}
+
+\subsection{二进制数据，压缩和序列化}
