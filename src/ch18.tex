@@ -577,5 +577,96 @@ Rust的字符串总是有效的Unicode。在实践中文件名\emph{几乎}总�
 
 所有接受\texttt{path}参数的标准函数和方法都使用了这项技术，因此你可以自由地向它们传递字符串字面量。
 
+\subsection{\texttt{Path}和\texttt{PathBuf}方法}
+\texttt{Path}提供了下面这些方法：
+\codeentry{Path::new(str)}
+\hangparagraph{将一个\texttt{\&str}或者\texttt{\&OsStr}转换为\texttt{\&Path}。这不会拷贝字符串。新的\texttt{\&Path}和原本的\texttt{\&str}或\texttt{\&OsStr}指向相同的字节流：}
+\begin{minted}{Rust}
+    use std::path::Path;
+    let home_dir = Path::new("/home/fwolfe");
+\end{minted}
+\hangparagraph{（类似的方法\texttt{OsStr::new(str)}将\texttt{\&str}转换为\texttt{\&OsStr}。）}
 
+\codeentry{path.parent()}
+\hangparagraph{返回路径的父目录，如果有的话。返回类型是\texttt{Option<\&Path>}。}
+\hangparagraph{这也不会拷贝路径。\texttt{path}的父目录总是\texttt{path}的一个子串：}
+\begin{minted}{Rust}
+    assert_eq!(Path::new("/home/fwolfe/program.txt").parent(),
+               Some(Path::new("/home/fwolfe")));
+\end{minted}
+
+\codeentry{path.file\_name()}
+\hangparagraph{返回\texttt{path}的最后一个部分，如果有的话。返回类型是\texttt{Option<\&OsStr>}。}
+\hangparagraph{在通常的情况下，\texttt{path}由一个目录、一个斜杠、然后是一个文件名组成，这会返回文件名：}
+\begin{minted}{Rust}
+    use std::ffi::OsStr;
+    assert_eq!(Path::new("/home/fwolfe/program.txt").file_name(),
+               Some(OsStr::new("program.txt")));
+\end{minted}
+
+\codeentry{path.is\_absolute(), \texttt{path.is\_relative()}}
+\hangparagraph{这些方法判断路径是绝对的，例如Unix路径\emph{/usr/bin/advent}或者Windows路径\emph{C:\textbackslash{}Program Files}，还是相对的，例如\emph{src/main.rs}。}
+
+\codeentry{path1.join(path2)}
+\hangparagraph{连接两个路径，返回一个新的\texttt{PathBuf}：}
+\begin{minted}{Rust}
+    let path1 = Path::new("/usr/share/dict");
+    assert_eq!(path1.join("words"),
+               Path::new("/usr/share/dict/words"));
+\end{minted}
+\hangparagraph{如果\texttt{path2}是一个绝对类型，这会简单地返回\texttt{path2}的拷贝，因此这个方法可以用于将任何路径转换为一个绝对路径：}
+\begin{minted}{Rust}
+    let abs_path = std::env::current_dir()?.join(any_path);
+\end{minted}
+
+\codeentry{path.components()}
+\hangparagraph{返回一个从左到右迭代给定路径的所有部分的迭代器。这个迭代器的item类型是\texttt{std::path::Component}，它可以代表任何可能出现在文件名中的部分：}
+\begin{minted}{Rust}
+    pub enum Component<'a> {
+        Prefix(PrefixComponent<'a>),  // 一个驱动器字母或者共享设备（在Windows上）
+        RootDir,            // 根目录，`/`或`\`
+        CurDir,             // `.`特殊目录
+        ParentDir,          // `..`特殊目录
+        Normal(&'a OsStr)   // 普通的文件和目录名
+    }
+\end{minted}
+\hangparagraph{例如，Windows路径\emph{\textbackslash\textbackslash{}venice\textbackslash{}Music\textbackslash{}A Love Supreme\textbackslash{}04-Psalm.mp3}由一个\texttt{Prefix}（表示\emph{\textbackslash\textbackslash{}venice\textbackslash{}Music}）、后跟一个\texttt{RootDir}，然后是两个\texttt{Normal}组件（分别表示\emph{A Love Supreme}和\emph{04-Psalm.mp3}。}
+\hangparagraph{细节见在线文档。}
+
+\codeentry{path.ancestors()}
+\hangparagraph{返回一个从\texttt{path}一直回溯到根目录的迭代器。每一个产生的item都是一个\texttt{Path}：第一个是\texttt{path}本身，然后是它的父目录、它的父目录的父目录，等等：}
+\begin{minted}{Rust}
+    let file = Path::new("/home/jimb/calendars/calendar-18x18.pdf");
+    assert_eq!(file.ancestors().collect::<Vec<_>>(),
+               vec![Path::new("/home/jimb/calendars/calendar-18x18.pdf"),
+                    Path::new("/home/jimb/calendars"),
+                    Path::new("/home/jimb"),
+                    Path::new("/home"),
+                    Path::new("/")]);
+\end{minted}
+\hangparagraph{这很像一直调用\texttt{parent}直到它返回\texttt{None}。最终的item总是一个根目录或者前缀路径。}
+
+这些方法只考虑内存中的字符串。\texttt{Path}还有一些会查询文件系统的方法：\texttt{.exists(), .is\_file(), .is\_dir(), .read\_dir(), .canonicalize()}等等。更多内容请查阅在线文档。
+
+有三个将\texttt{Path}转换为字符串的方法。每一个都允许\texttt{Path}中可能含有无效的UTF-8：
+\codeentry{path.to\_str()}
+\hangparagraph{将一个\texttt{Path}转换成字符串，返回一个\texttt{Option<\&str>}。如果\texttt{path}不是有效的UTF-8，它返回\texttt{None}：}
+\begin{minted}{Rust}
+    if let Some(file_str) = path.to_str() {
+        println!("{}", file_str);
+    }   // ...否则跳过这个文件名
+\end{minted}
+
+\codeentry{path.to\_string\_lossy()}
+\hangparagraph{这个方法功能基本和上面一样，但它在所有情况下都会返回字符串。如果\texttt{path}不是有效的UTF-8，这个方法会创建拷贝，然后将每一个无效的字节序列替换为Unicode占位字符：U+FFFD('�')。}
+\hangparagraph{返回值类型是\texttt{std::borrow::Cow<str>}：可能狮是字符串的借用也可能是有所有权的字符串。为了从这个值得到一个\texttt{String}，使用它的\texttt{.to\_owned()}方法。（更多有关\texttt{Cow}的内容，见“\nameref{Cow}”。）}
+
+\codeentry{path.display()}
+\hangparagraph{这用于打印路径：}
+\begin{minted}{Rust}
+    println!("Download found. You put it in: {}", dir_path.display());
+\end{minted}
+\hangparagraph{它返回的值并不是一个字符串，但它实现了\texttt{std::fmt::Display}，所以它可以和\texttt{format!(), println!()}等一起使用。如果路径不是有效的UTF-8，输出可能会含有�字符。}
+
+\subsection{文件系统访问函数}
 

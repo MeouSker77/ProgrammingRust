@@ -718,9 +718,9 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
 
 与\texttt{clone}必须返回\texttt{Self}不同，\texttt{to\_owned}可以返回任何你可能借用一个\texttt{\&Self}的对象：\texttt{Owned}类型必须实现了\texttt{Borrow<Self>}。你可以从\texttt{Vec<T>}借用一个\texttt{\&[T]}，所以\texttt{[T]}可以实现\texttt{ToOwned<Owned=Vec<T>>}，只要\texttt{T}实现了\texttt{Clone}，因此我们可以把切片的元素拷贝进vector中。类似的，\texttt{str}实现了\texttt{ToOwned<Owned=String>}，\texttt{Path}实现了\texttt{ToOwned<Owned=PathBuf}，等等。
 
-\section{\texttt{Borrow}和\texttt{ToOwned}：}
+\section{\texttt{Borrow}和\texttt{ToOwned}的配合：\texttt{Cow}}\label{Cow}
 
-想把将Rust用好涉及到思考所有权的问题、例如一个函数应该以值还是以引用接受参数。通常你可以选择其中一种，并且类型的参数反应出了你的决定。但在某些情况下，在程序实际运行之前你都不能决定到底是借用还是拥有；\texttt{std::borrow::Cow}类型（用于“写时克隆”）提供了一个处理这种情况的方法。
+想用好Rust就必须想好所有权的问题、例如一个函数应该以值还是以引用接受参数。通常你可以选择其中一种，并且类型的参数反应出了你的决定。但在某些情况下，在程序实际运行之前你都不能决定到底是借用还是拥有；\texttt{std::borrow::Cow}类型（用于“写时克隆”）提供了一个处理这种情况的方法。
 
 它的定义如下所示：
 \begin{minted}{Rust}
