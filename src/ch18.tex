@@ -290,5 +290,53 @@ Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt
 换句话说，\texttt{io::Result<Vec<String>>}是一个集合类型，所以\texttt{.collect()}方法可以创建并填充这种类型的值。
 
 \subsection{Writer}
+正如我们所见，使用方法就基本可以完成输入。输出有一些不同。
+
+在整本书中，我们都在使用\texttt{println!()}来产生普通文本输出：
+\begin{minted}{Rust}
+    println!("Hello, world!");
+
+    println!("The greatest common divisor of {:?} is {}", numbers, d);
+
+    println!();     // 打印空白行
+\end{minted}
+
+还有一个\texttt{print!()}宏，它不会在最后加上一个换行符，\texttt{eprintln!}和\texttt{eprint!}宏写入到标准错误流。这些函数的格式化代码都和\texttt{format!}宏一样，见“\nameref{format}”。
+
+为了将输出送到一个writer，使用\texttt{write!()}和\texttt{writeln!()}宏。它们与\texttt{print!()}和\texttt{println!()}基本相同，除了两个不同之处：
+\begin{minted}{Rust}
+    writeln!(io::stderr(), "error: world not helloable")?;
+
+    writeln!(&mut byte_vec, "The greatest common divisor of {:?} is {}", numbers, d)?;
+\end{minted}
+
+一个不同之处是\texttt{write}宏有一个额外的第一个参数：writer。另一个不同是它们返回一个\texttt{Result}，因此必须进行错误处理。这就是为什么我们在每一行的结尾都使用了\texttt{?}运算符。
+
+\texttt{print}宏不返回一个\texttt{Result}，如果写入失败它们会直接panic。因为它们会写入到终端，这是很少见的场景。
+
+\texttt{Write} trait有这些方法：
+\codeentry{writer.write(\&buf)}
+\hangparagraph{将切片\texttt{buf}中的字节写入到底层的流中。它返回一个\texttt{io::Result<usize>}。成功时，它返回写入的字节数量，可能会小于\texttt{buf.len()}，取决于流。}
+\hangparagraph{类似于\texttt{Reader::read()}，这是一个你应该避免直接使用的底层方法。}
+
+\codeentry{writer.write\_all(\&buf)}
+\hangparagraph{写入切片\texttt{buf}中的所有字节。返回\texttt{Result<()>}。}
+
+\codeentry{writer.flush()}
+\hangparagraph{冲洗底层流中所有缓存的数据。返回\texttt{Result<()>}。}
+\hangparagraph{注意尽管\texttt{println!}和\texttt{eprintln!}宏会自动冲洗标准输出和标准错误流，但\texttt{print!}和\texttt{eprint!}不会。使用它们之后你可能需要手动调用\texttt{flush()}。}
+
+类似于reader，writer也是在丢弃时自动关闭。
+
+类似于\texttt{BufReader::new(reader)}为任意reader添加缓存，\texttt{BufWriter::new(writer)}为任意writer添加缓存：
+\begin{minted}{Rust}
+    let file = File::create("tmp.txt")?;
+    let writer = BufWriter::new(file);
+\end{minted}
+
+为了设置缓冲区的大小，使用\texttt{BufWriter::with\_capacity(size, writer)。}
+
+当\texttt{BufWriter}被丢弃时，它剩余的所有被缓存的数据都会被写入到底层的writer。然而，如果这次写入时出现了错误，这个错误会被\emph{忽略}。（因为这个错误是在\texttt{BufWriter}的\texttt{.drop()}方法中发生，没有汇报错误的地方。）为了保证你的应用能够注意到所有的输出错误，可以在drop有缓存的writer之前手动调用\texttt{.flush()}。
 
 \subsection{File}\label{file}
+
