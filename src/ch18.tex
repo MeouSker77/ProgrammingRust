@@ -102,7 +102,8 @@ Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt
 \hangparagraph{这个方法读取的数据的大小没有限制，因此不要将它用于不受信任的源。（你可以使用\texttt{.take()}方法施加限制，如后文所述。}
 
 \codeentry{reader.read\_to\_string(\&mut string)}
-\hangparagraph{和上面相同，不过把数据附加到给定的\texttt{String}。如果流不是有效的UTF-8，它会返回一个\texttt{ErrorKind::InvalidData}错误。}
+\hangparagraph{和上面相同，不过把数据附加到给定的\texttt{String}。如果流不是有效的UTF-8，它会返回一个\\
+\texttt{ErrorKind::InvalidData}错误。}
 \hangparagraph{在一些编程语言中，字节输入和字符输入由不同的类型来处理。如今，UTF-8占据主导地位，Rust承认这一事实标准，并且完全支持UTF-8。其他字符集由开源的\texttt{encoding} crate提供支持。}
 
 \codeentry{reader.read\_exact(\&mut buf)}
@@ -136,12 +137,12 @@ Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt
 有缓冲的reader实现了\texttt{Read}和另一个trait \texttt{BufRead}，它添加了下面的方法：
 
 \codeentry{reader.read\_line(\&mut line)}
-\hangparagraph{读取一行文本并将它附加到\texttt{line}，\texttt{line}是一个\texttt{String}。行尾的换行符\texttt{'\\n'}}也会包含在\texttt{line}中。如果输入中有Windows风格的换行符\texttt{"\\r\\n"}，这两个字符都会包含进\texttt{line}。
+\hangparagraph{读取一行文本并将它附加到\texttt{line}，\texttt{line}是一个\texttt{String}。行尾的换行符\texttt{'\textbackslash{}n'}}也会包含在\texttt{line}中。如果输入中有Windows风格的换行符\texttt{"\textbackslash{}r\textbackslash{}n"}，这两个字符都会包含进\texttt{line}。
 \hangparagraph{返回值是一个\texttt{io::Result<usize>}，代表读取到的字节数，包括行尾的换行符。}
 \hangparagraph{如果reader到达输入结尾，\texttt{line}会保持不变，并返回\texttt{Ok(0)}。}
 
 \codeentry{reader.lines()}
-\hangparagraph{返回一个迭代输入中每一行的迭代器。item的类型是\texttt{io::Result<String>}。换行符\emph{不}包含在字符串中。如果输入中有Windows风格的换行符\texttt{"\\r\\n"}，这两个字符都会被丢球。}
+\hangparagraph{返回一个迭代输入中每一行的迭代器。item的类型是\texttt{io::Result<String>}。换行符\emph{不}包含在字符串中。如果输入中有Windows风格的换行符\texttt{"\textbackslash{}r\textbackslash{}n"}，这两个字符都会被丢球。}
 \hangparagraph{这个方法几乎总是你需要的文本输入方法。下面的两节会通过例子展示如何使用它。}
 
 \codeentry{reader.read\_until(stop\_byte, \&mut byte\_vec), reader.split(stop\_byte)}
@@ -409,7 +410,8 @@ Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt
 
 \codeentry{std::net::TcpStream}
 \hangparagraph{代表一个TCP网络连接。因为TCP允许双向连接，所以它既是reader又是writer。}
-\hangparagraph{类型关联函数\texttt{TcpStream::connect(("hostname", PORT))}尝试连接到服务器，并返回一个\texttt{io::Result<TcpStream>}。}
+\hangparagraph{类型关联函数\\
+\texttt{TcpStream::connect(("hostname", PORT))}尝试连接到服务器，并返回一个\texttt{io::Result<TcpStream>}。}
 
 \codeentry{std::process::Command}
 \hangparagraph{支持创建一个子进程并把数据管道连接到它的标准输入，例如：}
@@ -431,7 +433,8 @@ Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt
     drop(to_child); // 关闭grep的stdin，所以它会退出
     child.wait()?;
 \end{minted}
-\hangparagraph{\texttt{child.stdin}的类型是\texttt{Option<std::process:ChildStdin>}；这里我们在创建子进程的时候使用了\texttt{.stdin(Stdio::piped())}，因此当\texttt{.spawn()}成功时\texttt{child.stdin}肯定是\texttt{Some}。否则，\texttt{child.stdin}将是\texttt{None}。}
+\hangparagraph{\texttt{child.stdin}的类型是\texttt{Option<std::process:ChildStdin>}；这里我们在创建子进程的时候使用了\\
+\texttt{.stdin(Stdio::piped())}，因此\texttt{.spawn()}成功后\texttt{child.stdin}肯定是\texttt{Some}。否则\texttt{child.stdin}将是\\\texttt{None}。}
 \hangparagraph{\texttt{Command}还有类似的\texttt{.stdout()}和\texttt{.stderr()}方法，它们可以用来请求\texttt{child.stdout}和\texttt{child.stderr}中的reader。}
 
 \texttt{std::io}模块还提供了很多返回简单reader和writer的函数：
@@ -509,7 +512,8 @@ Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt
     serde_json = "1.0"
 \end{minted}
 
-更多的细节可以查阅\texttt{serde}的文档。简单来说，构建系统可以自动为\texttt{Player}生成\texttt{serde::Serialize}和\texttt{serde::Deserialize}，因此序列化一个\texttt{Player}值非常简单：
+更多的细节可以查阅\texttt{serde}的文档。简单来说，构建系统可以自动为\texttt{Player}生成\texttt{serde::Serialize}和\\
+\texttt{serde::Deserialize}，因此序列化一个\texttt{Player}值非常简单：
 \begin{minted}{Rust}
     serde_json::to_writer(&mut std::io::stdout(), &player)?;
 \end{minted}
@@ -675,7 +679,7 @@ Rust的字符串总是有效的Unicode。在实践中文件名\emph{几乎}总�
     \centering
     \caption{文件系统访问函数总结}
     \label{t18-2}
-    \begin{tabular}{llll}
+    \begin{tabular}{lp{0.3\textwidth}ll}
         \hline
         & \textbf{Rust函数} & \textbf{Unix} & \textbf{Windows} \\
         \hline
@@ -729,7 +733,8 @@ Rust的字符串总是有效的Unicode。在实践中文件名\emph{几乎}总�
 \hangparagraph{文件或目录的名字，是一个\texttt{OsString}。}
 
 \codeentry{entry.path()}
-\hangparagraph{和上面相同，但和原本的路径连接在一起，产生一个新的\texttt{PathBuf}。如果我们正在列出的目录是\texttt{"/home/jimb"}，并且\texttt{entry.file\_name()}是\texttt{".emacs"}，那么\texttt{entry.path()}将会返回\texttt{PathBuf::from("/home/jimb/.emacs")}。}
+\hangparagraph{和上面相同，但和原本的路径连接在一起，产生一个新的\texttt{PathBuf}。如果我们正在列出的目录是\texttt{"/home/jimb"}，并且\texttt{entry.file\_name()}是\texttt{".emacs"}，那么\texttt{entry.path()}将会返回\\
+\texttt{PathBuf::from("/home/jimb/.emacs")}。}
 
 \codeentry{entry.file\_type()}
 \hangparagraph{返回一个\texttt{io::Result<FileType>}。\texttt{FileType}有\texttt{.is\_file(), .is\_dir(), .is\_symlink()}方法。}
@@ -837,3 +842,76 @@ Rust的字符串总是有效的Unicode。在实践中文件名\emph{几乎}总�
 总而言之，\texttt{std::os}中的内容非常基础。更多的平台特定功能通过第三方crate提供，例如\href{https://crates.io/crates/winreg}{\texttt{winreg}}提供了访问Windows注册表的支持。
 
 \section{网络}
+
+有关网络编程的教程超出了本书的范围。然而，如果你已经知道一些有关网络编程的知识，那么这一节将会帮助你在Rust开始网络编程。
+
+底层的网络编程需要使用\texttt{std::net}模块，它提供了TCP和UDP网络的跨平台支持。使用\texttt{native\_tls} crate来提供SSL/TLS支持。
+
+这些模块提供了通过网络的直观的、阻塞式的输入和输出。你可以通过\texttt{std::net}用很少的代码编写一个简单的服务器，为每一个连接创建一个线程。例如，这里有一个“echo”服务器：
+\begin{minted}{Rust}
+    use std::net::TcpListener;
+    use std::io;
+    use std::thread::spawn;
+
+    /// 一直等待并接受连接，为每个连接新建一个线程处理。
+    fn echo_main(addr: &str) -> io::Result<()> {
+        let listener = TcpListener::bind(addr)?;
+        println!("listening on {}", addr);
+        loop {
+            // 等待客户端连接。
+            let (mut stream, addr) = listener.accept()?;
+            println!("connection received from {}", addr);
+
+            // 创建一个线程来服务这个客户端。
+            let mut write_stream = stream.try_clone()?;
+            spawn(move || {
+                // 把我们从`stream`接收到的所有内容写回。
+                io::copy(&mut stream, &mut write_stream)
+                    .expect("error in client thread: ");
+                println!("connection closed");
+            });
+        }
+    }
+
+    fn main() {
+        echo_main("127.0.0.1:17007").expect("error: ");
+    }
+\end{minted}
+
+一个回声服务器简单地把你发送给它的数据返回。这些代码和你在Java或Python中编写的代码并没有多少不同。（我们将在\hyperref[ch19]{下一张}中介绍\texttt{std::thread::spawn()}）
+
+然而，对于高性能的服务器，你将需要使用异步的输入和输出。\hyperref[ch20]{第20章}会介绍Rust对异步变成的支持，并展示编写网络客户端和服务器的完整代码。
+
+更高层的协议由第三方crate支持。例如，\texttt{reqwest} crate为HTTP客户端提供了一个漂亮的API。这里有一个完整的命令行程序获取\texttt{http:}或者\texttt{https:} URL的文档并输出到终端。这段代码使用\texttt{reqwest = "0.11"}编写，并启用了它的\texttt{"blocking"}特性。\texttt{reqwest}还提供了一套异步的接口。
+\begin{minted}{Rust}
+    use std::error::Error;
+    use std::io;
+
+    fn http_get_main(url: &str) -> Result<(), Box<dyn Error>> {
+        // 发送HTTP请求并获取一个响应。
+        let mut response = reqwest::blocking::get(url)?;
+        if !response.status().is_success() {
+            Err(format!("{}", response.status()))?;
+        }
+
+        // 读取响应的body并写入到标准输出。
+        let stdout = io::stdout();
+        io::copy(&mut response, &mut stdout.lock())?;
+
+        Ok(())
+    }
+
+    fn main() {
+        let args: Vec<String> = std::env::args().collect();
+        if args.len() != 2 {
+            eprintln!("usage: http-get URL");
+            return;
+        }
+
+        if let Err(err) = http_get_main(&args[1]) {
+            eprintln!("error: {}", err);
+        }
+    }
+\end{minted}
+
+用于HTTP服务器的\texttt{actix-web}框架提供了更高层的特性，例如\texttt{Service}和\texttt{Transform} trait，它们可以帮助你通过可组合的部分构建一个app。\texttt{websocket} crate实现了WebSocket协议，等等。Rust是一门年轻的语言，有一个繁荣的开源生态系统。对网络的支持正在快速扩张。

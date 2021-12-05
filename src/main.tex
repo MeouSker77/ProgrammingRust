@@ -43,11 +43,13 @@
 \definecolor{linkcolor}{RGB}{175, 74, 87}       % 定义链接颜色
 \definecolor{tablecolor}{RGB}{241, 246, 252}    % 定义表格背景颜色
 
-\renewcommand {\thetable} {\thechapter{}-\arabic{table}}    %表格编号
-\renewcommand\figureautorefname{表}                         % 图片编号
+\renewcommand{\thetable}{\thechapter{}-\arabic{table}}    % 表格编号
+\renewcommand{\tablename}{表}
+\renewcommand{\tableautorefname}{表}
 
-\renewcommand {\thefigure} {\thechapter{}-\arabic{figure}}  % 图片编号
-\renewcommand\figureautorefname{图}                         % 图片编号
+\renewcommand{\thefigure}{\thechapter{}-\arabic{figure}}  % 图片编号
+\renewcommand{\figurename}{图}
+\renewcommand{\figureautorefname}{图}
 
 \newenvironment{note}{
     \begin{framed}
