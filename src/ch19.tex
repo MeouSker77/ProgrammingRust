@@ -1,8 +1,54 @@
 \chapter{并发}\label{ch19}
 
+\emph{In the long run it is not advisable to write large concurrent programs in machine-oriented languages that permit unrestricted use of store locations and their addresses. There is just no way we will be able to make such programs reliable (even with the help of complicated hardware mechanisms).}
+
+\begin{flushright}
+    ——Per Brinch Hansen (1977)
+\end{flushright}
+
+\emph{Patterns for communication are patterns for parallelism.}
+
+\begin{flushright}
+    ——Whit Morriss
+\end{flushright}
+
+如果你在职业生涯之中对并发的态度发生了改变，那你并不孤单，这是一种很常见的情况。
+
+一开始的时候，编写并发代码是轻松并且愉快的。那些工具——线程，锁，队列等等——很容易上手和使用。虽然说实话也有很多的陷阱，但幸运的是你知道它们都是什么，所以你可以小心地不犯错误。
+
+但有时，你不得不调试一些别人的多线程代码，然后你被迫得出结论：\emph{有些人}确实不应该使用这些工具。
+
+然后有时你必须调试你自己的多线程代码。
+
+经验会让你怀疑所有的多线程代码是否健康。少数的文章解释了为什么一些明显正确的多线程惯用写法完全不能工作，它们也许会有帮助。（它与“内存模型”有关。）但你最终会找到一种并发的方式，并且你觉得你能实际使用它且不会一直出错。你可能会把很多东西都塞进这种方法中，并且（如果你\emph{真的}很棒）你学会了对添加的复杂性说“不”。
+
+当然，有很多种这样的方法。系统级程序员经常使用的方法包括下面这些：
+\begin{enumerate}
+    \item 一个只处理单个任务的\emph{后台线程(background thread)}，周期性地唤醒它执行任务。
+    \item 通用的\emph{线程池(worker pool)}，通过\emph{任务队列(task queue)}和客户端交互。
+    \item \emph{流水线(pipeline)}，数据从一个线程流向下一个，每个线程都做一些工作。
+    \item \emph{数据并行(data parallelism)}，假设整个计算机主要在做很大型的计算，因此将数据分成\emph{n}片然后在\emph{n}个线程上运行，以让机器的\emph{n}个核心一起工作。
+    \item \emph{同步对象之海(a sea of synchronized objects)}，多个线程都有同一个数据的访问权限，使用基于底层原语例如mutex的ad hoc \emph{锁(lock)}方案来避免竞争。（Java内建了对这种模型的支持，这种模型在20世纪90年代和21世纪初非常流行。）
+    \item \emph{原子整数操作(atomic integer operation)}允许多个核通过一个机器字大小的字段传递信息来通信。（这比其他方式更难正确实现，除非交换的数据实际上只是整数值。在实践中，它通常是指针。）
+\end{enumerate}
+
+随着时间的推移，你可能可以使用多种方式并安全地组合在一起。这时，你就是大师。如果没有其他人被允许修改系统，那么一切都会正常运作。正确使用线程的程序充满了不成文的规则。
+
+Rust提供了一种更好的方式来使用并发，它并不强迫所有的程序使用单一的风格（这对系统级程序员来说并不是解决方案），而是安全地支持多种风格。不成文的规则现在被写下来了——就在代码中——并且被编译器强迫遵循。
+
+你可能听说过Rust可以让你编写安全、快速、并发的程序。本章我们将向你展示如何做到这些。我们将介绍三种使用Rust线程的方式：
+\begin{enumerate}
+    \item fork-join并行
+    \item channel
+    \item 共享可变状态
+\end{enumerate}
+
+在此过程中，你将用到目前为止学过的所有Rust语言的知识。Rust关心的引用、可变性、生命周期在单线程程序中也很有价值，但只有在并发程序中这些规则真正的重要性才会显现出来。它们可以扩展你的工具箱，快速正确地破解多种风格的多线程代码——没有怀疑，没有愤世嫉俗，没有恐惧。
+
+
 \section{fork-join并行}
 
-\section{通道}
+\section{channel}
 
 \subsection{发送值}
 
