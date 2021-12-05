@@ -714,5 +714,126 @@ Rust的字符串总是有效的Unicode。在实践中文件名\emph{几乎}总�
 为了方便，\texttt{Path}类型将一些这样的函数内建为方法：例如\texttt{path.metadata()}和\texttt{std::fs::metadata(path)是一样的。}
 
 \subsection{读取目录}
+为了列出目录中的内容，可以使用\texttt{std::fs::read\_dir}，或者等价的，一个\texttt{Path}的\texttt{.read\_dir()}方法：
+\begin{minted}{Rust}
+    for entry_result in path.read_dir()? {
+        let entry = entry_result?;
+        println!("{}", entry.file_name().to_string_lossy());
+    }
+\end{minted}
+
+注意这段代码中\texttt{?}的两次使用。第一行的检查打开目录的错误。第二行的检查读取下一个条目的错误。
+
+\texttt{entry}的类型是\texttt{std::fs::DirEntry}，它有如下方法：
+\codeentry{entry.file\_name()}
+\hangparagraph{文件或目录的名字，是一个\texttt{OsString}。}
+
+\codeentry{entry.path()}
+\hangparagraph{和上面相同，但和原本的路径连接在一起，产生一个新的\texttt{PathBuf}。如果我们正在列出的目录是\texttt{"/home/jimb"}，并且\texttt{entry.file\_name()}是\texttt{".emacs"}，那么\texttt{entry.path()}将会返回\texttt{PathBuf::from("/home/jimb/.emacs")}。}
+
+\codeentry{entry.file\_type()}
+\hangparagraph{返回一个\texttt{io::Result<FileType>}。\texttt{FileType}有\texttt{.is\_file(), .is\_dir(), .is\_symlink()}方法。}
+
+\codeentry{entry.metadata()}
+\hangparagraph{获取这个条目的其他元数据。}
+
+在读取目录时特殊目录\texttt{.}和\texttt{..}\emph{不会被}列出。
+
+这里还有另一个示例。下面的代码递归拷贝磁盘上的一个目录树：
+\begin{minted}{Rust}
+    use std::fs;
+    use std::io;
+    use std::path::Path;
+
+    /// 拷贝现有的目录`src`到目标路径`dst`
+    fn copy_dir_to(src: &Path, dst: &Path) -> io::Result<()> {
+        if !dst.is_dir() { 
+            fs::create_dir(dst)?;
+        }
+
+        for entry_result in src.read_dir()? {
+            let entry = entry_result?;
+            let file_type = entry.file_type()?;
+            copy_to(&entry.path(), &file_type, &dst.join(entry.file_name()))?;
+        }
+
+        Ok(())
+    }
+\end{minted}
+
+用一个单独的函数\texttt{copy\_to}来拷贝单独的目录项：
+\begin{minted}{Rust}
+    /// 拷贝`src`中的所有东西到目标路径`dst`。
+    fn copy_to(src: &Path, src_type: &fs::FileType, dst: &Path)
+        -> io::Result<()>
+    {
+        if src_type.is_file() {
+            fs::copy(src, dst)?;
+        } else if src_type.is_dir() {
+            copy_dir_to(src, dst)?;
+        } else {
+            return Err(io::Error::new(io::ErrorKind::Other,
+                                      format!("don't know how to copy: {}", src.display())));
+        }                                                            
+        Ok(())
+    }
+\end{minted}
 
 \subsection{平台特定特性}\label{PlatSpec}
+到目前为止，我们的\texttt{copy\_to}函数可以拷贝文件和目录。假设我们还想在Unix上支持符号链接。
+
+目前并没有可移值的方式能创建同时在Unix和Windows上工作的符号链接，但标准库提供了一个Unix特定的\texttt{symlink}函数：
+\begin{minted}{Rust}
+    use std::os::unix::fs::symlink;
+\end{minted}
+
+有了这个，我们的工作就变得很简单。我们只需要给\texttt{copy\_to}里的\texttt{if}表达式添加一个分支：
+\begin{minted}{Rust}
+    ...
+    } else if src_type.is_symlink() {
+        let target = src.read_link()?;
+        symlink(target, dst)?;
+    ...
+\end{minted}
+
+只要我们在Unix系统例如Linux和macOS上编译程序，它就可以工作。
+
+\texttt{std::os}模块包含很多平台特定的特性，例如\texttt{symlink}。\texttt{std::os}在标准库中的实际内容看起来像这样（取得了许可）：
+\begin{minted}{Rust}
+    //! OS特定的功能
+
+    #[cfg(unix)]                pub mod unix;
+    #[cfg(windows)]             pub mod windows;
+    #[cfg(target_os = "ios")]   pub mod ios;
+    #[cfg(target_os = "linux")] pub mod linux;
+    #[cfg(target_os = "macos")] pub mod macos;
+\end{minted}
+
+\texttt{\#[cfg]}属性表示条件编译：这些模块中的每一个都只在特定平台上可用。这也是为什么我们的修改后的使用了\texttt{std::os::unix}的程序在Unix上将会成功编译：在其他平台上，\texttt{std::os::unix}不存在。
+
+如果我们想让我们的代码在所有平台上编译，并且支持Unix上的符号链接，我们必须在我们的程序中也使用\texttt{\#[cfg]}。在这种情况下，最简单的方法是在Unix上时导入\texttt{symlink}，而在其它系统上定义我们自己的\texttt{symlink}：
+\begin{minted}{Rust}
+    #[cfg(unix)]
+    use std::os::unix::fs::symlink;
+
+    /// 为不支持`symlink`的平台的实现
+    #[cfg(not(unix))]
+    fn symlink<P: AsRef<Path>, Q: AsRef<Path>>(src: P, _dst: Q)
+        -> std::io::Result<()>
+    {
+        Err(io::Error::new(io::ErrorKind::Other,
+                           format!("can't copy symbolic link: {}", 
+                                   src.as_ref().display())))
+    }
+\end{minted}
+
+事实证明\texttt{symlink}是一种特殊情况。大多数Unix特定的特性并不是单独的函数而是一些扩展的trait，为标准库类型添加了一些的方法（我们在“\nameref{OrphanRule}”中介绍过扩展trait）。这里有一个可以一次性启用所有这些扩展的\texttt{prelude}模块：
+\begin{minted}{Rust}
+    use std::os::unix::prelude::*;
+\end{minted}
+
+例如，在Unix上这会给\texttt{std::fs::Permissions}添加一个\texttt{.mode()}方法，它提供Unix上表示权限的底层\texttt{u32}值的访问。类似的，它还扩展了\texttt{std::fs::Metadata}，添加了一些访问底层的\texttt{struct stat}的字段的方法——例如\texttt{.uid()}返回文件所有者的ID。
+
+总而言之，\texttt{std::os}中的内容非常基础。更多的平台特定功能通过第三方crate提供，例如\href{https://crates.io/crates/winreg}{\texttt{winreg}}提供了访问Windows注册表的支持。
+
+\section{网络}
