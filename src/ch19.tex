@@ -183,6 +183,24 @@ fork-join的主要缺点是它需要无关的任务单元。本章稍后我们�
 \end{minted}
 
 \subsection{跨线程的错误处理}
+我们的例子中用来join子线程的代码比看起来更加有趣，因为还要考虑错误处理。让我们回顾这一行代码：
+\begin{minted}{Rust}
+    handle.join().unwrap()?;
+\end{minted}
+
+\texttt{.join()}方法给我们带来了两个问题。
+
+首先，\texttt{handle.join()}返回一个\texttt{std::thread::Result}，\emph{如果子线程panic}那么它的值将是一个错误。这使得Rust中的线程比C++中更健壮。在C++中，一个越界的数组访问是未定义行为，并且没有办法保护系统中的其他部分不受其影响。在Rust中，\hyperref[unwind]{panic是安全的并且以线程为单位}。线程之间的边界充当panic时的防火墙；panic并不会自动从一个线程传播到依赖它的线程。一个线程中的panic在其他线程中作为一个值为错误的\texttt{Result}汇报。整个程序可以不受其影响。
+
+在我们的程序中，我们没有尝试任何panic的处理。我们简单地对返回的\texttt{Result}调用\texttt{.unwrap()}，假定它它是一个\texttt{Ok}的结果而不是\texttt{Err}的结果。如果一个子线程\emph{确实}panic了，那么这个断言会失败，因此父线程也会panic。我们显式地把子线程的panic传播到父线程。
+
+其次，\texttt{handle.join()}会把子线程返回的值传递给父线程。我们传递给\texttt{spawn}的闭包的返回类型是\texttt{io::Result<()>}，因为\texttt{process\_files}返回这个类型。这个返回值不会被丢弃，当子线程结束时，它的返回值会被保存，\texttt{JoinHandle::join()}会把值传递给父线程。
+
+这个程序中\texttt{handle.join()}返回的完整类型是\texttt{std::thread::Result<std::io::Result<()>>}。\texttt{thread::Result}是\texttt{spawn/join} API的一部分；\texttt{io::Result}是我们程序的一部分。
+
+在我们的例子中，解包了\texttt{thread::Result}之后，我们对\texttt{io::Result}使用了\texttt{?}运算符，显式地把子线程的I/O错误传播给父线程。
+
+整个过程看起来可能很复杂，但这其实也只是一行代码的功能。将它与其它语言比较：Java和C\#中的默认行为是将子线程的异常转储到终端，然后忽略。在C++中，默认行为是终止进程。在Rust中，错误是\texttt{Result}值（数据）而不是异常（控制流）。它们像其他任何值一样在线程之间传递。每一次你使用底层线程的API时，你都必须小心地编写错误处理代码，但考虑到\emph{你必须编写它们}，所以Rust在这一点上做得很好。
 
 \section{channel}
 
