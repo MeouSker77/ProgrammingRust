@@ -202,7 +202,88 @@ fork-join的主要缺点是它需要无关的任务单元。本章稍后我们�
 
 整个过程看起来可能很复杂，但这其实也只是一行代码的功能。将它与其它语言比较：Java和C\#中的默认行为是将子线程的异常转储到终端，然后忽略。在C++中，默认行为是终止进程。在Rust中，错误是\texttt{Result}值（数据）而不是异常（控制流）。它们像其他任何值一样在线程之间传递。每一次你使用底层线程的API时，你都必须小心地编写错误处理代码，但考虑到\emph{你必须编写它们}，所以Rust在这一点上做得很好。
 
-\section{channel}
+\subsection{跨线程共享不可变数据}
+假设我们正在进行的分析需要一个非常大的由英文单词和短语组成的数据库：
+\begin{minted}{Rust}
+    // 之前
+    fn process_files(filenames: Vec<String>)
+
+    // 之后
+    fn process_files_in_parallel(filenames: Vec<String>, glossary: &GigabyteMap)
+\end{minted}
+
+\texttt{glossary}可能很大，所以我们通过引用传递它。我们应该如何更新\texttt{process\_files\_in\_parallel}来在多个工作线程间传递词汇表呢？
+
+显而易见的修改方法并不能工作：
+\begin{minted}{Rust}
+    fn process_files_in_parallel(filenames: Vec<String>,
+                                 glossary: &GigabyteMap)
+        -> io::Result<()>
+    {
+        ...
+        for worklist in worklists {
+            thread_handles.push(
+                spawn(move || process_files(worklist, glossary))    // 错误
+            );
+        }
+        ...
+    }
+\end{minted}
+
+我们只是简单地给函数添加了一个\texttt{glossary}参数并把它传递给\texttt{process\_files}。Rust会报错：
+\begin{minted}{text}
+    error[E0621]: explicit lifetime required in the type of `glossary`
+      --> src/lib.rs:75:17
+       |
+    61 |     glossary: &GigabyteMap)
+       |               ------------ help: add explicit lifetime `'static` to the 
+                                    type of `glossary`: `&'static BTreeMap<String,
+                                    String>`
+    ...
+    75 |                 spawn(move || process_files(worklist, glossary))
+       |                 ^^^^^ lifetime `'static` required
+\end{minted}
+
+Rust在抱怨我们传递给\texttt{spawn}的闭包的生命周期，编译器给出的“有帮助的”信息实际上也没有一点帮助。
+
+\texttt{spawn}启动独立的线程。Rust没有办法直到子线程会运行多长时间，因此它假设最坏的情况：它假设子线程会一直保持运行，然而在父线程结束之后父线程里的所有值都会消失。显然，如果子线程要持续很长时间，那么它运行所需要的闭包也应该持续这么长时间。但这个闭包有一个有界的生命周期：它依赖于引用\texttt{glossary}，但引用并不会一直有效。
+
+注意Rust拒绝这段代码是正确的！按照我们编写这个函数的方式，\emph{有可能}一个线程遇到I/O错误，导致\texttt{process\_files\_in\_parallel}在其他线程结束之前结束。子线程可能会在主线程释放\texttt{glossary}之后仍然尝试使用它。这会导致未定义行为。Rust不允许出现这种情况。
+
+看起来\texttt{spawn}太过开放以至于不能支持跨线程共享引用。事实上，我们已经在“\nameref{StealClosure}”中见到过一个类似于这样的例子。那一次我们的解决方案是使用\texttt{move}闭包把数据的所有权移动到新线程里。但那种方法在这里不能生效，因为我们有很多线程需要使用相同的数据。一个安全的替代方案是为每一个线程\texttt{clone}一份词汇表，但因为它很庞大，我们希望避免这些开销。幸运的是，标准库提供了另一种方案：自动引用计数。
+
+我们在“\nameref{rc}”中介绍过\texttt{Arc}。现在正是使用它的时候：
+\begin{minted}{Rust}
+    use std::sync::Arc;
+
+    fn process_files_in_parallel(filenames: Vec<String>,
+                                 glossary: Arc<GigabyteMap>)
+        -> io::Result<()>
+    {
+        ...
+        for worklist in worklists {
+            // 这里的.clone()调用只会克隆Arc并递增引用计数。
+            // 它并不会克隆GigabyteMap。
+            let glossary_for_child = glossary.clone();
+            thread_handles.push(
+                spawn(move || process_files(worklist, &glossary_for_child))
+            );
+        }
+        ...
+    }
+\end{minted}
+
+我们改变了\texttt{glossary}的类型：为了进行并行分析，调用者必须传递一个\texttt{Arc<GigabyteMap>}，它是使用\texttt{Arc::new(giga\_map)}创建的一个指向堆上的\texttt{GigabyteMap}的智能指针。
+
+当我们调用\texttt{glossary.clone()}时，我们是在创建\texttt{Arc}智能指针的一个拷贝，而不是整个\texttt{GigabyteMap}的拷贝。它只会递增一个引用计数。
+
+修改之后，程序就可以编译运行了，因为它不再依赖引用的生命周期。只要有\emph{任何}线程还持有一个\texttt{Arc<GigabyteMap>}，它就会保持词汇表仍然存在，即使父线程提前退出。也不会有任何数据竞争，因为\texttt{Arc}里的数据是不可变的。
+
+\subsection{rayon}
+
+
+
+\section{通道}
 
 \subsection{发送值}
 

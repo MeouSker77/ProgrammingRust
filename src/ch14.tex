@@ -106,7 +106,7 @@ Rust没有垃圾收集。那么这样的代码会如何运作？为了回答这�
 
 简单来说，Rust通过使用生命周期代替垃圾收集来保证安全性。Rust的方式更加快速：即使是一个很快的GC分配器也比Rust这种把\texttt{stat}存在栈上的方式慢。
 
-\subsection{偷取值的闭包}
+\subsection{偷取值的闭包}\label{StealClosure}
 第二个例子更加棘手：
 \begin{minted}{Rust}
     use std::thread;
