@@ -395,8 +395,125 @@ Niko Matsakis和Josh Stone编写的Rayon库是另外一个例子。它提供两�
 有了这些修改，这个程序现在在8核机器上大概使用了7.75个核。它比之前手动分隔复杂快了75\%。代码也短了一些，这反映出让crate完成一些工作（负载分发）比我们自己来做的优势。
 
 \section{通道}
+\emph{通道(channel)}是一种从一个线程向另一个线程发送数据的管道。换句话说，它是一个线程安全的队列。
+
+\autoref{f19-5}展示了通道应该怎么使用。它们和Unix管道有些像：一端发送数据，另一端接收。两端通常被两个不同的线程持有。但Unix管道用来发送字节，通道用来发送Rust值。\texttt{sender.send(item)}把一个值放入通道中；\texttt{receiver.recv()}从通道中移除一个值。所有权从发送线程移动到接收线程。如果通道是空的，\texttt{receiver.recv()}会阻塞，直到有一个值被发送。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f19-5.png}
+    \caption{一个\texttt{String}的通道：字符串\texttt{msg}的所有权从线程1移动到线程2}
+    \label{f19-5}
+\end{figure}
+
+有了通道，不同的线程可以通过传递值来进行通信。这是一种非常简单的让线程在没有锁或共享内存的情况下协同工作的方法。
+
+这并不是一种新技术。Erlang有隔离进程和消息传递已经30年了。Unix的管道大概已经50年了。我们更倾向于管道是一种提供灵活性和组合性的机制，而不是并发的机制，但事实上，它可以完成所有这些功能。Unix管道的一个示例如\autoref{f19-6}所示。显然三个程序同时工作是可能的。
+
+Rust的通道比Unix的管道更快。发送一个值只是移动它而不是拷贝它，并且即使你要移动一个包含很多MB的数据结构也很快速。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f19-6.png}
+    \caption{Unix流水线的执行}
+    \label{f19-6}
+\end{figure}
 
 \subsection{发送值}
+在接下来的几节中，我们会使用通道构建一个创建\emph{倒排索引(inverted index)}的并发程序，倒排索引是搜索引擎的一项关键技术。每一个搜索引擎工作在一个文档的集合上。倒排索引是一个指示哪个单词在哪里出现过的数据库。
+
+我们将展示使用线程和通道的部分代码，\href{https://github.com/ProgrammingRust/fingertips}{完整的程序}很短，总共只有大约1千行。
+
+我们的程序被组织为流水线架构，如\autoref{f19-7}所示。流水线只是使用通道的很多方式中的一种——我们之后将会讨论少数其他的方式——但它们是一种直观地把并发引入现有的单线程程序的方式。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f19-7.png}
+    \caption{构建索引的流水线，箭头代表值通过通道被从一个线程送到另一个线程（磁盘I/O没有显示出来）}
+    \label{f19-7}
+\end{figure}
+
+我们总共将使用5个线程，每一个都做不同的任务。每一个线程都会在整个程序的生命周期中持续产生输出。例如第一个线程，简单地把源文档一个个地从磁盘读取到内存中。（我们用一个单独的线程来执行这个任务，是因为我们要使用\texttt{fs::read\_to\_string}来编写尽可能简单的代码，它是一个阻塞的API。我们不想让CPU在磁盘工作时一直闲置。）这一阶段的输出是每一个文档转换成的长\texttt{String}，因此这个线程和下一个线程通过一个\texttt{String}的通道连接。
+
+我们的程序将以创建一个读取文件的线程开始。假设\texttt{document}是一个\texttt{Vec<PathBuf>}，即文件名的vector。启动读取文件的线程的代码如下：
+\begin{minted}{Rust}
+    use std::{fs, thread};
+    use std::sync::mpsc;
+
+    let (sender, receiver) = mpsc::channel();
+
+    let handle = thread::spawn(move || {
+        for filename in documents {
+            let text = fs::read_to_string(filename)?;
+
+            if sender.send(text).is_err() {
+                break;
+            }
+        }
+        Ok(())
+    });
+\end{minted}
+
+通道是\texttt{std::sync::mpsc}模块的一部分。我们稍后将解释这个名字的含义；首先，让我们看看这段代码怎么工作。我们首先创建一个通道：
+\begin{minted}{Rust}
+    let (sender, receiver) = mpsc::channel();
+\end{minted}
+
+\texttt{channel}函数返回一个值对：一个sender和一个receiver。底层的队列数据结构是一个标准库没有暴露的实现细节。
+
+通道是有类型的。我们将使用这个通道来发送每个文件的文本，因此我们有了一个\texttt{Sender<String>}类型的\texttt{sender}和一个\texttt{Receiver<String>}类型的\texttt{receiver}。我们可以通过写\texttt{mpsc::channel::<String>()}来显式地要求一个字符串的通道。或者也可以让Rust的类型推导来判断它的类型。
+
+\begin{minted}{Rust}
+    let handle = thread::spawn(move || {
+\end{minted}
+和之前一样，我们使用\texttt{std::thread::spawn}来启动一个线程。\texttt{sender}的所有权通过\texttt{move}闭包移动到了新的线程（\texttt{receiver}的所有权没有移动）。
+
+接下来的几行代码简单地从磁盘读取文件：
+\begin{minted}{Rust}
+        for filename in documents {
+            let text = fs::read_to_string(filename)?;
+\end{minted}
+
+在成功读取一个文件之后，我们将它的文本送入通道：
+\begin{minted}{Rust}
+            if sender.send(text).is_err() {
+                break;
+            }
+        }
+\end{minted}
+
+\texttt{sender.send(text)}把值\texttt{text}移动到通道里。最后，它被移动到接收值的县城里。不管\texttt{text}包含10行还是10MB文本，这个操作都只会拷贝三个机器字（一个\texttt{String}结构体的大小），相应的\texttt{receiver.recv()}调用也会拷贝三个机器字。
+
+\texttt{send}和\texttt{recv}方法都返回\texttt{Result}，但这些方法只在通道的另一端被drop的情况下才会失败。如果\texttt{Receiver}被drop了，\texttt{send}调用会失败，因为如果不这么做，这个值将会永远留在通道中：没有了\texttt{Receiver}，就没有办法让任何线程接收它。类似的，如果通道中没有值并且\texttt{Sender}被drop了，\texttt{recv}调用会失败，因为如果不这么做，\texttt{recv}将会永远等待下去：没有了\texttt{Sender}，就没有方法让任何线程发送下一个值。drop通道的一端是通常的“挂断”方式，当你使用完它时用这种方法关闭连接。
+
+在我们的代码中，只有当receiver的线程提前退出，\texttt{sender.send(text)}才会失败。这是使用通道的代码的典型情况。不管这是故意的还是因为错误，我们的reader线程退出都是没有问题的。
+
+当这种情况发生时，或者线程读取完所有文档后，它会返回\texttt{Ok(())}：
+\begin{minted}{Rust}
+        Ok(())
+    });
+\end{minted}
+
+注意这个闭包返回一个\texttt{Result}。如果这个线程遇到了一个I/O错误，它会立即退出，并且错误会被存储在该线程的\texttt{JoniHandle}中。
+
+当然，和其他编程语言一样，Rust在错误处理方面允许很多其他的可能性。当错误发生时，我们可以简单地使用\texttt{println!}打印出它，然后继续下一个文件。我们可以通过正在用来传递数据的通道传递这个错误，只需要将它改成\texttt{Result}的通道——或者为错误创建第二个通道。我们在这里选择的方式既轻量又负责：我们使用了\texttt{?}操作符，因此不会有很多样板代码，或者一个你可能会在Java中见到的显式的\texttt{try/catch}，并且错误不会被悄悄地忽略。
+
+为了方便，我们的程序把这些代码包装为了一个返回\texttt{receiver}（我们还没有使用过它）和新线程的\texttt{JoinHandle}的函数：
+\begin{minted}{Rust}
+    fn start_file_reader_thread(documents: Vec<PathBuf>)
+        -> (mpsc::Receiver<String>, thread::JoinHandle<io::Result<()>>)
+    {
+        let (sender, receiver) = mpsc::channel();
+
+        let handle = thread::spawn(move || {
+            ...
+        });
+
+        (receiver, handle)
+    }
+\end{minted}
+
+注意这个函数启动了一个新线程然后立刻返回。我们将为流水线的每个阶段编写一个类似这样的函数。
 
 \subsection{接收值}
 
