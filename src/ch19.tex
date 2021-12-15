@@ -90,7 +90,7 @@ fork-join的主要缺点是它需要无关的任务单元。本章稍后我们�
 
 现在，让我们继续看自然语言处理的例子。我们将展示一些将fork-join模式应用于\texttt{process\_files}函数的方式。
 
-\subsection{\texttt{spawn}和\texttt{join}}
+\subsection{\texttt{spawn}和\texttt{join}}\label{spawn}
 函数\texttt{std::thread::spawn}启动一个新线程：
 \begin{minted}{Rust}
     use std::thread;
@@ -279,9 +279,66 @@ Rust在抱怨我们传递给\texttt{spawn}的闭包的生命周期，编译器�
 
 修改之后，程序就可以编译运行了，因为它不再依赖引用的生命周期。只要有\emph{任何}线程还持有一个\texttt{Arc<GigabyteMap>}，它就会保持词汇表仍然存在，即使父线程提前退出。也不会有任何数据竞争，因为\texttt{Arc}里的数据是不可变的。
 
-\subsection{rayon}
+\subsection{Rayon}
 
+标准库的\texttt{spawn}函数是一个重要的原语，但它并不是专为fork-join并行设计的。还有基于它们构建的更好的fork-join API。例如，“\nameref{ch02}”中我们使用了Crossbeam库把一些任务分割给8个进程。Crossbeam的\emph{scoped thread(作用域线程)}非常自然地支持fork-join并行。
 
+Niko Matsakis和Josh Stone编写的Rayon库是另外一个例子。它提供两种并发运行任务的方法：
+\begin{minted}{Rust}
+    use rayon::prelude::*;
+
+    // 并行做2件事
+    let (v1, v2) = rayon::join(fn1, fn2);
+
+    // 并行做N件事
+    giant_vector.par_iter().for_each(|value| {
+        do_thing_with_value(vaue);
+    });
+\end{minted}
+
+\texttt{rayon::join(fn1, fn2)}同时调用两个函数并返回两个结果。\texttt{.par\_iter()}方法创建一个\texttt{ParallelIterator}，它有\texttt{map}、\texttt{filter}以及其它的方法，非常像Rust中的\texttt{Iterator}。在这两种情况下，Rayon都会尽可能使用它自己的工作线程池来处理任务。你只需要告诉Rayon什么样的任务\emph{可以}并行完成；Rayon负责管理线程并尽可能好地分发任务。
+
+\autoref{f19-3}展示了有关调用\texttt{giant\_vector().par\_iter().for\_each(...)}的两种思考方式：(a) Rayon为vector中的每个元素创建一个线程。(b) Rayon在幕后维护等同于CPU核数个工作线程，每个工作线程运行在每个CPU核上，这样会更加高效。工作线程池被程序的所有线程共享，当同时有上千个任务到达时，Rayon会划分任务。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f19-3.png}
+    \caption{理论和实践中的Rayon}
+    \label{f19-3}
+\end{figure}
+
+这里有一个使用Rayon的\texttt{process\_files\_in\_parallel}的版本，并且它要运行的\texttt{process\_file}函数，不再需要\texttt{Vec<String>}，而是需要\texttt{\&str}：
+\begin{minted}{Rust}
+    use rayon::prelude::*;
+
+    fn process_files_in_parallel(filenames: Vec<String>, glossary: &GigabyteMap)
+        -> io::Result<()>
+    {
+        filenames.par_iter()
+            .map(|filename| process_file(filename, glossary))
+            .reduce_with(|r1, r2| {
+                if r1.is_err() { r1 } else { r2 }
+            })
+            .unwrap_or(Ok(()))
+    }
+\end{minted}
+
+这段代码比使用\texttt{std::thread::spawn}的版本更加简短，也更加容易理解。让我们逐行分析它：
+\begin{enumerate}
+    \item 首先，我们使用了\texttt{filenames.par\_iter()}来创建一个并行迭代器。
+    \item 我们使用\texttt{.map()}来对每一个文件名调用\texttt{process\_file}。这会返回一个产生\texttt{io::Result<()>}值的序列的\texttt{ParallelIterator}。
+    \item 我们使用\texttt{.reduce\_with()}来组合结果。这里我们保留了第一个错误并丢弃剩余的内容。如果我们想累计所有的错误，或者打印它们，我们可以在这里完成。
+    \item 当你向\texttt{.map()}传递一个在成功时会返回有用值的闭包时，\texttt{.reduce\_with()}方法也非常方便。你可以向\texttt{.reduce\_with()}传递一个知道如何组合两个成功结果的闭包。
+    \item \texttt{reduce\_with}返回一个\texttt{Option}，只有当\texttt{filenames}为空时它是\texttt{None}。我们使用了\texttt{Option}的\texttt{.unwrap\_or()}方法以在这种情况下产生一个\texttt{Ok(())}。
+\end{enumerate}
+
+在幕后，Rayon会使用一种叫做\emph{work-stealing}的技术动态地实现多个线程的负载均衡。通常保持所有CPU核心忙碌比“\nameref{spawn}”中的事先手动划分任务效果会更好。
+
+作为奖励，Rayon支持在线程之间共享引用。所有幕后的并行处理都保证在\texttt{reduce\_with}返回之前结束。这解释了为什么我们可以向\texttt{process\_file}传递\texttt{glossary}，即使这个闭包将会在多个线程间调用。
+
+（顺便说一下，我们使用\texttt{map}和\texttt{reduce}方法并不是巧合。被Google和Apache Hadoop推广的MapReduce编程模型和fork-join方法有很多相同之处。它可以被看做处理分布式数据的fork-join方法。
+
+\subsection{回顾曼德勃罗集}
 
 \section{通道}
 
