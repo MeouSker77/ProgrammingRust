@@ -559,8 +559,93 @@ Rust的通道比Unix的管道更快。发送一个值只是移动它而不是拷
 这个阶段没有I/O操作，因此它不需要处理\texttt{io::Error}。所以它返回\texttt{()}而不是\texttt{io::Result<()>}。
 
 \subsection{运行流水线}
+剩余的三个阶段在设计上很相似，每个阶段都消耗上一个阶段创建的\texttt{Receiver}。流水线剩余部分的目标是把所有小索引合并成一个更大的索引，并保存为磁盘上的文件。我们发现最快的方式是以三个阶段来实现它。我们没有在这里给出代码，只是给出了这三个函数的签名。完整的代码可以在线获得。
+
+首先，我们在内存中合并索引（阶段3）：
+\begin{minted}{Rust}
+    fn start_in_memory_thread(file_indexes: mpsc::Receiver<InMemoryIndex>)
+        -> (mpsc::Receiver<InMemoryIndex>, thread::JoinHandle<()>)
+\end{minted}
+
+然后我们把这些很大的索引写入磁盘（阶段4）：
+\begin{minted}{Rust}
+    fn start_index_writer_thread(big_indexes: mpsc::Receiver<InMemoryIndex>,
+                                 output_dir: &Path)
+        -> (mpsc::Receiver<PathBuf>, thread::JoinHandle<io::Result<()>>)
+\end{minted}
+
+最后，如果我们有了多个很大的文件，我们使用文件合并算法合并它们（阶段5）：
+\begin{minted}{Rust}
+    fn merge_index_files(files: mpsc::Receiver<PathBuf>, output_dir: &Path)
+        -> io::Result<()>
+\end{minted}
+
+这最后一个阶段不返回\texttt{Receiver}，因为它是流水线的结尾。它产生磁盘上的单个输出文件。它也不返回\texttt{JoinHandle}，因为我们不需要为这个阶段创建新线程，它的工作可以在调用者的线程完成。
+
+现在就到了启动这些线程和检查错误的代码了：
+\begin{minted}{Rust}
+    fn run_pipeline(documents: Vec<PathBuf>, output_dir: PathBuf)
+        -> io::Result<()>
+    {
+        // 启动流水线的5个阶段。
+        let (texts,   h1) = start_file_reader_thread(documents);
+        let (pints,   h2) = start_file_indexing_thread(texts);
+        let (gallons, h3) = start_in_memory_merge_thread(pints);
+        let (files,   h4) = start_index_writer_thread(gallons, &output_dir);
+        let result = merge_index_files(files, &output_dir);
+
+        // 等待所有线程结束，处理它们可能遇到的所有错误。
+        let r1 = h1.join().unwrap();
+        h2.join().unwrap();
+        h3.join().unwrap();
+        let r4 = h4.join().unwrap();
+
+        // 返回遇到的第一个错误，如果有的话。
+        // （h2和h3不可能失败：那些线程只进行纯内存中的数据处理。）
+        r1?;
+        r4?;
+        result
+    }
+\end{minted}
+
+和之前一样，我们使用\texttt{.join().unwrap()}来显式地把子线程的panic传播到主线程。唯一不同的地方在于我们这里并没有直接使用\texttt{?}，而是保存了\texttt{io::Result}值，直到join了所有线程之后才处理\texttt{Result}值。
+
+这个流水线比单线程的实现快了40\%。一下午的时间能做到做一点已经不错了，不过如果和我们之前在曼德勃罗集中取得的675\%的加速相比，我们显然没有充分利用系统的I/O性能或者CPU核心。这是为什么呢？
+
+流水线就像生产工厂中的装配线：整体的性能受限于最慢的阶段的吞吐量。在我们的例子中，测量结果表示第二个阶段是瓶颈。我们的索引线程使用了\texttt{.to\_lowercase()}和\texttt{.is\_alphanumeric()}，因此它需要很长时间在Unicode表中查找。其他的后续阶段把大部分时间浪费在\texttt{Receiver::recv}等待输入上。
+
+这意味着我们应该能更快。因为我们定位到了瓶颈，因此并行度还可以提高。现在你已经知道了如何使用通道，我们的程序由很多独立的代码片段组成，很容易找到解决这个瓶颈的方法。我们可以优化第二个阶段，就像其他代码一样：把它的工作划分为两个或更多的阶段，或者同时运行多个文件索引线程。
 
 \subsection{通道的特性和性能}
+\texttt{std::sync::mpsc}中的\texttt{mpsc}代表着\emph{多生产者，单消费者(multiproducer, single-consumer)}，简洁地描述了Rust的通道提供的这种通信方式。
+
+我们的示例程序中的通道将值从单个发送者移动到单个接收者。这是非常常见的情况。但是Rust的通道还支持多个发送者的情况，即用单个线程处理来自多个客户端线程的请求，如\autoref{f19-8}所示。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f19-8.png}
+    \caption{从很多发送者接收请求的单个通道}
+    \label{f19-8}
+\end{figure}
+
+\texttt{Sender<T>}实现了\texttt{Clone} trait。为了得到一个多个发送者的通道，简单地创建一个普通的通道然后随意克隆sender任意次。你可以将每个\texttt{Sender}值移动到不同的线程。
+
+\texttt{Receiver<T>}不能克隆，因此如果你需要多个线程接受来自单个通道的数据，你需要使用\texttt{Mutex}。我们将在本章稍后展示如何使用它。
+
+Rust的通道被精心优化过。当通道第一次创建时，Rust使用了一个特殊的“one-shot（一次性）”队列实现。如果你只通过通道发送一个对象，开销会非常小。如果发送了第二个值，Rust会切换到不同的队列实现。它会转换为稳定的通道来传输多个值，同时最小化分配开销。如果你克隆了\texttt{Sender}，Rust必须转换为另一种实现，这种实现在多个线程同时发送值时也是安全的。但即使是这三种实现中最慢的一种也是一个无锁的队列，因此发送或接收值最多就是一些原子操作和一次堆分配，加上移动它的开销。只有当队列为空并且接收线程因此需要睡眠时才会调用系统调用。当然，在这种情况下，通道无论如何都不会限制吞吐量。
+
+除了这些优化工作之外，应用程序很容易犯一个有关通道性能的错误：发送值的速度比接收和处理值更快，这可能会导致通道中累积的值不断增长。例如，在我们的程序中，我们发现文件读取线程（阶段1）加载文件可能比索引线程（阶段2）构建索引更快。结果就是数百个从磁盘中读取的MB大小的原始数据同时堆积在队列中。
+
+这种错误不仅会消耗内存还会破坏局部性。更糟的是，发送线程在其他线程最需要资源的时候持续运行，耗尽了CPU和其他的系统资源来发送更多值。
+
+这里Rust再次参考了Unix管道。Unix使用了一个优雅的技巧来提供\emph{backpressure(背压)}，这样快速的发送者会被迫减速：Unix中的每个管道有一个固定大小，如果一个进程尝试写入一个已经满了的管道，系统会简单地阻塞这个进程，直到管道中有空间。Rust中等价的组件是\emph{同步通道(synchronous channel)}：
+\begin{minted}{Rust}
+    use std::sync::mpsc;
+
+    let (sender, receiver) = mpsc::sync_channel(1000);
+\end{minted}
+
+同步通道实际上就是普通的通道，除了当你创建它时可以指定它可以存储多少值。对于一个同步通道，\texttt{sender.send(value)}是一个阻塞操作。毕竟，设计它的idea是阻塞并不是一件坏事。在我们的示例程序中，将\texttt{start\_file\_reader\_thread}中的\texttt{channel}修改为能存储32个值的\texttt{sync\_channel}可以在保证吞吐量不变的情况下减少$\frac{2}{3}$的内存占用。
 
 \subsection{线程安全:\texttt{Send}和\texttt{Sync}}\label{threadsafe}
 
