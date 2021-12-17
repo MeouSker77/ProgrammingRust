@@ -516,8 +516,49 @@ Rust的通道比Unix的管道更快。发送一个值只是移动它而不是拷
 注意这个函数启动了一个新线程然后立刻返回。我们将为流水线的每个阶段编写一个类似这样的函数。
 
 \subsection{接收值}
+现在我们有了一个循环发送值的线程。我们可以第二个线程循环调用\texttt{receiver.recv()}：
+\begin{minted}{Rust}
+    while let Ok(text) = receiver.recv() {
+        do_something_with(text);
+    }
+\end{minted}
 
-\subsection{运行管道}
+但\texttt{Receiver}是可迭代对象，因此还有一种更好的写法：
+\begin{minted}{Rust}
+    for text in receiver {
+        fo_something_with(text);
+    }
+\end{minted}
+
+这两个循环是等价的。不管用哪种方式写，如果当控制流到达循环时通道恰好为空，那么receiver线程会阻塞直到其他线程发送了值。当通道为空并且\texttt{Sender}被drop时loop循环会正常退出。在我们的程序中，当reader线程退出时就会很自然的变为这种情况。正在运行闭包的线程拥有变量\texttt{sender}；当闭包退出时，\texttt{sender}会被drop。
+
+现在我们可以编写流水线的第二个阶段：
+\begin{minted}{Rust}
+    fn start_file_indexing_thread(texts: mpsc::Receiver<String>)
+        -> (mpsc::Receiver<InMemoryIndex>, thread::JoinHandle<()>)
+    {
+        let (sender, receiver) = mpsc::channel();
+
+        let handle = thread::spawn(move || {
+            for (doc_id, text) in texts.into_iter().enumerate() {
+                let index = InMemoryIndex::from_single_document(doc_id, text);
+                if sender.send(index).is_err() {
+                    break;
+                }
+            }
+        });
+
+        (receiver, handle)
+    }
+\end{minted}
+
+这个函数创建一个从另一个线程接收\texttt{String}值(\texttt{text})并且向另一个通道发送\texttt{InMemoryIndex}值的线程。这个线程的任务是接收第一个阶段加载的文件内容，并把每一个文档转换成一些内存中的倒排索引。
+
+这个线程的主循环很直观。所有索引文档的工作都由函数\texttt{InMemoryIndex::from\_single\_document}完成。我们并没有在这里展示它的代码，但它把输入的字符串切分为单词，并产生一个单词到其出现位置的映射。
+
+这个阶段没有I/O操作，因此它不需要处理\texttt{io::Error}。所以它返回\texttt{()}而不是\texttt{io::Result<()>}。
+
+\subsection{运行流水线}
 
 \subsection{通道的特性和性能}
 
