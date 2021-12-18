@@ -715,7 +715,70 @@ Rust拒绝编译它，并给出了详细的错误消息：
 
 现在你可以看到\texttt{Send}和\texttt{Sync}如何帮助Rust强制线程安全性。它们作为在线程间传递数据的函数签名中的类型约束出现。当你\texttt{spawn}一个线程时，你传递的闭包必须是\texttt{Send}，这意味着它包含的所有值也必须是\texttt{Send}。类似的，如果你想通过通道给另一个线程发送值，那么这个值必须是\texttt{Send}。
 
-\subsection{将几乎任何迭代器导向通道}
+\subsection{使用管道串联迭代器}
+我们的倒排索引构造器是按照流水线的方式构建的。代码虽然足够清楚，但它需要我们手动设置通道并启动线程。相反，我们在\hyperref[ch15]{第15章}中构建的迭代器流水线似乎在短短几行代码中完成了更多工作。我们能构建类似那样的线程流水线吗？
+
+事实上，如果能统一迭代器流水线和线程流水线那将会非常nice。这样我们的构造器就可以被写成迭代器流水线的形式。它可能看起来像这样：
+\begin{minted}{Rust}
+    documents.into_iter()
+        .map(read_whole_file)
+        .errors_to(error_sender)    // 过滤掉错误的结果
+        .off_thread()               // 创建一个线程在完成上述工作
+        .map(make_single_file_index)
+        .off_thread()               // 创建另一个线程执行阶段2
+        ...
+\end{minted}
+
+trait允许我们给标准库类型添加方法，所以我们确实可以做到这一点。我们首先编写一个声明了我们想要的方法的trait：
+\begin{minted}{Rust}
+    use std::sync::mpsc;
+
+    pub trait OffThreadExt: Iterator {
+        /// 将这个迭代器转换成为一个off-thread迭代器：
+        /// `next()`调用发生在一个单独的工作线程里，因此
+        /// 迭代器和循环体会并发运行。
+        fn off_thread(self) -> mpsc::IntoIter<Self::Item>;
+    }
+\end{minted}
+
+然后我们为迭代器类型实现这个trait。\texttt{mpsc::Receiver}本身就是可迭代对象这一点帮了我们不少：
+\begin{minted}{Rust}
+    use std::thread;
+
+    impl<T> OffThreadExt for T
+        where T: Iterator + Send + 'static,
+              T::Item: Send + 'static
+    {
+        fn off_thread(self) -> Mpsc::IntoIter<Self::Item> {
+            // 创建一个通道从工作线程里传输数据。
+            let (sender, receiver) = mpsc::sync_channel(1024);
+
+            // 把这个迭代器移动到一个新的工作线程里并在这里运行它。
+            thread::spawn(move || {
+                for item in self {
+                    if sender.send(item).is_err() {
+                        break;
+                    }
+                }
+            });
+
+            // 返回一个从通道中取出值的迭代器
+            receiver.into_iter()
+        }
+    }
+\end{minted}
+
+这段代码中的\texttt{where}子句是通过类似于我们在“\nameref{RevBound}”中描述过的方式决定的。一开始，我们只写了：
+\begin{minted}{Rust}
+    impl<T> OffThreadExt for T
+\end{minted}
+
+就是说，我们想为所有的迭代器都实现它。Rust会报错。因为我们使用\texttt{spawn}来把一个\texttt{T}类型的迭代器移动到新线程，我们必须指明\texttt{T: Iterator + Send + 'static}。因为我们通过通道发送item，所以我们必须指明\texttt{T::Item: Send + 'static}。修改之后，Rust才会满意。
+
+这就是Rust的角色：我们可以放心地为语言中几乎每一种迭代器添加一个强大的并发工具——而且不需要去了解保证安全所需的约束。
+
+\subsection{超越流水线}
+
 
 \section{共享可变状态}
 
