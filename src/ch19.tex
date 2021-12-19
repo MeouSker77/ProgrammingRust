@@ -790,19 +790,76 @@ trait允许我们给标准库类型添加方法，所以我们确实可以做到
 
 \section{共享可变状态}
 
-\subsection{自旋锁是什么？}
+自从你在\hyperref[ch08]{第8章}中发布\texttt{fern\_sim} crate之后，你的蕨类模拟器已经确实起飞了。现在你要创建一个多人实时战略游戏，游戏里8位玩家竞争在模拟侏罗纪景观中种植大部分那个时期的蕨类植物。 这个游戏的服务器是一个大规模的并行应用程序，在很多线程中处理请求。我们怎么协调这些请求以让它们在8位玩家到齐之后立刻开始游戏呢？
+
+这里要解决的问题是很多线程需要能访问一个共享的等待加入游戏的玩家列表。这个数据必须是既是可变的又能在线程之间共享。如果Rust没有共享可变状态，这让我们怎么办？
+
+你可以创建一个新线程来专门管理这个列表，其他线程都通过通道和它通信，这确实可以解决问题。但是当然，这会多一个线程，会有一些操作系统的开销。
+
+另一种选择是使用Rust提供的用于安全的共享可变数据的工具。这样的工具确实存在，它们是一些底层的原语，任何曾经使用过线程的系统程序员应该都很熟悉。在这一节中，我们将介绍自旋锁(mutex)，读/写锁(read/write lock)，条件变量(condition variable)，和原子整数(atomic integer)。最后，我们将展示如何在Rust中实现全局的可变变量。
+
+\subsection{互斥锁是什么？}
+
+\emph{mutex(或lock)}用于强迫多个线程在访问某些数据时按照顺序访问。我们将在下一节介绍Rust的互斥锁。首先，有必要回顾一下互斥锁在其他语言中是什么样的。在C++中一个简单的互斥锁的使用示例看起来是这样的：
+\begin{minted}{C++}
+    // C++代码，不是Rust
+    void FernEmpireApp::JoinWaitingList(PlayerId player) {
+        mutex.Acquire();
+
+        waitingList.push_back(player);
+
+        if (waitingList.size() >= GAME_SIZE) {
+            vector<PlayerId> players;
+            waitingList.swap(players);
+            StratGame(players);
+        }
+
+        mutex.Release();
+    }
+\end{minted}
+
+\texttt{mutex.Acquire()}和\texttt{mutex.Release()}标志着这段代码中\emph{临界区(critical section)}的开始和结束。对一个程序中的每个\texttt{mutex}，任意时间只能有一个线程可以在临界区内运行。如果一个线程在临界区内，所有其他调用\texttt{mutex.Acquire()}的线程都会阻塞，直到第一个线程到达\texttt{mutex.Release()}。
+
+我们说互斥锁\emph{保护(protect)}了数据：在这个例子中，\texttt{mutex}保护了\texttt{waitingList}。确保每一个线程访问数据之前总是先获取锁，并在之后释放锁是程序员的责任。
+
+互斥锁有以下作用：
+\begin{enumerate}
+    \item 它们阻止了\emph{数据竞争(data race)}，即多个竞争线程同时读写相同的内存地址。在C++和Go中数据竞争是未定义行为。托管语言例如Java和C\#保证不会崩溃，但数据竞争的结果（总的来说）仍然是无意义的。
+    \item 即使没有数据竞争，即使所有的读写都恰好按照顺序一个一个来，如果没有互斥锁，不同线程的操作也可能会以任意方式交错。想象尝试编写一段即使其他线程修改了它的数据也能工作的代码。想象尝试调试它。就像你的程序正在闹鬼一样。
+    \item 互斥锁支持使用\emph{不变量(invariant)}进行编程，它是一种有关受保护数据的规则，在您构造数据时它为真，并在每个临界区结束后都保持为真。 
+\end{enumerate}
+
+当然，所有这些作用实际上都是出自同一个原因：不受控制的数据竞争使程序变得不可控。互斥锁为这种混乱带来了某种顺序（尽管比通道或fork-join带来的顺序要少）。
+
+然而，在大多数语言中，互斥锁非常容易出错。在C++和其他大多数语言中，数据和锁是单独的对象。理想情况下，注释解释说每个线程必须在接触数据之前获取互斥锁：
+\begin{minted}{Rust}
+    class FernEmpireApp {
+        ...
+
+    private:
+        // 等待加入游戏的玩家列表。由`mutex`保护。
+        vector<PlayerId> waitingList;
+
+        // 在读取或写入`waitingList`之前需要获取的锁。
+        Mutex mutex;
+    }
+\end{minted}
+
+但即使有了这么好的注释，编译器也不能强迫任何安全的访问。当一段代码忘记获取互斥锁时，会导致未定义行为。在实践中，这种bug非常难复现和修复。
+
+即使在Java中对象和互斥锁之间有一些概念上的关联，但这种关系也不是很深。编译器也没有尝试强迫它，并且在实践中，被锁保护的数据很少恰好是关联对象的字段。它通常包含多个对象里的数据。上锁的策略仍然很棘手。注释仍然是主要的强迫执行规则的工具。
 
 \subsection{\texttt{Mutex<T>}}\label{mutex}
 
 \subsection{\texttt{mut}和\texttt{Mutex}}
 
-\subsection{为什么有时自旋锁不是好的方案}
+\subsection{为什么有时互斥锁不是好的方案}
 
 \subsection{死锁}
 
-\subsection{中毒的自旋锁}
+\subsection{中毒的互斥锁}
 
-\subsection{使用自旋锁的多消费者通道}
+\subsection{使用互斥锁的多消费者通道}
 
 \subsection{读写锁(\texttt{RwLock<T>})}
 
