@@ -850,6 +850,84 @@ trait允许我们给标准库类型添加方法，所以我们确实可以做到
 即使在Java中对象和互斥锁之间有一些概念上的关联，但这种关系也不是很深。编译器也没有尝试强迫它，并且在实践中，被锁保护的数据很少恰好是关联对象的字段。它通常包含多个对象里的数据。上锁的策略仍然很棘手。注释仍然是主要的强迫执行规则的工具。
 
 \subsection{\texttt{Mutex<T>}}\label{mutex}
+现在我们将展示在Rust实现等待列表的一个例子。在我们的孢子帝国游戏服务器中，每一个玩家都有一个独一无二的ID：
+\begin{minted}{Rust}
+    type PlayerId = u32;
+\end{minted}
+
+等待列表只是一个玩家的集合：
+\begin{minted}{Rust}
+    const GAME_SIZE: usize = 8;
+    
+    /// 一个等待列表的长度永远不会超过GAME_SIZE
+    type WaitingList = Vec<PlayerId>;
+\end{minted}
+
+等待列表被存储为\texttt{FernEmpireApp}的一个字段，在服务器启动时会在一个\texttt{Arc}中实例化\texttt{FernEmpireApp}单例。每一个线程都有一个指向它的\texttt{Arc}。它包含我们程序所需的所有共享配置和其他细节。里面的大部分内容都是只读的。因为等待列表既是共享的又是可变的，所以它必须用一个\texttt{Mutex}保护起来：
+\begin{minted}{Rust}
+    use std::sync:Mutex;
+
+    /// 所有线程都能访问这个大的上下文结构体
+    struct FernEmpireApp {
+        ...
+        waiting_list: Mutex<WaitingList>,
+        ...
+    }
+\end{minted}
+
+和C++不同，Rust中被保护的数据存储在\texttt{Mutex}的\emph{内部}。\texttt{Mutex}的初始化看起来像这样：
+\begin{minted}{Rust}
+    use std::sync::Arc;
+
+    let app = Arc::new(FernEmpireApp {
+        ...
+        waiting_list: Mutex::new(vec![]),
+        ...
+    });
+\end{minted}
+
+创建一个新的\texttt{Mutex}看起来就像创建一个新的\texttt{Box}或者\texttt{Arc}，但\texttt{Box}和\texttt{Arc}意味着有堆分配，而\texttt{Mutex}只和锁有关。如果你想让你的\texttt{Mutex}在堆上分配，你必须显式要求，就像我们这里一样对整个app使用\texttt{Arc::new}，对要保护的数据使用\texttt{Mutex::new}。这些类型通常会在一起使用：\texttt{Arc}可以方便地在线程间共享内容，\texttt{Mutex}可以方便地在线程间共享可变的数据。
+
+现在我们可以使用互斥锁实现\texttt{join\_waiting\_list}方法：
+\begin{minted}{Rust}
+    impl FernEmpireApp {
+        /// 向下一场游戏的等待队列中添加一个玩家。
+        /// 如果有足够的玩家在等待就立刻开始新游戏。
+        fn join_waiting_list(&self, player: PlayerId) {
+            // 锁住互斥锁并获取里面数据的访问。
+            // `guard`的作用域就是一个临界区。
+            let mut guard = self.waiting_list.lock().unwrap();
+
+            // 现在进行游戏的逻辑。
+            guard.push(player);
+            if guard.len() == GAME_SIZE {
+                let players = guard.split_off(0);
+                self.start_game(players);
+            }
+        }
+    }
+\end{minted}
+
+获取内部数据的唯一方式是调用\texttt{.lock()}方法：
+\begin{minted}{Rust}
+    let mut guard = self.waiting_list.lock().unwrap();
+\end{minted}
+
+\texttt{self.waiting\_list.lock()}会阻塞，直到获取到互斥锁。这个方法返回的\texttt{MutexGuard<WaitingList>}是一个\texttt{\&mut WaitingList}的简单包装。得益于强制解引用，我们可以直接对guard调用\texttt{WaitingList}方法：
+\begin{minted}{Rust}
+    guard.push(player);
+\end{minted}
+
+guard甚至允许我们借用底层数据的直接引用。Rust的生命周期系统会保证这些引用的生命周期不能超过guard本身。在不获取锁的情况下，没有任何方法获取\texttt{Mutex}内的数据。
+
+当\texttt{guard}被drop时，锁会被释放。一般会发生在块的结尾，不过你也可以手动drop它：
+\begin{minted}{Rust}
+    if guard.len() == GAME_SIZE {
+        let players = guard.split_off(0);
+        drop(guard);    // 在启动游戏的同时不保持列表被锁定
+        self.start_game(players);
+    }
+\end{minted}
 
 \subsection{\texttt{mut}和\texttt{Mutex}}
 
