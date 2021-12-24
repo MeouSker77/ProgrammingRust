@@ -969,8 +969,28 @@ Rust的\texttt{Mutex}的设计几乎肯定会让你比以往更系统、更明�
 这些问题都是互斥锁工具固有的。如果可以就使用更加结构化的方式，只有当必要时才使用\texttt{Mutex}。
 
 \subsection{死锁}
+如果一个线程尝试获取一个已经持有的锁，那么可能会导致死锁：
+\begin{minted}{Rust}
+    let mut guard1 = self.waiting_list.lock().unwrap();
+    let mut guard2 = self.waiting_list.lock().unwrap(); // 死锁
+\end{minted}
+
+假设对\texttt{self.waiting\_list.lock()}的第一次调用成功获取到了锁。第二次调用发现锁已经被获取了，所以它会阻塞住，等待锁被释放。它将永远等待下去。等待的线程就是持有锁的线程。
+
+换句话说，\texttt{Mutex}里的锁不是可递归的锁。
+
+这个bug很明显。在真实的程序中，两个\texttt{lock()}调用可能发生在两个不同的方法中，其中一个调用另外一个。每一个方法单独看起来都没什么问题。这就是另外一种导致死锁的方式：在有多个线程的情况下，每个线程一次获取多个互斥锁。Rust的借用系统并不能帮助你避免死锁。最好的防护方法就是就是让临界区尽可能小：进入、做工作、然后离开。
+
+使用通道也可能导致死锁。例如，两个线程可能阻塞住，因为它们都在等待从另一个线程中接收消息。然而，好的程序设计可以确保不会发生死锁。在流水线中数据流是非循环的，例如我们的倒排索引构造器。死锁不太可能出现在这样的程序中，正如Unix shell管道一样。
 
 \subsection{中毒的互斥锁}
+\texttt{Mutex::lock()}返回一个\texttt{Result}，原因和\texttt{JoinHandle::join()}返回\texttt{Result}是一样的：如果另一个线程panic就正常失败。当我们写\texttt{handle.join().unwrap()}时，我们是在告诉Rust把panic从一个线程传播到另一个线程。\texttt{mutex.lodck().unwrap()}也类似。
+
+如果一个线程在持有一个\texttt{Mutex}的时候panic，Rust会标记这个\texttt{Mutex}\emph{中毒了(poisoned)}。任何后续尝试\texttt{lock}中毒的\texttt{Mutex}的操作都会得到错误的结果。我们的\texttt{.unwrap()}调用告诉Rust如果发生了这种情况，就把panic从另一个线程传播到这个线程。
+
+中毒的互斥锁有多糟糕？中毒听起来是致命的，但实际上这种情况不一定是致命的。正如我们在\hyperref[ch07]{第7章}所说，panic是安全的。就算有一个线程panic程序的其他部分仍然处于安全的状态。
+
+互斥锁在panic时候中毒的原因，并不是为了防止未定义行为。相反，真正担心的是您可能一直在使用不变量进行编程。 因为你的程序panic了并且导致某个临界区内并没有完成正在做的工作，可能已经更新了被保护数据的一部分字段，但另一部分还没有更新，这可能会破坏不变量。Rust让互斥锁中毒是为了防止其他线程不知不觉中陷入这种错误的情况然后让情况变得更糟。通过完全强制互斥，你仍然\emph{可以}锁住一个中毒的互斥锁，并访问里面的数据，见\texttt{PoisonError::into\_inner()}的文档。但你不可能意外的做到这一点。
 
 \subsection{使用互斥锁的多消费者通道}
 
