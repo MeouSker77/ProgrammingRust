@@ -993,6 +993,46 @@ Rust的\texttt{Mutex}的设计几乎肯定会让你比以往更系统、更明�
 互斥锁在panic时候中毒的原因，并不是为了防止未定义行为。相反，真正担心的是您可能一直在使用不变量进行编程。 因为你的程序panic了并且导致某个临界区内并没有完成正在做的工作，可能已经更新了被保护数据的一部分字段，但另一部分还没有更新，这可能会破坏不变量。Rust让互斥锁中毒是为了防止其他线程不知不觉中陷入这种错误的情况然后让情况变得更糟。通过完全强制互斥，你仍然\emph{可以}锁住一个中毒的互斥锁，并访问里面的数据，见\texttt{PoisonError::into\_inner()}的文档。但你不可能意外的做到这一点。
 
 \subsection{使用互斥锁的多消费者通道}
+我们之前提到过Rust的通道是多生产者，单消费者。或者更精确地说，一个通道只能有一个\texttt{Receiver}。我们不能创建一个线程池，并用单个\texttt{mpsc}通道作为共享的工作队列。
+
+然而，事实证明就算只使用标准库的组件，也可以很简单的解决这个问题。我们可以给\texttt{Receiver}包装上一个\texttt{Mutex}并且随意共享它。这里有一个这么多的模块：
+\begin{minted}{Rust}
+    pub mod shared_channel {
+        use std::sync::{Arc, Mutex};
+        use std::sync::mpsc::{channel, Sender, Receiver};
+
+        /// `Receiver`的线程安全的包装
+        #[derive(Clone)]
+        pub struct SharedReceiver<T>(Arc<Mutex<Receiver<T>>>);
+
+        impl<T> Iterator for SharedReceiver<T> {
+            type Item = T;
+
+            /// 从包装的receiver获取下一个item
+            fn next(&Mut self) -> Option<T> {
+                let guard = self.0.lock().unwrap();
+                guard.recv().ok()
+            }
+        }
+
+        /// 创建一个receiver可以被跨线程共享的通道。
+        /// 和标准库的`channel()`一样返回一个sender和一个receiver，
+        /// 并且有时可以替换标准库的通道正常工作。
+        pub fn shared_channel<T>() -> (Sender<T>, SharedReceiver<T>) {
+            let (sender, receiver) = channel();
+            (sender, SharedReceiver(Arc::new(Mutex::new(receiver))))
+        }
+    }
+\end{minted}
+
+我们正在使用一个\texttt{Arc<Mutex<Receiver<T>>>}。泛型嵌套的有点多。这种情况Rust中比在C++中出现的更频繁。看起来这可能会让人困惑，不过通常情况下，就和这里一样，只需要阅读这些名字就可以解释它到底是什么，如\autoref{f19-11}所示。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f19-11.png}
+    \caption{如何阅读一个复杂的类型}
+    \label{f19-11}
+\end{figure}
 
 \subsection{读写锁(\texttt{RwLock<T>})}
 
