@@ -486,7 +486,8 @@ Rust的通道比Unix的管道更快。发送一个值只是移动它而不是拷
 
 \texttt{sender.send(text)}把值\texttt{text}移动到通道里。最后，它被移动到接收值的县城里。不管\texttt{text}包含10行还是10MB文本，这个操作都只会拷贝三个机器字（一个\texttt{String}结构体的大小），相应的\texttt{receiver.recv()}调用也会拷贝三个机器字。
 
-\texttt{send}和\texttt{recv}方法都返回\texttt{Result}，但这些方法只在通道的另一端被drop的情况下才会失败。如果\texttt{Receiver}被drop了，\texttt{send}调用会失败，因为如果不这么做，这个值将会永远留在通道中：没有了\texttt{Receiver}，就没有办法让任何线程接收它。类似的，如果通道中没有值并且\texttt{Sender}被drop了，\texttt{recv}调用会失败，因为如果不这么做，\texttt{recv}将会永远等待下去：没有了\texttt{Sender}，就没有方法让任何线程发送下一个值。drop通道的一端是通常的“挂断”方式，当你使用完它时用这种方法关闭连接。
+\texttt{send}和\texttt{recv}方法都返回\texttt{Result}，但这些方法只在通道的另一端被drop的情况下才会失败。如果\texttt{Receiver}被drop了，\texttt{send}调用会失败，因为如果不这么做，这个值将会永远留在通道中：没有了\texttt{Receiver}，就没有办法让任何线程接收它。类似的，如果通道中没有值并且\texttt{Sender}被\\
+drop了，\texttt{recv}调用会失败，因为如果不这么做，\texttt{recv}将会永远等待下去：没有了\texttt{Sender}，就没有方法让任何线程发送下一个值。drop通道的一端是通常的“挂断”方式，当你使用完它时用这种方法关闭连接。
 
 在我们的代码中，只有当receiver的线程提前退出，\texttt{sender.send(text)}才会失败。这是使用通道的代码的典型情况。不管这是故意的还是因为错误，我们的reader线程退出都是没有问题的。
 
@@ -667,7 +668,7 @@ Rust的通道被精心优化过。当通道第一次创建时，Rust使用了一
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.8\textwidth]{../img/f19-9.png}
+    \includegraphics[width=0.6\textwidth]{../img/f19-9.png}
     \caption{\texttt{Send}和\texttt{Sync}类型}
     \label{f19-9}
 \end{figure}
@@ -680,7 +681,7 @@ Rust的通道被精心优化过。当通道第一次创建时，Rust使用了一
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.8\textwidth]{../img/f19-10.png}
+    \includegraphics[width=0.6\textwidth]{../img/f19-10.png}
     \caption{为什么\texttt{Rc<String>}既不是\texttt{Sync}也不是\texttt{Send}}
     \label{f19-10}
 \end{figure}
@@ -953,7 +954,7 @@ Rust的类型系统告诉了我们\texttt{Mutex}做了什么。它动态地强�
 （你可能会回想起来\texttt{std::cell::RefCell}做了同样的事，除了并不支持多线程。\texttt{Mutex}和\texttt{RefCell}都是我们之前介绍过的内部可变性的体现。）
 
 \subsection{为什么有时互斥锁不是好方案}
-在我们开始互斥锁之前，我们提到过一些并发的方法，如果你是从C++过来的那你可能会感觉它们很容易正确使用。这并非巧合：这些方法旨在为并发编程中最令人困惑的方面提供强有力的保证。只使用fork-join并行的程序是确定性的，不可能死锁。只使用通道来实现流水线的程序，例如我们的索引构建器，也是确定性的：消息传递的时机可能不同，但并不会影响输出，等等。多线程程序的保证非常nice！
+在我们开始互斥锁之前，我们提到过一些并发的方法，如果你是从C++过来的那你可能会感觉它们很容易正确使用。这并非巧合：这些方法旨在为并发编程中最令人困惑的方面提供强有力的保证。只使用fork-join并行的程序是确定性的，不可能死锁。只使用通道来实现流水线的程序，例如我们的索引构建器，也是确定性的：消息传递的时机可能不同，但并不会影响输出。多线程程序的安全保证非常nice！
 
 Rust的\texttt{Mutex}的设计几乎肯定会让你比以往更系统、更明智地使用互斥锁。但停下来思考一下Rust的安全性保证能做什么、不能做什么是值得的。
 
@@ -1154,9 +1155,9 @@ Rust的\texttt{Mutex}的设计几乎肯定会让你比以往更系统、更明�
     worker_cancel_flag.load(Ordering::SeqCst)
 \end{minted}
 
-如果在主线程中我们决定取消工作线程，我们可以在这个\text{AtomicBool}中store \texttt{true}，然后等待这个线程退出：
+如果在主线程中我们决定取消工作线程，我们可以在这个\texttt{AtomicBool}中store \texttt{true}，然后等待这个线程退出：
 \begin{minted}{Rust}
-    // 取消渲染。
+    // 取消渲染
     cancel_flag.store(true, Ordering::SeqCst);
 
     // 丢弃结果，可能是`None`
@@ -1226,7 +1227,7 @@ Rust尽其所能阻止全局可变状态。使用\texttt{const}声明的变量�
 
 不幸的是，虽然\texttt{AtomicUsize::new()}和\texttt{String::new()}是\texttt{const fn}，但\texttt{Mutex::new()}不是。为了绕开这些限制，我们需要使用\texttt{lazy\_static} crate。
 
-我们在“\nameref{LazyRegex}”中介绍过\texttt{lazy\_static} crate。使用\texttt{lazy\_static!}宏定义变量时，你可以使用任何表达式进行初始化；表达式会在变量第一次解引用时运行，值会被存储在变量中以便后续使用。
+我们在“\nameref{LazyRegex}”中介绍过\texttt{lazy\_static} crate。使用\texttt{lazy\_static!}宏定义静态变量时，你可以使用任何表达式进行初始化；表达式会在变量第一次解引用时运行，值会被存储在变量中以便后续使用。
 
 我们可以使用\texttt{lazy\_static}声明一个全局的\texttt{Mutex}控制的\texttt{HashMap}：
 \begin{minted}{Rust}
@@ -1243,4 +1244,10 @@ Rust尽其所能阻止全局可变状态。使用\texttt{const}声明的变量�
 
 使用\texttt{lazy\_static!}会导致每次访问静态数据有微小的性能开销。它的实现里使用了\texttt{std::sync::Once}，它是一种用于一次性初始化的底层同步原语。在幕后，每一次访问一个惰性静态变量时，程序都会执行一个原子load指令来检查是否已经初始化过。（\texttt{Once}的用途很特殊，因此我们不会在这里详细介绍它。使用\texttt{lazy\_static!}通常更加方便。然而，它可以用于初始化非Rust库，一个示例见“\nameref{SafeInter}”。）
 
-\section{}
+\section{Rust中的hacking并发代码是什么样的}
+
+我们已经展示了Rust中使用线程的三种技术：fork-join并行，通道，和有锁的共享可变状态。我们的目的是提供一个Rust提供的工具的引导，主要聚焦于它们如何组合用于实际的程序中。
+
+Rust坚持安全性，因此当你决定编写一个多线程程序的时候开始，重点就是构建安全、结构化的通信方式。让线程保持最大限度的隔离是一种说服Rust你正在做安全的事的好方法。恰好这种隔离性也能保证你正在做的事是正确和可维护的。再重复一次，Rust引导你实现好的程序。
+
+更重要的是，Rust允许你结合技术和实验。你可以快速迭代：和编译器作斗争比调试数据竞争更能让你更快地启动和正确运行。
