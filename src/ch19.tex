@@ -1035,6 +1035,43 @@ Rust的\texttt{Mutex}的设计几乎肯定会让你比以往更系统、更明�
 \end{figure}
 
 \subsection{读写锁(\texttt{RwLock<T>})}
+现在让我们从互斥锁转到\texttt{std::sync}里提供的其他工具。我们将会快速地过一遍，因为对这些工具的详细讨论超出了本书的范围。
+
+服务器程序通常有一些只加载一次并且很少会更改的配置信息。大多数线程只会查询配置，但因为配置\emph{有可能}改变——例如有可能要求服务器从磁盘上重新加载配置——所以它必须用锁保护。在类似这样的情况下，互斥锁可以工作，但会导致不必要的瓶颈。当它不是正在被修改时线程不需要轮流查询配置。这是\emph{读写锁}即\texttt{RwLock}的一个使用场景。
+
+互斥锁只有一个\texttt{lock}方法，而读写锁有两个上锁方法：\texttt{read}和\texttt{write}。\texttt{RwLock::write}方法类似于\texttt{Mutex::lock}。它等待被保护数据的独占、可变的访问。而\texttt{RwLock::read}方法提供不可变的访问，但它的优势是不一定需要等待，因为多个线程可以安全地同时读。如果使用互斥锁，在任意时刻被访问的数据都只能有一个reader或writer（或者一个也没有）。而使用读写锁，可以有一个writer或者多个reader，和Rust的引用非常相似。
+
+\texttt{FernEmpireApp}可能有一个用于配置的结构体，用一个\texttt{RwLock}进行保护：
+\begin{minted}{Rust}
+    use std::sync::RwLock;
+
+    struct FernEmpireApp {
+        ...
+        config: RwLock<AppConfig>,
+        ...
+    }
+\end{minted}
+
+读取配置的方法可以使用\texttt{RwLock::read()}：
+\begin{minted}{Rust}
+    /// True if experimental fungus code should be used 
+    fn mushrooms_enabled(&self) -> bool {
+        let config_guard = self.config.read().unwrap();
+        config_guard.mushrooms_enabled
+    }
+\end{minted}
+
+重新加载配置的方法要使用\texttt{RwLock::write()}：
+\begin{minted}{Rust}
+    fn reload_config(&self) -> io::Result<()> {
+        let new_config = AppConfig::load()?;
+        let mut config_guard = self.config.write().unwrap();
+        *config_guard = new_config;
+        Ok(())
+    }
+\end{minted}
+
+当然，Rust非常适合在\texttt{RwLock}数据上强制执行安全规则。“单writer或多reader”是Rust的借用系统的核心概念。\texttt{self.config.read()}返回一个提供\texttt{AppConfig}的非\texttt{mut}（共享）访问的guard；\texttt{self.config.write()}返回一个不同的提供\texttt{mut}（独占）访问的guard。
 
 \subsection{条件变量(\texttt{Condvar})}
 
