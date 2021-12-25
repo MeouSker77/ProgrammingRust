@@ -1098,7 +1098,7 @@ Rust的\texttt{Mutex}的设计几乎肯定会让你比以往更系统、更明�
     }
 \end{minted}
 
-\texttt{while}循环是一种使用条件变量的标准写法。然而，\texttt{Condvar::wait}的签名并不寻常。它以值获取一个\texttt{MutexGuard}，消耗它，并在成功时返回一个新的\texttt{MutexGuard}。这捕获了\texttt{wait}方法释放互斥锁然后在返回之前重新获取它的直觉。以值传递\texttt{MutexGuard}是在说“”。
+\texttt{while}循环是一种使用条件变量的标准写法。然而，\texttt{Condvar::wait}的签名并不寻常。它以值获取一个\texttt{MutexGuard}，消耗它，并在成功时返回一个新的\texttt{MutexGuard}。这捕获了\texttt{wait}方法释放互斥锁然后在返回之前重新获取它的直觉。以值传递\texttt{MutexGuard}是在说“我授予你.wait()方法，这是我释放互斥锁的独占性权限”。
 
 \subsection{原子量}\label{atomic}
 \texttt{std::sync::atomic}模块包含用于无锁并发编程的原子类型。这些类似基本和标准的C++原子类型相同，加上一些额外的类型：

@@ -280,7 +280,8 @@ trait对象和切片的指针是对称的。在这两种情况下，都缺乏相
 
 尽管你也可以自己显式写出转换来代替强制解引用，但它们确实很方便：
 \begin{itemize}
-    \item 如果你有一个\texttt{Rc<String>}的值\texttt{r}，并想用它调用\texttt{String::find}，你可以简单地写\texttt{r.find('?')}来代替\texttt{(*r).find('?')}：这个方法调用隐式地借用\texttt{r}，\texttt{\&Rc<String>}被强迫为\texttt{\&String}，因为\texttt{Rc<T>}实现了\texttt{Deref<Target=T>}。
+    \item 如果你有一个\texttt{Rc<String>}的值\texttt{r}，并想用它调用\texttt{String::find}，你可以简单地写\\
+    \texttt{r.find('?')}来代替\texttt{(*r).find('?')}：这个方法调用隐式地借用\texttt{r}，\texttt{\&Rc<String>}被强迫为\texttt{\&String}，因为\texttt{Rc<T>}实现了\texttt{Deref<Target=T>}。
     \item 你可以对\texttt{String}值使用类似\texttt{split\_at}的方法，即使\texttt{split\_at}是\texttt{str}切片类型的方法。因为\texttt{String}实现了\texttt{Deref<Target=str>}。没有必要让\texttt{String}重新实现\texttt{str}的所有方法，因为你可以把一个\texttt{\&String}强迫为一个\texttt{\&str}。
     \item 如果你有一个字节的vector \texttt{v}，然后你想把它传递给一个接受\texttt{\&[u8]}字节序列的函数，那你只需要传递\texttt{\&v}作为参数，因为\texttt{Vec<T>}实现了\texttt{Deref<Target=[T]>}。
 \end{itemize}
