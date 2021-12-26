@@ -142,5 +142,71 @@ Rust支持异步操作的方法是引入一个trait：\texttt{std::future::Futur
 好消息是：它并不是这样的！
 
 \subsection{\texttt{async}函数和\texttt{await}表达式}
+这里有一个\emph{异步函数}版本的\texttt{cheapo\_request}：
+\begin{minted}{Rust}
+    use async_std::io::prelude::*;
+    use async_std::net;
+
+    async fn cheapo_request(host: &str, port: u16, path: &str)
+                                -> std::io::Result<String>
+    {
+        let mut socket = net::TcpStream::connect((host, port)).await?;
+
+        let request = format!("GET {} HTTP/1.1\r\nHost: {}\r\n\r\n", path, host);
+        socket.write_all(request.as_bytes()).await?;
+        socket.shutdown(net::Shutdown::Write)?;
+
+        let mut response = String::new();
+        socket.read_to_string(&mut response).await?;
+
+        Ok(response)
+    }
+\end{minted}
+
+这和之前的版本基本相同，除了：
+\begin{enumerate}
+    \item 函数以\texttt{async}代替\texttt{fn}开头。
+    \item 它使用了\texttt{async\_std} crate里的异步版本的\texttt{TcpStream::connect, write\_all, read\_to\_string}。它们都返回结果的future（本节中的示例使用了\texttt{async\_std}的1.7版本）。
+    \item 每一次调用返回future的函数之后，代码都会加上\texttt{.await}。尽管这看起来像是访问一个结构体的\texttt{await}字段，但它实际上是语言内置的一个特殊语法，它会等待一个future直到它准备好。\texttt{await}表达式会求出future的最终值。这个函数正是通过它获取\texttt{connect, write\_all, read\_to\_string}的结果。
+\end{enumerate}
+
+和普通的函数不同，当你调用异步函数时，它会在执行实际的主体代码之前立即返回。显然，调用的返回值还没有被计算出来；你得到的是它的最终值的\emph{future}。因此如果你执行这行代码：
+\begin{minted}{Rust}
+    let response = cheapo_request(host, port, path);
+\end{minted}
+
+那么\texttt{response}将是一个\texttt{std::io::Result<String>}的future，\texttt{cheapo\_request}的函数体还没有开始执行。你不需要调整异步函数的返回类型；Rust会自动把\texttt{async fn f(...) -> T}看做一个返回\texttt{T}的future而不是直接返回\texttt{T}的函数。
+
+一个异步函数返回的future包含了函数体运行时所需的所有信息：函数的参数、局部变量所需的空间，等等。（就好像你把调用栈捕获为了一个普通的Rust值。）因此\texttt{response}必须包含传入的\texttt{host, port, path}，因为\texttt{cheapo\_request}的函数体需要它们才能运行。
+
+future的具体类型由编译器根据函数体和参数自动生成。这个类型并没有名称；你只知道它实现了\texttt{Future<Output=R>}，其中\texttt{R}是异步函数的返回类型。从这一点来看，异步函数的future类似于闭包：闭包也有匿名类型、也是由编译器生成并且实现了\texttt{FnOnce}、\texttt{Fn}和\texttt{FnMut} trait。
+
+当你第一次poll \texttt{cheapo\_request}返回的future时，将会从函数体的尾部开始运行到第一个由\texttt{TcpStream::connect}返回的future的\texttt{await}。这个\texttt{await}表达式会poll \texttt{connect} future，如果它还没准备好，那么它会向调用者返回\texttt{Poll::Pending}：直到\texttt{TcpStream::connect}的future返回\texttt{Poll::Ready}时，对\texttt{cheapo\_request}的future的poll才能继续通过第一个\texttt{await}。因此表达式\texttt{TcpStream::connect(...).await}的一个大概等价的写法是：
+\begin{minted}{Rust}
+    {
+        // 注意：这是伪代码，不是有效的Rust代码
+        let connect_future = TcpStream::connect(...);
+        'retry_point:
+        match connect_future.poll(cx) {
+            Poll::Ready(value) => value,
+            Poll::Pending => {
+                // 设置`cheapo_request`的future的下一次`poll`
+                // 从'retry_point处恢复执行。
+                ...
+                return Poll::Pending
+            }
+        }
+    }
+\end{minted}
+
+一个\texttt{await}表达式会获取future的所有权然后poll它。如果它已经准备好，那么future的最终值就是\texttt{await}表达式的值，并且会继续往下执行。否则，它向调用者返回\texttt{Poll::Pending}。
+
+但关键的是，下一次poll \texttt{cheapo\_request}的future时将不会再次从函数的首部开始：相反，它从poll \texttt{connect\_future}的地方开始\emph{恢复(resume)}执行。直到future准备好之后我们才会继续执行这个异步函数的其他部分。
+
+随着\texttt{cheapo\_request}的future继续被poll，它会从函数体里的一个\texttt{await}开始执行到下一个，只有当它正在等待的子future ready时才会继续。因此，\texttt{cheapo\_request}的future将会被poll多少次取决于子future的行为和函数本身的控制流。\texttt{cheapo\_request}的future会追踪下一次\texttt{poll}时的恢复点和所有的局部状态——变量、参数、临时值——恢复需要这些。
+
+在函数中间挂起并稍后恢复执行的能力是异步函数独有的。当普通函数返回时，它的栈帧就消失了。因为\texttt{await}表达式依赖于恢复执行的能力，所以你只能在异步函数里使用它们。
+
+在撰写本书时，Rust还不允许trait有异步方法。只有自由函数和特定类型固有的方法才可以是异步的。取消这个限制需要对语言进行一些修改。与此同时，如果你需要定义包含异步函数的trait，可以考虑使用\texttt{async-trait} crate，它提供了一个基于宏的解决方案。
 
 \section{原语future和executor：何时一个future值得再次poll}\label{WhenPoll}
