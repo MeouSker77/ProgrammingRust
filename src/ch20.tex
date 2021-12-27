@@ -377,6 +377,85 @@ future的具体类型由编译器根据函数体和参数自动生成。这个�
 异步代码依赖于共享线程的future的协作。如果你需要让长时间计算和异步代码共存，本章后面的“\nameref{LongCompute}”中介绍了一些方法。
 
 \subsection{\texttt{async}块}
+除了异步函数之外，Rust还支持\emph{异步块(asynchronous block)}。与一个普通的快块返回最后一个表达式的值不同，一个异步块返回最后一个表达式的\emph{值的future}。你可以在异步块里使用\texttt{await}表达式。
+
+异步块看起来就像普通的块表达式，在前边加上\texttt{async}关键字：
+\begin{minted}{Rust}
+    let serve_one = async {
+        use async_std::net;
+
+        // 监听连接并接受
+        let listener = net::TcpListener::bind("localhost:8087").await?;
+        let (mut socket, _add) = listener.accept().await?;
+
+        // 通过`socket`与客户端交互
+        ...
+    };
+\end{minted}
+
+这里用一个future初始化了\texttt{serve\_one}，当poll它时，它会监听并处理单个TCP连接。块的代码直到\texttt{serve\_one}被poll才会执行，就像异步函数只有在它的future被poll时才会执行一样。
+
+如果你在异步块里使用了\texttt{?}操作符，它会从块里返回，而不是从所处的函数返回。例如，如果上面的\texttt{bind}调用返回一个错误，那么\texttt{?}操作符会返回它作为\texttt{serve\_one}的最终值。类似的，\texttt{return}表达式会从异步块里返回，而不是从外层的函数返回。
+
+如果一个异步块引用了周围代码里的变量，它的future会捕获那些变量，就像闭包一样。并且和\texttt{move}闭包一样（见“\nameref{StealClosure}”），你可以以\texttt{async move}来创建获取变量所有权的块，而不是持有变量的引用。
+
+异步块提供了一种精确的分离出想要异步运行的部分代码的方法。例如，在上一节中，\texttt{spawn\_local}需要\texttt{'static} future，因此我们定义了\texttt{cheapo\_owning\_request}包装函数来得到一个获取参数所有权的future。你可以简单地在一个异步块里调用\texttt{cheapo\_request}而不需要分离出包装函数来实现相同的效果：
+\begin{minted}{Rust}
+    pub async fn many_requests(requests: Vec<(String, u16, String)>)
+                               -> Vec<std::io::Result<String>>
+    {
+        use async_std::task;
+
+        let mut handles = vec![];
+        for (host, port, path) in requests {
+            handles.push(task::spawn_local(async move {
+                cheapo_request(&host, port, &path).await
+            }));
+        }
+        ...
+    }
+\end{minted}
+
+因为这是一个\texttt{async move}块，所以它的future获取了\texttt{String}值\texttt{host}和\texttt{path}的所有权，就类似\texttt{move}闭包一样。然后它向\texttt{cheapo\_request}传递引用，借用检查器可以看到块的\texttt{await}表达式获取了\texttt{cheapo\_request}的future的所有权，因此\texttt{host}和\texttt{path}的引用不可能比它们借用的被捕获的变量生存的更久。异步块和\texttt{cheapo\_owning\_request}完成了同样的事，但所需的样板代码更少。
+
+一个你可能遇到的问题是没有语法能指定异步块的返回类型，即异步函数参数后跟的\texttt{-> T}。当使用\texttt{?}操作符时这可能会导致问题：
+\begin{minted}{Rust}
+    let input = async_std::io::stdin();
+    let future = async {
+        let mut line = String::new();
+
+        // 这会返回`std::io::Result<usize>`。
+        input.read_line(&mut line).await?;
+
+        println!("Read line: {}", line);
+
+        Ok(())
+    };
+\end{minted}
+
+这会因为如下错误失败：
+\begin{minted}{text}
+    error: type annotations needed
+       |
+    42 |     let future = async {
+       |         ------ consider giving `future` a type
+    ...
+    46 |         input.read_line(&mut line).await?;
+       |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ cannot infer type
+\end{minted}
+
+Rust不能分辨异步块的返回类型应该是什么。\texttt{read\_line}方法返回\texttt{Result<(), std::io::Error>}，但因为\texttt{?}操作符使用了\texttt{From} trait来在需要时转换成指定的错误类型，所以这个异步块的返回类型是\texttt{Result<(), E>}，其中\texttt{E}可能是任何实现了\texttt{From<std::io::Error>}的类型。
+
+Rust未来的版本可能会添加指定\texttt{async}块的返回类型的语法。但现在，可以通过手动写出最后的\texttt{Ok}的类型来解决这个问题：
+\begin{minted}{Rust}
+    let future = async {
+        ...
+        Ok::<(), std::io::Error>(())
+    };
+\end{minted}
+
+因为\texttt{Result}是一个需要成功和错误类型作为参数的泛型类型，我们可以像这里一样使用\texttt{Ok}或\texttt{Err}指定那些类型参数。
+
 
 
 \subsection{长时间计算：\texttt{yield\_now}和\texttt{spawn\_blocking}}\label{LongCompute}
