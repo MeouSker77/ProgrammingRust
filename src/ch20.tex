@@ -501,6 +501,28 @@ Rust未来的版本可能会添加指定\texttt{async}块的返回类型的语�
 \end{minted}
 
 \subsection{在一个线程池中spawn异步任务}
+我们至今为止展示过的例子几乎把所有时间花费在等待I/O上，但一些负载是更多处理器工作和阻塞的组合。当你有太多的计算以至于单个处理器不能进行快速处理，你可以使用\texttt{async\_std::task::spawn}来把一个future spawn到一个工作线程池里，这些线程会poll可以进一步执行的future。
+
+\texttt{async\_std::task::spawn}的使用方法类似\texttt{async\_std::task::spawn\_local}：
+\begin{minted}{Rust}
+    use async_std::task;
+
+    let mut handles = vec![];
+    for (host, port, path) in requests {
+        handles.push(task::spawn(async move {
+            cheapo_request(&host, port, &path).await
+        }));
+    }
+    ...
+\end{minted}
+
+类似于\texttt{spawn\_local}，\texttt{spawn}也返回一个\texttt{JoinHandle}值，你可以await它来获取future的最终值。但和\texttt{spawn\_local}不同的是，这个future不会等到你调用\texttt{block\_on}才会被poll，只要线程池中有一个空闲的线程，它就会尝试poll这个future。
+
+在实践中，\texttt{spawn}比\texttt{spawn\_local}使用得更加广泛，因为人们更希望他们的负载不管计算和阻塞怎么混合，都能在机器上均衡地执行。
+
+当使用\texttt{spawn}时一个需要记住的点是线程池会尝试保持忙碌，因此只要有一个线程空闲你的future就会被poll。一个异步调用可能在一个线程中开始执行，在一个\texttt{await}表达式处阻塞，最后在另一个不同的线程中恢复执行。因此将一个异步函数调用看作单个函数调用是一个合理的简化（事实上，异步函数和\texttt{await}表达式的目的就是鼓励你以这种方式思考）。和代码的执行情况有关，异步调用可能实际上会在很多不同线程中移动。
+
+如果你正在使用thread-local存储，你可能会惊讶地发现你在\texttt{await}表达式之前放置的一些数据在恢复之后被替换成了某些完全不同的东西，这是因为你的任务现在正在被池中的另一个线程poll。如果这导致了问题，你应该使用\emph{task-local storage}；细节见\texttt{async-std} crate中\texttt{task\_local!}宏的文档。
 
 
 \subsection{长时间计算：\texttt{yield\_now}和\texttt{spawn\_blocking}}\label{LongCompute}
