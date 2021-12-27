@@ -260,7 +260,125 @@ future的具体类型由编译器根据函数体和参数自动生成。这个�
 这里讲了很多细节。幸运的是，你通常可以只考虑简化的上层时间线：一些函数调用是同步的，其他是异步的并需要一个\texttt{await}，但它们都只是函数调用。Rust的异步支持的成功取决于帮助程序员在实践中只需要考虑简化的视图，不会被实现的来回跳转干扰。
 
 \subsection{spawn异步任务}
+\texttt{async\_std::task::block\_on}函数会阻塞知道一个future的值准备好。但在单个future上完全阻塞一个线程并不比同步调用更好：本章的目的是让线程在等待的同时\emph{做别的工作}。
+
+为了实现这一点，你可以使用\texttt{async\_std::task::spawn\_local}。这个函数接受一个future并把它添加到一个池，当\texttt{block\_on}阻塞等待的future还没准备好时\texttt{block\_on}会poll这个池。因此如果你把一堆future传递给\texttt{spawn\_local}并且之后对最终结果的future调用\texttt{block\_on}，\texttt{block\_on}会poll每一个被spawn的future（当它们可以进一步执行时），并发运行整个池，直到结果准备好。
+
+在撰写本书时，只有当你启用\texttt{async-std} crate的\texttt{unstable}特性时\texttt{spawn\_local}才可用。你需要在\emph{Cargo.toml}中用这样的一行引入\texttt{async-std}：
+\begin{minted}{toml}
+    async-std = { version = "1", features = ["unstable"] }
+\end{minted}
+
+\texttt{spawn\_local}函数是标准中用于启动新线程的\texttt{std::thread::spawn}函数的异步版本的类似物：
+\begin{enumerate}
+    \item \texttt{std::thread::spawn(c)}接收闭包\texttt{c}然后启动一个线程运行它，返回一个\texttt{std::thread::JoinHandle}，它的\texttt{join}方法会等待线程结束并返回\texttt{c}返回的内容。
+    \item \texttt{async\_std::task::spawn\_local(f)}接收future \texttt{f}并把它添加到当前线程调用\texttt{block\_on}时会poll的池里。\texttt{spawn\_local}会返回它自己的\texttt{async\_std::task::JoinHandle}类型，它本身是一个future，你可以await它来获取\texttt{f}的最终值。
+\end{enumerate}
+
+例如，假设我们想让一个HTTP请求的集合并发执行。这是第一次尝试：
+\begin{minted}{Rust}
+    pub async fn many_requests(requests: Vec<(String, u16, String)>)
+                               -> Vec<std::io::Result<String>>
+    {
+        use async_std::task;
+
+        let mut handles = vec![];
+        for (host, port, path) in requests {
+            handles.push(task::spawn_local(cheapo_request(&host, port, &path)));
+        }
+
+        let mut results = vec![];
+        for handle in handles {
+            results.push(handle.await);
+        }
+
+        results
+    }
+\end{minted}
+
+这个函数对\texttt{requests}的每个元素调用\texttt{cheapo\_request}，将每一个调用返回的future传给\texttt{spawn\_local}。它把最后的\texttt{JoinHandle}收集到一个vector并且await每一个。以任意顺序await join handles都是没问题的：因为请求已经被spawn，它们的future将会被按需poll，即这个线程调用了\texttt{block\_on}并且无事可做时。所有的请求会并发运行。一旦它们完成，\texttt{many\_requests}会向调用者返回结果。
+
+上面的代码几乎是正确的，但Rust的借用检查器担心\texttt{cheapo\_request}的future的生命周期：
+\begin{minted}{text}
+    error: `host` does not live long enough
+        handles.push(task::spawn_local(cheapo_request(&host, port, &path)));
+                                       ---------------^^^^^-------------
+                                       |              |
+                                       |              borrowed value does not
+                                       |              live long enough
+                         argument requires that `host` is borrowed for `'static`
+    }
+    - `host` dropped here while still borrowed
+\end{minted}
+
+\texttt{path}也有一个类似的错误。
+
+自然地，如果我们向异步函数传递引用，那么它们返回的future就必须持有这些引用，因此出于安全性future不能比它们借用的值生存的更久。任何持有引用的其他值也有相同的限制。
+
+问题在于\texttt{spawn\_local}不能确保你会在\texttt{host}和\texttt{path}被drop之前等待任务结束。事实上，\texttt{spawn\_local}只接受生命周期是\texttt{'static}的future，因为你可以简单地忽略它返回的\texttt{JoinHandle}并让任务在程序的剩余部分执行时继续运行。这并不是异步任务独有的问题：当你尝试用\texttt{std::thread::spawn}启动一个线程，并且它的闭包捕获了局部变量的引用时也会遇到类似的错误。
+
+一种解决这个问题的方法是创建另一个版本的获取参数所有权的异步函数：
+\begin{minted}{Rust}
+    async fn cheapo_owning_request(host: String, port: u16, path: String)
+                                   -> std::io::Result<String> {
+        cheapo_request(&host, port, &path).await
+    }
+\end{minted}
+
+这个函数接收\texttt{String}而不是\texttt{\&str}引用，因此它的future自身将拥有\texttt{host}和\texttt{path}，并且生命周期是\texttt{'static}。借用检查器可以看到它立刻await了\texttt{cheapo\_request}的future，并且因此如果这个future被poll，它借用的\texttt{host}和\texttt{path}变量肯定还在。一切都没有问题。
+
+使用\texttt{cheapo\_owning\_request}，你可以像这样spwan所有的请求：
+\begin{minted}{Rust}
+    for (host, port, path) in requests {
+        handles.push(task::spawn_local(cheapo_owning_request(host, port, path)));
+    }
+\end{minted}
+
+你可以使用\texttt{block\_on}在同步的\texttt{main}函数中调用\texttt{many\_requests}：
+\begin{minted}{Rust}
+    let requests = vec![
+        ("example.com".to_string(),      80, "/".to_string()),
+        ("www.red-bean.com".to_string(), 80, "/".to_string()),
+        ("en.wikipedia.org".to_string(), 80, "/".to_string()),
+    ];
+
+    let results = async_std::task::block_on(many_requests(requests));
+    for result in results {
+        match result {
+            Ok(response) => println!("{}", response),
+            Err(err) => eprintln!("error: {}", err),
+        }
+    }
+\end{minted}
+
+这段代码会在\texttt{block\_on}的调用中并发运行三个请求。每个请求会在当其他的请求阻塞时抓住几乎继续执行，它们全部在调用者线程中执行。\autoref{f20-3}中展示了三个\texttt{cheapo\_request}调用的可能的执行过程。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f20-3.png}
+    \caption{在单个线程中运行三个异步任务}
+    \label{f20-3}
+\end{figure}
+
+（我们鼓励你自己尝试运行这段代码，使用\texttt{eprintln!}在\texttt{cheapo\_request}首部和每一个\texttt{await}表达式之后打印消息，这样你可以看到这些调用如何交错执行。）
+
+对\texttt{many\_requests}的调用（为了简单没有展示）spawn了三个异步的任务，分别用\texttt{A}、\texttt{B}、\texttt{C}标记。\texttt{block\_on}开始时先poll \texttt{A}，\texttt{A}会开始连接到\texttt{example.com}。这会立刻返回\texttt{Poll::Pending}，\texttt{block\_on}会把注意移动到下一个spawn的任务，然后poll future \texttt{B}，最后是\texttt{C}，它们会开始连接各自的服务器。
+
+当所有可以poll的future都返回了\texttt{Poll::Pending}之后，\texttt{block\_on}会进入睡眠，直到其中一个\texttt{TcpStream::connect} future指示它的任务值得再次poll。
+
+在这次执行中，服务器\texttt{en.wikipedia.org}比其他的响应得更快，因此这个任务最先完成。当一个spawn的任务完成时，它会把值保存在\texttt{JoinHandle}并标记它已经准备好了，这样\texttt{many\_requests} await它时无需等待，可以继续执行。最后，其它的\texttt{cheapo\_request}要么成功要么返回错误，然后\texttt{many\_request}本身可以返回了。最后，\texttt{main}接收\texttt{block\_on}返回的结果的vector。
+
+所有这些执行都发生在单个线程中，三个\texttt{cheapo\_request}的调用通过对future的poll实现交错执行。一个异步调用看起来像是一个运行到完成的单个函数调用，但实际上异步调用由一系列对future的\texttt{poll}方法的同步调用实现。每一个单独的\texttt{poll}调用都可以快速返回，让出线程从而让其他异步调用可以执行。
+
+我们终于达成了我们在本章开头设置的目标：让一个线程在等待I/O完成的同时去执行其他的工作，这样线程的资源不会因等待而浪费。更妙的是，达成这个目标的代码看起来非常像普通的Rust代码：一些函数被标记为\texttt{async}、一些函数调用后面有\texttt{.await}、使用的函数来自\texttt{async\_std}而不是\texttt{std}，但除此之外，它就是普通的Rust代码。
+
+异步任务和线程有一个不同之处需要牢记：异步任务只有在\texttt{await}表达式处被await的future返回\texttt{Poll::Pending}时才会切换到另一个异步任务。这意味着如果你在\texttt{cheapo\_request}中放了一段长时间运行的计算代码，那么在它完成之前，任何传给\texttt{spawn\_local}的其他任务都没有机会运行。而使用线程时没有这个问题：操作系统可以在任何地方挂起任何线程并设置计时器来确保没有线程可以垄断处理器。
+
+异步代码依赖于共享线程的future的协作。如果你需要让长时间计算和异步代码共存，本章后面的“\nameref{LongCompute}”中介绍了一些方法。
+
+\subsection{\texttt{async}块}
 
 
+\subsection{长时间计算：\texttt{yield\_now}和\texttt{spawn\_blocking}}\label{LongCompute}
 
 \section{原语future和executor：何时一个future值得再次poll}\label{WhenPoll}
