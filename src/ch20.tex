@@ -456,6 +456,51 @@ Rust未来的版本可能会添加指定\texttt{async}块的返回类型的语�
 
 因为\texttt{Result}是一个需要成功和错误类型作为参数的泛型类型，我们可以像这里一样使用\texttt{Ok}或\texttt{Err}指定那些类型参数。
 
+\subsection{从异步块中构建异步函数}
+异步块给了我们另一种实现和异步函数相同效果的方法，并且更加灵活一点。例如，我们可以将我们的\texttt{cheapo\_request}写成一个普通的、同步的返回异步块的future的函数：
+\begin{minted}{Rust}
+    use std::io;
+    use std::future::Future;
+
+    fn cheapo_request<'a>(host: &'a str, port: u16, path: &'a str)
+        -> impl Future<Output = io::Result<String>> + 'a
+    {
+        async move {
+            ... function body ...
+        }
+    }
+\end{minted}
+
+当你调用这个版本的函数时，它会立刻返回异步块的值的future。这个future会捕获函数的参数并且和异步函数返回的future的行为一样。因为我们没有使用\texttt{async fn}语法，我们需要在返回值中写出\texttt{impl Future}，但对调用者来说，这两个定义是同一个函数签名的两种可替换的实现。
+
+如果你想让函数被调用时立刻进行一些计算然后再构造返回的future，那么第二种方法更有用。例如，另一种协调\texttt{cheapo\_request}和\texttt{spawn\_local}的方法是让它变成一个返回\texttt{'static} future的同步函数，并让这个future捕获参数的拷贝的所有权：
+\begin{minted}{Rust}
+    fn cheapo_request(host: &str, port: u16, path: &str)    
+        -> impl Future<Output = io::Result<String> + 'static
+    {
+        let host = host.to_string();
+        let path = path.to_string();
+
+        async move {
+            ... use &*host, port, and path ...
+        }
+    }
+\end{minted}
+
+这个版本让异步块捕获\texttt{host}和\texttt{path}为\texttt{String}值，而不是\texttt{\&str}引用。因为future拥有自己运行所需的所有数据，所以它是有效的\texttt{'static}生命周期。（我们在上面的签名中写出了\texttt{+ 'static}，但\texttt{-> impl}返回的类型默认是\texttt{'static}的，因此省略它不会有影响。）
+
+因为这个版本的\texttt{cheapo\_request}返回的future是\texttt{'static}的，我们可以直接把它们传递给\texttt{spawn\_local}：
+\begin{minted}{Rust}
+    let join_handle = async_std::task::spawn_local(
+        cheapo_request("areweasyncyet.rs", 80, "/")
+    );
+
+    ... other work ...
+
+    let response = join_handle.await?;
+\end{minted}
+
+\subsection{在一个线程池中spawn异步任务}
 
 
 \subsection{长时间计算：\texttt{yield\_now}和\texttt{spawn\_blocking}}\label{LongCompute}
