@@ -866,6 +866,81 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 然后生成的\texttt{Deserialize}实现会把它转换成一个等价的\texttt{FromClient}值。注意\texttt{FromClient}中的\texttt{Arc}指针对序列化的形式没有影响：引用计数的字符串直接作为JSON的对象成员值出现。
 
 \subsection{获取用户输入：异步流}
+我们的聊天客户端的第一个功能是读取用户的命令并向服务器发送相应的包。管理一个合适的用户接口超出了本章的范围，因此我们只准备完成能工作的最简单的实现：直接从标准输入读取。下面的代码在\emph{src/bin/client.rs}：
+\begin{minted}{Rust}
+    use async_std::prelude::*;
+    use async_chat::utils::{self, ChatResult};
+    use async_std::io;
+    use async_std::net;
+
+    async fn send_commands(mut to_server: net::TcpStream) -> ChatResult<()> {
+        println!("Commands:\n\
+                  join GROUP\n\
+                  post GROUP MESSAGE...\n\
+                  Type Control-D (on Unix) or Control-Z (on Windows) \
+                  to close the connection.");
+
+        let mut command_lines = io::BufReader::new(io::stdin()).lines();
+        while let Some(command_result) = command_lines.next().await {
+            let command = command_result?;
+            // `parse_command`的定义见Github仓库
+            let request = match parse_command(&command) {
+                Some(request) => request,
+                None => continue,
+            };
+
+            utils::send_as_json(&mut to_server, &request).await?;
+            to_server.flush().await?;
+        }
+    }
+\end{minted}
+
+这段代码中调用了\texttt{async\_std::io::stdin}来获取一个客户端的标准输入的异步handle，用\texttt{async\_std::io::BufReader}包装它来进行缓冲，然后调用\texttt{lines}来逐行处理用户的输入。它尝试把输入的每一行命令行解析为\texttt{FromClient}值，并且如果成功就把值发送给服务器。如果用户输入了未知的命令，\texttt{parse\_command}会打印出错误消息并返回\texttt{None}，因此\texttt{send\_commands}可以继续循环。如果用户输入了end-of-file标志，那么\texttt{lines}流会返回\texttt{None}，因此\texttt{send\_commands}会返回。这和以普通的同步程序的方式编写的代码非常相似，除了它使用了\texttt{async\_std}版本的库特性。
+
+异步的\texttt{BufReader}的\texttt{lines}方法很有趣。它并不像标准库一样返回一个迭代器：标准库中\texttt{Iterator::next}方法是一个普通的同步函数，因此调用\texttt{commands.next()}将会阻塞线程直到读取到下一行。作为代替，它返回一个\texttt{Result<String>}值的\emph{流}。流是异步中和迭代器类似的概念：它按需以一种异步友好的风格产生一个值的序列。这里是\texttt{Stream} trait的定义，来自于\texttt{async\_std::stream}模块：
+\begin{minted}{Rust}
+    trait Stream {
+        type Item;
+
+        // 现在，把`Pin<&mut Self>`看作`&mut Self`就好。
+        fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
+            -> Poll<Option<Self::Item>>;
+    }
+\end{minted}
+
+你可以将它看作\texttt{Iterator}和\texttt{Future} trait的结合。类似于迭代器，\texttt{Stream}有关联的\texttt{Item}类型并使用\texttt{Option}来指示序列何时结束。但类似于future，流必须被poll才能得到下一个item（或者知道stream已经结束），你必须调用\texttt{poll\_next}直到它返回\texttt{Poll::Ready}。一个流的\texttt{poll\_next}实现应该总是快速返回，不能阻塞。如果一个流返回\texttt{Poll::Pending}，它必须在值得再次poll时通过\texttt{Context}提醒调用者。
+
+\texttt{poll\_next}方法直接使用起来很别扭，但你通常不需要这么做。类似迭代器，流也有很多工具方法例如\texttt{filter}和\texttt{map}。其中一个是\texttt{next}方法，它返回流的下一个\texttt{Option<Self::Item>}的future。你可以调用\texttt{next}并await future返回而不是显式地poll流。
+
+将这些组合起来，\texttt{send\_commands}通过使用\texttt{next}和\texttt{while let}迭代一个流产生的值并消耗输入的行：
+\begin{minted}{Rust}
+    while let Some(item) = stream.next().await {
+        ... use item ...
+    }
+\end{minted}
+
+（未来的Rust版本可能会引入一种\texttt{for}循环语法的异步变体来消耗流，就像普通的\texttt{for}循环消耗\texttt{Iterator}值一样。
+
+在流结束后poll它——即在它返回\texttt{Poll::Ready(None)}来指示流结束之后——就类似于在一个迭代器返回\texttt{None}之后调用\texttt{next}或在一个future返回\texttt{Poll::Ready}之后poll它一样：\texttt{Stream} trait没有指定流的行为，因此有些流可能行为不当。类似于future和迭代器，流有一个\texttt{fuse}方法来确保这样的调用结果是可预测的，更多细节见文档。
+
+当处理流时，要记得use \texttt{async\_std}的 prelude：
+\begin{minted}{Rust}
+    use async_std::prelude::*;
+\end{minted}
+
+这是因为\texttt{Stream} trait的工具方法，例如\texttt{next, map, filter}等等，并不是真的定义在\texttt{Stream}自身里。实际上，它们是另一个trait \texttt{StreamExt}的默认方法，这个trait自动为所有\texttt{Stream}实现：
+\begin{minted}{Rust}
+    pub trait StreamExt: Stream {
+        // ... 以默认方法的方式定义工具方法 ...
+    }
+
+    impl<T: Stream> StreamExt for T { }
+\end{minted}
+
+这是我们在“\nameref{OrphanRule}”中介绍过的\emph{扩展trait(extension trait)}的一个例子。\texttt{async\_std::prelude}模块把\texttt{StreamExt}的方法引入作用域，因此要记得use这个prelude来确保这些方法在你的代码中可见。
+
+\subsection{发送包}
+
 
 
 \section{原语future和executor：何时一个future值得再次poll}\label{WhenPoll}
