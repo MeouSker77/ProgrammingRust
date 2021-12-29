@@ -680,6 +680,10 @@ Rust未来的版本可能会添加指定\texttt{async}块的返回类型的语�
 如果\texttt{password}匹配\texttt{hash}它会返回\texttt{Ok(true)}，其中的\texttt{key}是数据库里的一个键。在传给\texttt{spawn\_blocking}的闭包里进行验证，可以把昂贵的计算放到它自己的线程里，确保它不会影响对其它用户的请求返回响应。
 
 \subsection{比较异步设计}
+Rust的异步编程的方案在很多方面都和其他语言采用的方案很像。例如，JavaScript、C\#和Rust都有带有\texttt{await}表达式的异步函数。所有这些语言都有值来表示还未完成的计算：Rust称之为“future”，JavaScript称之为“promise”，C\#称之为“task”，但它们都代表一个可能要等待的值。
 
+然而Rust中poll的使用并不寻常。在JavaScript和C\#中，一个异步函数被调用后会立刻执行，有一个内置在系统库中的全局的事件循环负责当它们等待的值可用时恢复挂起的异步函数调用。然而在Rust中，异步函数调用什么都不做，直到把它的future传递给\texttt{block\_on}、\texttt{spawn}或者\texttt{spawn\_local}，这些函数会poll它并驱动工作完成。这些函数，称为\emph{executor}，扮演了其它语言中的全局事件循环的角色。
+
+因为Rust允许你——程序员来选择一个executor来poll你的future，所以Rust不需要内置在系统中的全局事件循环。\texttt{async-std} crate提供了我们在本章中用过的executor函数，但我们在本章稍后会使用的\texttt{tokio} crate，定义了它自己的类似的executor函数集。并且作为本章的终结，我们会实现自己的executor。你可以在同一个程序中使用这三种executor。
 
 \section{原语future和executor：何时一个future值得再次poll}\label{WhenPoll}
