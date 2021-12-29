@@ -524,6 +524,120 @@ Rust未来的版本可能会添加指定\texttt{async}块的返回类型的语�
 
 如果你正在使用thread-local存储，你可能会惊讶地发现你在\texttt{await}表达式之前放置的一些数据在恢复之后被替换成了某些完全不同的东西，这是因为你的任务现在正在被池中的另一个线程poll。如果这导致了问题，你应该使用\emph{task-local storage}；细节见\texttt{async-std} crate中\texttt{task\_local!}宏的文档。
 
+\subsection{但你的Future实现了\texttt{Send}吗？}
+有一个\texttt{spawn}要求但\texttt{spawn\_local}不要求的限制。因为future被送到另一个线程运行，因此future必须实现了\texttt{Send}标记trait。我们在“\nameref{threadsafe}”中介绍过\texttt{Send}。只有当future包含的所有值都是\texttt{Send}时future才是\texttt{Send}：所有的函数参数、局部变量、甚至匿名的临时值都必须能安全地移动到另一个线程。
+
+和之前一样，这个要求也不是异步任务独有的：如果你尝试使用\texttt{std::thread::spawn}启动一个捕获了非\texttt{Send}值的闭包也会遇到一个类似的错误。不同之处在于，传给\texttt{std::thread::spawn}的闭包会留在新创建的线程中运行，而spawn到线程池里的future可能会在await时从一个线程移动到另一个线程。
+
+这个限制很容易意外触发。例如，下面的代码看起来足够合法：
+\begin{minted}{Rust}
+    use async_std::task;
+    use std::rc::Rc;
+
+    async fn reluctant() -> String {
+        let string = Rc::new("ref-counted String".to_string());
+
+        some_asynchronous_thing().await;
+
+        format!("Your splendid string: {}", string)
+    }
+
+    task::spawn(reluctant());
+\end{minted}
+
+一个异步函数的future必须持有足够的信息来让它可以从一个\texttt{await}表达式继续执行。在这个例子中，\texttt{reluctant}的future必须在\texttt{await}之后使用\texttt{string}，因此这个future将会，或至少有时会，包含一个\texttt{Rc<String>}值。因为\texttt{Rc}指针不能安全地在线程之间共享，所以这个future本身不能是\texttt{Send}。并且因为\texttt{spawn}只接受\texttt{Send}的future，所以Rust会报错：
+\begin{minted}{text}
+    error: future cannot be sent between threads safely
+        |
+    17  |     task::spawn(reluctant());
+        |     ^^^^^^^^^^^ future returned by `reluctant` is not `Send`
+        |
+
+        |
+    127 | T: Future + Send + 'static,
+        |             ---- required by this bound in `async_std::task::spawn`
+        |
+        = help: within `impl Future`, the trait `Send` is not implemented
+                for `Rc<String>`
+    note: future is not `Send` as this value is used across an await
+    10  |         let string = Rc::new("ref-counted string".to_string());
+        |             ------ has type `Rc<String>` which is not `Send`
+    11  |
+    12  |         some_asynchronous_thing().await;
+        |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                      await occurs here, with `string` maybe used later
+    ...
+    15  |    }
+        |    - `string` is later dropped here
+\end{minted}
+
+这一段错误信息很长，但包含很多有用的细节：
+\begin{enumerate}
+    \item 它解释了为什么future需要是\texttt{Send}：\texttt{task::spawn}的要求。
+    \item 它解释了什么样的值不是\texttt{Send}，局部变量\texttt{string}，它的类型是\texttt{Rc<String>}。
+    \item 它解释了为什么\texttt{string}会影响future：它的作用域跨过了\texttt{await}。
+\end{enumerate}
+
+有两种解决这个问题的方法。一个是限制非\texttt{Send}的值的作用域，让它不包含任何\texttt{await}表达式，因此就不需要保存在函数的future里：
+\begin{minted}{Rust}
+    async fn reluctant() -> String {
+        let return_value = {
+            let string = Rc::new("ref-counted string".to_string());
+            format!("Your splendid string: {}", string)
+            // `Rc<String>`在这里离开作用域...
+        };
+
+        // ...因此当我们在这里挂起时不需要保存它。
+        some_asynchronous_thing().await;
+
+        return_value
+    }
+\end{minted}
+
+另一种解决方案是简单地用\texttt{std::sync::Arc}替换\texttt{Rc}。\texttt{Arc}使用原子更新来管理它的引用计数，这意味着它会稍微慢一点，不过\texttt{Arc}指针是\texttt{Send}。
+
+尽管最终你会学会识别和避免非\texttt{Send}类型，但一开始它们可能令人惊讶。（至少，你的作者通常会很惊讶。）例如，较旧的Rust代码有时会像这样使用泛型结果类型：
+\begin{minted}{Rust}
+    // 不推荐！
+    type GenericError = Box<dyn std::error::Error>;
+    type GenericResult<T> = Result<T, GenericError>;
+\end{minted}
+
+这个\texttt{GenericError}类型使用了一个trait对象来存储任何实现了\texttt{std::error::Error}的类型。但并没有给它施加更严格的限制：如果有一个非\texttt{Send}类型实现了\texttt{Error}，它们将能转换成一个\texttt{GenericError}类型。因为这种可能性，\texttt{GenericError}将不是\texttt{Send}，下面的代码将不能工作：
+\begin{minted}{Rust}
+    fn some_fallible_thing() -> GenericResult<i32> {
+        ...
+    }
+
+    // 这个函数的future不是`Send`...
+    async fn unfortunate() {
+        // ...因为这个调用返回的值...
+        match some_fallible_thing() {
+            Err(error) => {
+                report_error(error);
+            }
+            Ok(output) => {
+                // ...到这个await处仍然存在...
+                use_output(output).await;
+            }
+        }
+    }
+
+    // ...因此这个`spawn`会导致错误。
+    async_std::task::spawn(unfortunate());
+\end{minted}
+
+和前面的例子一样，编译器的错误消息解释了发生了什么，指出了那个\texttt{Result}是罪魁祸首。因为Rust考虑到\texttt{some\_fallible\_thing}的结果在整个\texttt{match}表达式中生效，包括\texttt{await}表达式，它决定了\texttt{unfortunate}的future不是\texttt{Send}。这个错误是因为Rust过度谨慎：尽管\texttt{GenericError}不能安全地发送到另一个线程，但\texttt{await}只会在结果是\texttt{Ok}的时候发生，因此当我们await \texttt{use\_output}的future时错误的值永远不会存在。
+
+一个理想的解决方法是使用更加严格的泛型错误类型，例如我们在“\nameref{}”中建议的这个：
+\begin{minted}{Rust}
+    type GenericError = Box<dyn std::error::Error + Send + Sync + 'static>;
+    type GenericResult<T> = Result<T, GenericError>;
+\end{minted}
+
+这个trait对象显式地要求底层的错误类型要实现了\texttt{Send}，这样就一切顺利了。
+
+如果你的future不是\texttt{Send}并且不能方便地将它变成\texttt{Send}，那么你可以使用\texttt{spawn\_local}来在当前线程运行它。当然，你需要保证这个线程在某个地方调用\texttt{block\_on}，以给它运行的机会，并且你将不能从多处理器中收益。
 
 \subsection{长时间计算：\texttt{yield\_now}和\texttt{spawn\_blocking}}\label{LongCompute}
 
