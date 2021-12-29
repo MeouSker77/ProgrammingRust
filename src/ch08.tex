@@ -645,7 +645,7 @@ Rust不鼓励全局可变的状态。关于替代方案的讨论，见“\namere
 
 \texttt{src/lib.rs}里的代码组成了库的\emph{根模块}。其他使用我们库的crate可以访问跟模块里的公有item。
 
-\section{src/bin目录}
+\section{src/bin目录}\label{src/bin}
 
 想让原本的\texttt{fern\_sim}程序再次工作也非常简单：Cargo有一些内建的支持，可以让较小的程序和库存在同一个crate中。
 

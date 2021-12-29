@@ -281,7 +281,7 @@ Rust有一个\texttt{?}运算符来做这个工作。你可以在任何产生\te
     let weather = get_weather(hometown).ok()?;
 \end{minted}
 
-\subsection{处理多种错误类型}
+\subsection{处理多种错误类型}\label{MultiErr}
 通常，可能会出错的不止一件事情。假设我们要从文本文件中读取一个数字：
 \begin{minted}{Rust}
     use std::io::{self, BufRead};
