@@ -940,7 +940,35 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 这是我们在“\nameref{OrphanRule}”中介绍过的\emph{扩展trait(extension trait)}的一个例子。\texttt{async\_std::prelude}模块把\texttt{StreamExt}的方法引入作用域，因此要记得use这个prelude来确保这些方法在你的代码中可见。
 
 \subsection{发送包}
+为了通过网络套接字传输包，我们的客户端和服务器使用了我们的库crate的\texttt{utils}模块中的\texttt{send\_as\_json}函数：
+\begin{minted}{Rust}
+    use async_std::prelude::*;
+    use serde::Serialize;
+    use std::marker::Unpin;
 
+    pub async fn send_as_json<S, P>(outbound: &mut S, packet: &P) -> ChatResult<()>
+    where
+        S: async_std::io::Write + Unpin,
+        P: Serialize,
+    {
+        let mut json = serde_json::to_string(&packet)?;
+        json.push('\n');
+        outbound.write_all(json.as_bytes()).await?;
+        Ok(())
+    }
+\end{minted}
+
+这个函数构建\texttt{packet}的JSON \texttt{String}表示，在末尾加上了一个换行符，然后全部写入\texttt{outbound}。
+
+通过它的where子句，你可以看到\texttt{send\_as\_json}非常灵活。要发送的包的类型\texttt{P}，可以是任何实现了\texttt{serde::Serialize}的类型。输出流\texttt{S}可以是任何实现了\texttt{async_std::io::Write}的类型，这个trait是\texttt{std::io::Write} trait的异步版本。这足够我们在一个异步的\texttt{TcpStream}上发送\texttt{FromClient}和\texttt{FromServer}值。保持\texttt{send\_as\_json}的定义是泛型的可以确保它不依赖流或包的类型的细节：不过\texttt{send\_as\_json}只能使用那些trait的方法。
+
+为了使用\texttt{write\_all}方法，\texttt{S}中的\texttt{Unpin}约束是必须的。我们将在本章稍后介绍pin和unpin，但现在只需要给需要的类型参数添加上\texttt{Unpin}约束即可，如果你哪里忘了，Rust编译器会指出来的。
+
+\texttt{send\_as\_json}把包序列化到临时的\texttt{String}中，然后写入到\texttt{outbound}中，而不是直接序列化到\texttt{outbound}流中。\texttt{serde\_json} crate确实提供了一些函数把值直接序列化到输出流，但那些函数只支持同步流。写入到异步流需要同时修改\texttt{serde\_json}和\texttt{serde} crate的格式无关的核心，因为这些trait是为同步方法设计的。
+
+和流一样，\texttt{async\_std}的I/O trait的很多方法实际上也是定义在扩展trait中，因此无论何时使用它们都要记得\texttt{use async\_std::prelude::*}。
+
+\subsection{接收包：更多异步流}
 
 
 \section{原语future和executor：何时一个future值得再次poll}\label{WhenPoll}
