@@ -811,5 +811,61 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 在一个真实的应用中，请考虑使用\texttt{anyhow} crate，它提供了类似于这里的\texttt{Error}和\texttt{Result}类型。\texttt{anyhow} crate易于使用并且提供了一些我们的\texttt{ChatError}和\texttt{ChatResult}没有的很棒的特性。
 
 \subsection{协议}
+库crate把整个聊天协议封装在两个类型里，在\emph{lib.rs}中定义：
+\begin{minted}{Rust}
+    use serde::{Deserialize, Serialize};
+    use std::sync::Arc;
+
+    pub mod utils;
+
+    #[derive(Debug, Deserialize, Serialize, PartialEq)]
+    pub enum FromClient {
+        Join { group_name: Arc<String> },
+        Post {
+            group_name: Arc<String>,
+            message: Arc<String>,
+        },
+    }
+
+    #[derive(Debug, Deserialize, Serialize, PartialEq)]
+    pub enum FromServer {
+        Message {
+            group_name: Arc<String>,
+            message: Arc<String>,
+        },
+        Error(String),
+    }
+
+    #[test]
+    fn test_fromclient_json() {
+        use std::sync::Arc;
+
+        let from_client = FromClient::Post {
+            group_name: Arc::new("Dogs".to_string()),
+            message: Arc::new("Samoyeds rock!".to_string()),
+        };
+
+        let json = serde_json::to_string(&from_client).unwrap();
+        assert_eq!(json,
+                   r#"{"Post":{"group_name":"Dogs","message":"Samoyeds rock!"}}"#);
+        
+        assert_eq!(serde_json::from_str::<FromClient>(&json).unwrap(),
+                   from_client);
+    }
+\end{minted}
+
+\texttt{FromClient}枚举表示一个客户端可能发送给服务器的包：它可以要求加入一个房间并向它加入的房间发送消息。\texttt{FromServer}表示服务器可能返回给客户端的包：被发送到组的消息和错误消息。使用引用计数指针\texttt{Arc<String>}来代替普通的\texttt{String}帮助服务器在管理组和分发消息时避免拷贝字符串。
+
+\texttt{\#[derive]}属性告诉\texttt{serde} crate为\texttt{FromClient}和\texttt{FromServer}生成它的\texttt{Serialize}和\texttt{Deserialize} trait的实现。这让我们可以调用\texttt{serde\_json::to\_string}来把它们转换成JSON值、通过网络发送它们、并且最终调用\texttt{serde\_json::from\_str}来把它们转换回Rust形式。
+
+\texttt{test\_fromclient\_json}单元测试展示了这该如何使用。有了\texttt{serde}生成的\texttt{Serialize}实现，我们可以调用\texttt{serde\_json::to\_string}来把给定的\texttt{FromClient}值转换成这个JSON：
+\begin{minted}{json}
+    {"Post":{"group_name":"Dogs","message":"Samoyeds rock!"}}
+\end{minted}
+
+然后生成的\texttt{Deserialize}实现会把它转换成一个等价的\texttt{FromClient}值。注意\texttt{FromClient}中的\texttt{Arc}指针对序列化的形式没有影响：引用计数的字符串直接作为JSON的对象成员值出现。
+
+\subsection{获取用户输入：异步流}
+
 
 \section{原语future和executor：何时一个future值得再次poll}\label{WhenPoll}
