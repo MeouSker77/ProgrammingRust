@@ -1027,5 +1027,47 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 这个函数接受一个从服务接收数据的套接字，用一个\texttt{BufReader}包装它（当然，也是\texttt{async\_std}的版本），然后传递给\texttt{receive\_as\_json}来获取一个到来的\texttt{FromServer}值的流。然后它使用了一个\texttt{while let}循环来处理到来的响应，检查错误并打印出每一条服务器的响应。
 
 \subsection{客户端的\texttt{main}函数}
+因为我们已经展示了\texttt{send\_commands}和\texttt{handle\_replies}，我们可以展示聊天客户端的主函数了，它的定义在\emph{src/bin/client.rs}中：
+\begin{minted}{Rust}
+    use async_std::task;
+
+    fn main() -> ChatResult<()> {
+        let address = std::env::args().nth(1)
+            .expect("Usage: client ADDRESS:PORT");
+
+        task::block_on(async {
+            let socket = net::TcpStream::connect(address).await?;
+            socket.set_nodelay(true)?;
+            
+            let to_server = send_commands(socket.clone());
+            let from_server = handle_replies(socket);
+
+            from_server.race(to_server).await?;
+
+            Ok(())
+        })
+    }
+\end{minted}
+
+在从命令行获取了服务器的地址之后，\texttt{main}有一系列要调用的异步函数，因此它把其余的函数包装在一个异步块中并把块的future传递给\texttt{async\_std::task::block\_on}来运行。
+
+一旦连接建立之后，我们希望\texttt{send\_commands}和\texttt{handle\_replies}函数串联执行，这样我们可以在输入的时候看到其他人的消息。如果我们输入了文件结束符或者到服务器的连接断开，程序应该退出。
+
+按照我们这一章介绍的内容，你可能会想类似这样的代码：
+\begin{minted}{Rust}
+    let to_server = task::spawn(send_commands(socket.clone()));
+    let from_server = task::spawn(handle_replies(socket));
+
+    to_server.await?;
+    from_server.await?;
+\end{minted}
+
+但因为我们要await这两个join handle，只有当两个任务\emph{都}结束时程序才会退出。我们希望\emph{任何一个}任务结束时程序就会退出。future的\texttt{race}方法完成了这个功能。调用\texttt{from\_server.race(to\_server)}返回一个新的future，它同时poll \texttt{from\_server}和\texttt{to\_server}，并在任何一个准备好时返回\texttt{Poll::Ready(v)}：最终的值是第一个完成的future的值，未完成的future被丢弃。
+
+\texttt{race}方法和很多其它有用的工具，被定义在\texttt{async\_std::prelude::FutureExt} trait中，\texttt{async\_std::prelude}让它对我们可见。
+
+到这里，客户端的代码中只剩下\texttt{parse\_command}函数还没有展示过。它只是非常直观的文本处理代码，因此我们不会在这里展示它的定义。细节见Git仓库中的完整代码。
+
+\subsection{服务器的\texttt{main}函数}
 
 \section{原语future和executor：何时一个future值得再次poll}\label{WhenPoll}
