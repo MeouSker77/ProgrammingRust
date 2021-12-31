@@ -1069,5 +1069,57 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 到这里，客户端的代码中只剩下\texttt{parse\_command}函数还没有展示过。它只是非常直观的文本处理代码，因此我们不会在这里展示它的定义。细节见Git仓库中的完整代码。
 
 \subsection{服务器的\texttt{main}函数}
+这里是服务器的主文件：\emph{src/bin/server/main.rs}的完整内容：
+\begin{minted}{Rust}
+    use async_std::prelude::*;
+    use async_chat::utils::ChatResult;
+    use std::sync::Arc;
+
+    mod connection;
+    mod group;
+    mod group_table;
+
+    use connection::serve;
+
+    fn main() -> ChatResult<()> {
+        let address = std::env::args().nth(1).expect("Usage: server ADDRESS");
+
+        let chat_group_table = Arc::new(group_table::GroupTable::new());
+
+        async_std::task::block_on(async {
+            // 这段代码在本章的导论部分展示过
+            use async_std::{net, task};
+            
+            let listener = net::TcpListener::bind(address).await?;
+
+            let mut new_connections = listener.incoming();
+            while let Some(socket_result) = new_connections.next().await {
+                let socket = socket_result?;
+                let groups = chat_group_table.clone();
+                task::spawn(async {
+                    log_error(serve(socket, groups).await);
+                });
+            }
+
+            Ok(())
+        })
+    }
+
+    fn log_error(result: ChatResult<()>) {
+        if let Err(error) = result {
+            eprintln!("Error: {}", error);
+        }
+    }
+\end{minted}
+
+服务器的\texttt{main}函数和客户端的很像：它进行一些初始化工作，然后调用\texttt{block\_on}来运行一个异步块来做真正的工作。为了处理从客户端到来的连接，它创建了一个\texttt{TcpListener}套接字，它的\texttt{incoming}方法返回一个\texttt{std::io::Result<TcpStream>}值的流。
+
+对没有给到来的连接，我们spawn一个异步任务运行\texttt{connection::serve}函数。每一个任务还接受一个\texttt{GroupTable}值的引用，它表示我们的服务器的聊天组的列表，通过一个\texttt{Arc}引用计数指针被所有连接共享。
+
+如果\texttt{connection::serve}返回一个错误，我们向标准错误输出记录一条消息并让任务退出。其它的连接继续运行。
+
+\subsection{处理聊天连接：异步\texttt{Mutex}}
+
+
 
 \section{原语future和executor：何时一个future值得再次poll}\label{WhenPoll}
