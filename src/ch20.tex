@@ -969,6 +969,63 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 和流一样，\texttt{async\_std}的I/O trait的很多方法实际上也是定义在扩展trait中，因此无论何时使用它们都要记得\texttt{use async\_std::prelude::*}。
 
 \subsection{接收包：更多异步流}
+为了接受包，我们的服务器和客户端将使用\texttt{utils}模块中的这个函数来接收\texttt{FromClient}和\texttt{FromServer}值，它从一个异步的TCP套接字，即\texttt{async\_std::io::BufReader<TcpStream>}中接收值：
+\begin{minted}{Rust}
+    use serde::de::DeserializeOwned;
 
+    pub fn receive_as_json<S, P>(inbound: S) -> impl Stream<Item = ChatResult<P>>
+        where S: async_std::io::BufRead + Unpin,
+              P: DeserializeOwned,
+    {
+        inbound.lines()
+            .map(|line_result| -> ChatResult<P> {
+                let line = line_result?;
+                let parsed = serde_json::from_str::<P>(&line)?;
+                Ok(parsed)
+            })
+    }
+\end{minted}
+
+类似\texttt{send\_as\_json}，这个函数的输入流和包的类型也是泛型的：
+\begin{enumerate}
+    \item 流的类型\texttt{S}必须实现了\texttt{async\_std::io::BufRead}，它是\texttt{std::io::BufRead}的异步版本，表示一个有缓冲的输入字节流。
+    \item 包的类型\texttt{P}必须实现了\texttt{DeserializeOwned}，它是\texttt{serde}的\texttt{Deserialize} trait的一个更严格的变体。为了性能，\texttt{Deserialize}可以产生直接从被反序列化的缓冲区借用的\texttt{\&str}和\texttt{\&[u8]}值，来避免拷贝数据。然而在我们的例子中，这并不是一个好主意：我们需要向调用者返回反序列化后的值，因此它们的生命周期必须要能超过解析的缓冲区。一个实现了\texttt{DeserializeOwned}的类型总是和被反序列化的缓冲区无关。
+\end{enumerate}
+
+调用\texttt{inbound.lines()}返回一个\texttt{std::io::Result<String>}值的\texttt{Stream}。然后我们使用了流的\texttt{map}适配器来对每一个item应用一个闭包，处理错误并把每一行当作类型\texttt{P}的一个值的JSON形式进行解析。这会产生一个\texttt{ChatResult<P>}值的流，然后直接返回它。函数的返回类型是：
+\begin{minted}{Rust}
+    impl Stream<Item = ChatResult<P>>
+\end{minted}
+
+这意味着我们返回的类型异步地产生一个\texttt{ChatResult<P>}值的序列，但我们的调用者并不能确定它的精确类型。因为我们传递给\texttt{map}的闭包有一个匿名类型，它是\texttt{receive\_as\_json}可能返回的最具体的类型。
+
+注意\texttt{receive\_as\_json}本身并不是一个异步函数。它是一个返回一个异步值，即一个流的普通函数。更加深入地了解Rust的异步支持，而不是“简单地到处添加\texttt{async}和\texttt{.await}”为类似这种充分利用语言优势的清晰、灵活和高效的定义开辟了可能性。 
+
+为了看看\texttt{receiver\_as\_json}如何使用，这里是我们的\emph{src/bin/client.rs}中的聊天客户端的\texttt{handle\_replies}函数，它接收一个来自网络的\texttt{FromServer}值的流并打印给用户看：
+\begin{minted}{Rust}
+    use async_chat::FromServer;
+
+    async fn handle_replies(from_server: net::TcpStream) -> ChatResult<()> {
+        let buffered = io::BufReader::new(from_server);
+        let mut reply_stream = utils::receive_as_json(buffered);
+
+        while let Some(reply) = reply_stream.next().await {
+            match reply? {
+                FromServer::Message { group_name, message } => {
+                    println!("message posted to {}: {}", group_name, message);
+                }
+                FromServer::Error(message) => {
+                    println!("error from server: {}", message);
+                }
+            }
+        }
+
+        Ok(())
+    }
+\end{minted}
+
+这个函数接受一个从服务接收数据的套接字，用一个\texttt{BufReader}包装它（当然，也是\texttt{async\_std}的版本），然后传递给\texttt{receive\_as\_json}来获取一个到来的\texttt{FromServer}值的流。然后它使用了一个\texttt{while let}循环来处理到来的响应，检查错误并打印出每一条服务器的响应。
+
+\subsection{客户端的\texttt{main}函数}
 
 \section{原语future和executor：何时一个future值得再次poll}\label{WhenPoll}
