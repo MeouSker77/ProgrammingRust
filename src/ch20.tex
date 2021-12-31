@@ -1217,5 +1217,105 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 如果我们的聊天服务器发现它有了数百万的用户，并且\texttt{GroupTable}互斥锁变成了一个瓶颈，那么把它变为异步的并不能解决问题。使用一些专为并发访问设计的集合类型来代替\texttt{HashMap}可能会更好。例如，\texttt{dashmap} crate提供了这样一个类型。
 
 \subsection{聊天组：tokio的广播通道}
+在我们的服务器中，\texttt{group::Group}类型代表一个聊天组。这个类型只需要支持两个\texttt{connection::serve}会调用的方法：\texttt{join}添加一个成员，\texttt{post}发送一条消息。每一条消息需要发送给所有的成员。
+
+这里我们要解决前面提到的\emph{背压}挑战。有几个相关的需求：
+\begin{enumerate}
+    \item 如果一个成员不能跟上被发送到组里的消息——例如它们的网络连接很慢——其它的成员不应该被影响。
+    \item 即使有成员落后，也应该有办法让他们重新加入对话并以某种方式继续参与。
+    \item 用来缓存消息的内存不应该无限制地增长。
+\end{enumerate}
+
+因为这些挑战在实现多到多的通信模式时非常普遍，\texttt{tokio} crate提供了一个\emph{广播通道(broadcast channel)}类型，它实现了一组合理的权衡。一个\texttt{tokio}广播通道是一个值的队列（在我们的例子中就是聊天消息），它允许任何数量的不同线程或任务发送和接收值。 它被称为“广播”通道，因为每一个消费者都会获得每个值的拷贝。（值的类型必须实现了\texttt{Clone}。）
+
+通常，一个广播通道会保留队列中的每条消息直到每一个消费者都获得了它的拷贝。但如果队列的长度超过了通道的最大容量（在创建时指定），最旧的消息就会被丢弃。所有不能跟上的消费者会在尝试获取下一条消息时将得到一个错误值，并且通道会把它们前进到可用的最旧的消息。
+
+例如，\autoref{f20-4}展示了一个最大容量为16的广播通道。
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f20-4.png}
+    \caption{一个tokio广播通道}
+    \label{f20-4}
+\end{figure}
+
+这里有2个sender发送消息和4个receiver接收消息——或者更精确地说，从队列中拷贝消息。Receiver B有14条要接收的消息，Receiver C有7条，Receiver D完全跟上了。Receiver A落后了，并且有11条消息都被丢弃了。它下一次尝试接收消息时会失败，返回一个错误表示这种情况，然后它会直接前进到当前队列的尾部。
+
+我们的聊天服务器将每一个聊天组表示为一个携带\texttt{Arc<String>}值的广播通道：向组发送一条消息会向所有的成员广播。这里是\texttt{group::Group}类型的定义，在\emph{srd/bin/server/group.rs}中定义：
+\begin{minted}{Rust}
+    use async_std::task;
+    use crate::connection::Outbound;
+    use std::sync::Arc;
+    use tokio::sync::broadcast;
+
+    pub struct Group {
+        name: Arc<String>,
+        sender: broadcast::Sender<Arc<String>>
+    }
+
+    impl Group {
+        pub fn new(name: Arc<String>) -> Group {
+            let (sender, _receiver) = broadcast::channel(1000);
+            Group { name, sender }
+        }
+
+        pub fn join(&self, outbound: Arc<Outbound>) {
+            let receiver = self.sender.subscribe();
+
+            task::spawn(handle_subscriber(self.name.clone(), receiver, outbound));
+        }
+
+        pub fn post(&self, message: Arc<String>)  {
+            // 当没有订阅者的时候这只会返回一个错误。一个连接的输出端可能在输入端结束发送
+            // 之前的短时间内退出并drop掉它的订阅，这可能会导致输入端向一个空的组里发送消息。
+            let _ignored = self.sender.send(message);
+        }
+    }
+\end{minted}
+
+一个\texttt{Group}结构体持有聊天组的名称和一个表示组的广播通道的发送端的\texttt{broadcast::Sender}。 \texttt{Group::new}方法调用了\texttt{broadcast::channel}来创建一个最大容量为1000条消息的广播通道。\texttt{channel}函数同时返回一个sender和一个receiver，但我们这时还不需要receiver，因为这个组这时还没有任何成员。
+
+为了向组里添加成员，\texttt{Group::join}方法会调用sender的\texttt{subscribe}方法来创建一个新的通道的receiver。然后它spawn一个新的异步任务来监测receiver的消息，并把它们写回到客户端，这个功能在\texttt{handle\_subscriber}函数中完成。
+
+这些细节完成之后，\texttt{Group::post}方法就很直观了：它简单地向广播通道发送消息。因为通道携带的值是\texttt{Arc<String>}，给每一个receiver一个拷贝只会增加消息的引用计数，没有任何拷贝或堆分配。一旦所有的订阅者都接收到了消息，引用计数就会降到0，消息就会被释放。
+
+这里是\texttt{handle\_subsriber}的定义：
+\begin{minted}{Rust}
+    use async_chat::FromServer;
+    use tokio::sync::broadcast::error::RecvError;
+
+    async fn handle_subscriber(group_name: Arc<String>,
+                               mut receiver: broadcast::Receiver<Arc<String>>,
+                               outbound: Arc<Outbound>)
+    {
+        loop {
+            let packet = match receiver.recv().await {
+                Ok(message) => FromServer::Message {
+                    group_name: group_name.clone(),
+                    message: message.clone(),
+                },
+                Err(RecvError::Lagged(n)) => FromServer::Error(
+                    format!("Dropped {} messages from {}.", n, group_name)
+                ),
+
+                Err(RecvError::Closed) => break,
+            };
+
+            if outbound.send(packet).await.is_err() {
+                break; 
+            }
+        }
+    }
+\end{minted}
+
+尽管细节不同，但这个函数的形式非常熟悉：它是一个从广播通道接收消息并通过共享的\texttt{Outbound}发送回客户端的循环。如果循环不能跟上广播通道，它会接收到一个\texttt{Lagged}错误，然后它会报告给客户端。
+
+如果向客户端发送消息失败了，可能是因为连接关闭了，\texttt{handle\_subscriber}会退出它的循环并返回，导致异步任务退出。这会drop广播通道的\texttt{Receiver}，取消通道的订阅。这样，当连接被drop时，它的每个组成员都会被清除。
+
+我们的聊天组永远不会关闭，因为我们永远不会从组表里移除一个组，但为了完整性，\texttt{handle\_subscriber}还是通过退出任务来处理一个\texttt{Closed}错误。
+
+注意我们为每一个组的每一个客户端成员都创建了一个新的异步任务。这是可行的，因为异步任务与线程相比消耗的内存要小很多，并且在一个进程内从一个异步任务切换到另一个非常高效。
+
+这就是聊天服务器的完整代码。它有些简陋，并且\texttt{async\_std}、\texttt{tokio}和\texttt{futures} crate还有很多比我们在本书中介绍的更有价值的特性，但这个示例的理想目的是展示异步生态系统的某些功能如何协同工作：异步任务、流、异步I/O trait、通道、和两种风格的互斥锁。
+
 
 \section{原语future和executor：何时一个future值得再次poll}\label{WhenPoll}
