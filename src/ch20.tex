@@ -260,7 +260,7 @@ future的具体类型由编译器根据函数体和参数自动生成。这个�
 这里讲了很多细节。幸运的是，你通常可以只考虑简化的上层时间线：一些函数调用是同步的，其他是异步的并需要一个\texttt{await}，但它们都只是函数调用。Rust的异步支持的成功取决于帮助程序员在实践中只需要考虑简化的视图，不会被实现的来回跳转干扰。
 
 \subsection{spawn异步任务}
-\texttt{async\_std::task::block\_on}函数会阻塞知道一个future的值准备好。但在单个future上完全阻塞一个线程并不比同步调用更好：本章的目的是让线程在等待的同时\emph{做别的工作}。
+\texttt{async\_std::task::block\_on}函数会阻塞直到一个future的值准备好。但在单个future上完全阻塞一个线程并不比同步调用更好：本章的目的是让线程在等待的同时\emph{做别的工作}。
 
 为了实现这一点，你可以使用\texttt{async\_std::task::spawn\_local}。这个函数接受一个future并把它添加到一个池，当\texttt{block\_on}阻塞等待的future还没准备好时\texttt{block\_on}会poll这个池。因此如果你把一堆future传递给\texttt{spawn\_local}并且之后对最终结果的future调用\texttt{block\_on}，\texttt{block\_on}会poll每一个被spawn的future（当它们可以进一步执行时），并发运行整个池，直到结果准备好。
 
@@ -1118,7 +1118,7 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 
 如果\texttt{connection::serve}返回一个错误，我们向标准错误输出记录一条消息并让任务退出。其它的连接继续运行。
 
-\subsection{处理聊天连接：异步\texttt{Mutex}}
+\subsection{处理聊天连接：异步的\texttt{Mutex}}
 这里是服务器的主体：\emph{src/bin/server/connection.rs}中的\texttt{connection}模块的\texttt{serve}函数：
 \begin{minted}{Rust}
     use async_chat::{FromClient, FromServer};
@@ -1179,6 +1179,43 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 
 最后，标准的\texttt{Mutex}必须被锁住它的线程解锁。为了强迫这一点，标准的互斥锁guard类型没有实现\texttt{Send}：它不能被传送到其他线程。这意味着一个包含这样的guard的future自身也没有实现\texttt{Send}，因此不能传给\texttt{spawn}以在线程池中运行；它只能用\texttt{block\_on}或者\texttt{spawn\_local}来运行。一个\texttt{async\_std Mutex}的guard确实实现了\texttt{Send}，因此在被spawn的任务中使用它不会有问题。
 
-\subsection{聊天组表：同步\texttt{Mutex}}
+\subsection{聊天组表：同步的\texttt{Mutex}}
+但正确的原则并不是像“总是在异步代码中使用\texttt{async\_std::sync::Mutex}”这么简单。通常没有必要在持有锁的同时await别的东西，上锁通常也不会持续太长时间。在这种情况下，标准库的\texttt{Mutex}可能更加高效。我们的聊天服务器的\texttt{GroupTable}类型展示了这种情况。这里是\emph{src/bin/server/group\_table.rs}的完整内容：
+\begin{minted}{Rust}
+    use crate::group::Group;
+    use std::collections::HashMap;
+    use std::sync::{Arc, Mutex};
+
+    pub struct GroupTable(Mutex<HashMap<Arc<String>, Arc<Group>>);
+
+    impl GroupTable {
+        pub fn new() -> GroupTable {
+            GroupTable(Mutex::new(HashMap::new()))
+        }
+
+        pub fn get(&self, name: &String) -> Option<Arc<group>> {
+            self.0.lock()
+                .unwrap()
+                .get(name)
+                .cloned()
+        }
+
+        pub fn get_or_create(&self, name: Arc<String>) -> Arc<Group> {
+            self.0.lock()
+                .unwrap()
+                .entry(name.clone())
+                .or_insert_with(|| Arc::new(Group::new(name)))
+                .clone()
+        }
+    }
+\end{minted}
+
+一个\texttt{GroupTable}就是一个被锁保护的哈希表，它把聊天组的名称映射到实际的组，两者都使用引用计数指针来管理。\texttt{get}和\texttt{get\_or\_create}方法会锁住互斥锁，进行一些哈希表的操作，可能还会有一些内存分配，并返回。
+
+在\texttt{GroupTable}中，我们使用了一个普通的\texttt{std::sync::Mutex}。这个模块中根本没有任何异步代码，因此没有需要避免的\texttt{await}。事实上，如果我们想在这里使用\texttt{async\_std::sync::Mutex}，我们需要把\texttt{get}和\texttt{get\_or\_create}变成异步函数，这会引入future的创建、挂起、恢复的开销，收益却只有一点：互斥锁只有在一些哈希操作和内存分配操作时会被锁住。
+
+如果我们的聊天服务器发现它有了数百万的用户，并且\texttt{GroupTable}互斥锁变成了一个瓶颈，那么把它变为异步的并不能解决问题。使用一些专为并发访问设计的集合类型来代替\texttt{HashMap}可能会更好。例如，\texttt{dashmap} crate提供了这样一个类型。
+
+\subsection{聊天组：tokio的广播通道}
 
 \section{原语future和executor：何时一个future值得再次poll}\label{WhenPoll}
