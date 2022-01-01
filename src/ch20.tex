@@ -960,7 +960,7 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 
 这个函数构建\texttt{packet}的JSON \texttt{String}表示，在末尾加上了一个换行符，然后全部写入\texttt{outbound}。
 
-通过它的where子句，你可以看到\texttt{send\_as\_json}非常灵活。要发送的包的类型\texttt{P}，可以是任何实现了\texttt{serde::Serialize}的类型。输出流\texttt{S}可以是任何实现了\texttt{async_std::io::Write}的类型，这个trait是\texttt{std::io::Write} trait的异步版本。这足够我们在一个异步的\texttt{TcpStream}上发送\texttt{FromClient}和\texttt{FromServer}值。保持\texttt{send\_as\_json}的定义是泛型的可以确保它不依赖流或包的类型的细节：不过\texttt{send\_as\_json}只能使用那些trait的方法。
+通过它的where子句，你可以看到\texttt{send\_as\_json}非常灵活。要发送的包的类型\texttt{P}，可以是任何实现了\texttt{serde::Serialize}的类型。输出流\texttt{S}可以是任何实现了\texttt{async\_std::io::Write}的类型，这个trait是\texttt{std::io::Write} trait的异步版本。这足够我们在一个异步的\texttt{TcpStream}上发送\texttt{FromClient}和\texttt{FromServer}值。保持\texttt{send\_as\_json}的定义是泛型的可以确保它不依赖流或包的类型的细节：不过\texttt{send\_as\_json}只能使用那些trait的方法。
 
 为了使用\texttt{write\_all}方法，\texttt{S}中的\texttt{Unpin}约束是必须的。我们将在本章稍后介绍pin和unpin，但现在只需要给需要的类型参数添加上\texttt{Unpin}约束即可，如果你哪里忘了，Rust编译器会指出来的。
 
@@ -1380,7 +1380,7 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 
 现在我们已经展示了executor和future是如何通信的，我们将自己实现一个future，然后介绍一个\texttt{block\_on} executor的实现。
 
-\subsection{调用waker：\texttt{spawn\_blocking}}
+\subsection{调用waker：\texttt{spawn\_blocking}}\label{InvokeWaker}
 本章更早的时候，我们描述过\texttt{spawn\_blocking}函数，它启动一个给定的闭包，在另一个线程并返回一个返回值的future。我们现在已经有了实现\texttt{spawn\_blocking}所需的所有知识。为了简单，我们的版本将会每一个闭包创建一个新的线程，而不是像\texttt{async\_std}的版本一样使用一个线程池。
 
 尽管\texttt{spawn\_blocking}返回一个future，但我们并不准备把它写成一个\texttt{async fn}。相反，它将是一个普通的同步函数，返回一个\texttt{SpawnBlocking}结构体，我们将基于它实现我们自己的\texttt{Future}。
@@ -1504,5 +1504,103 @@ poll一个\texttt{SpawnBlocking}会检查闭包的值是否已经准备好了，
 \texttt{as\_mut}调用让我们可以在不放弃所有权的情况下poll \texttt{future}；我们将在下一节中更详细地解释这一点。
 
 \section{\texttt{Pin}}
+
+尽管异步函数和块对于编写清晰的异步代码至关重要，但处理它们的future需要非常小心。\texttt{Pin}类型帮助Rust确保它们被安全使用。
+
+在这一节中，我们将展示为什么异步函数调用和块的future不能像普通的Rust值一样自由处理。然后我们将展示\texttt{Pin}如何充当一个指针的“seal of approval”，以被用来安全地管理这样的future。最后，我们将展示一些使用\texttt{Pin}值的方法。
+
+\subsection{future的两个生命阶段}
+考虑下面简单的异步代码：
+\begin{minted}{Rust}
+    use async_std::io::prelude::*;
+    use async_std::{io, net};
+
+    async fn fetch_string(address: &str) -> io::Result<String> {
+        ❶
+        let mut socket = net::TcpStream::connect(address).await❷?;
+        let mut buf = String::new();
+        socket.read_to_string(&mut buf).await❸?;
+        Ok(buf)
+    }
+\end{minted}
+
+这会打开一个到给定地址的TCP连接并且返回一个服务器发送的\texttt{String}。标记为❶❷❸的点是\emph{恢复点(resumption point)}，异步函数中的代码在执行时可能会在这些点挂起。
+
+假设你调用了它但却没有await，例如：
+\begin{minted}{Rust}
+    let response = fetch_string("localhost:6502");
+\end{minted}
+
+现在\texttt{response}是一个准备在\texttt{fetch\_string}的开头执行的future。在内存中，这个future看起来像\autoref{f20-5}这样。
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f20-5.png}
+    \caption{\texttt{fetch\_string}的调用构造出的future}
+    \label{f20-5}
+\end{figure}
+
+因为我们刚刚创建这个future，它应该在恢复点❶，即函数体的开头开始执行。这个状态下，future继续运行时唯一需要的值就是函数参数。
+
+现在假设你已经poll了\texttt{response}几次，它到达了函数体中的这个点：
+\begin{minted}{Rust}
+    socket.read_to_string(&mut buf).await❸?;
+\end{minted}
+
+进一步假设\texttt{read\_to\_string}的结果还没有准备好，因此这一次poll会返回\texttt{Poll::Pending}。这时，future看起来像\autoref{f20-6}。
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f20-6.png}
+    \caption{await \texttt{read\_to\_string}到一半的同一个future}
+    \label{f20-6}
+\end{figure}
+
+一个future必须总是持有它下一次被poll时恢复运行所需的所有信息。在这个情况下这些信息包括：
+\begin{enumerate}
+    \item 恢复点❸，表示应该在poll \texttt{read\_to\_string}的future的\texttt{await}处恢复。
+    \item 在这个恢复点处还存在的变量：\texttt{socket}和\texttt{buf}。\texttt{address}的值在这个future中并没有体现，因为这个函数不再需要它。
+    \item \texttt{read\_to\_string}子future，\texttt{await}表达式正在poll它。
+\end{enumerate}
+
+注意对\texttt{read\_to\_string}的调用借用了\texttt{socket}和\texttt{buf}的引用。在一个同步函数中，所有的局部变量都存在栈上，但在异步函数中，生命周期包含一个\texttt{await}的局部变量必须放置在future中，这样当下一次poll时它们才可用。借用这样的变量的引用会借用future的一部分。
+
+然而，Rust要求值在被借用时不能被move。假设你想把这个future移动到一个未知：
+\begin{minted}{Rust}
+    let new_variable = response;
+\end{minted}
+
+Rust没有办法找到所有活跃的引用并调整它们。因此\texttt{socket}和\texttt{buf}的引用会继续指向原本的\texttt{response}里的旧位置，而不是指向新位置。它们就会变成悬垂指针，如\autoref{f20-7}所示。
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f20-7.png}
+    \caption{\texttt{fetch\_string}的future，在借用的同时被move（Rust会阻止这种情况）}
+    \label{f20-7}
+\end{figure}
+
+阻止被借用的值被move通常是借用检查器的职责。借用检查器把变量看作所有权树的根，但和存储在栈上的变量不同，如果future本身被move了那么存储在future中的变量也会被move。这意味着\texttt{socket}和\texttt{buf}的借用不仅会影响\texttt{fetch\_string}可以对自己的变量进行的操作，还会影响它的调用者可以对\texttt{response}（包含它们的future）进行的操作。异步函数的future是借用检查器的的盲点，Rust为了保持内存安全的保证必须处理这种情况。
+
+Rust对这个问题的解决方案依赖于一个发现：future在刚被创建时总是可以安全地move，只有当它们被poll以后才不能安全地move。调用一个异步函数返回的刚创建的future只包含一个恢复点和参数值。这些都属于异步函数的函数体，此时它还没有开始执行。只有当poll一个future后才有可能借用它的内容。
+
+从这一点来看，我们可以看到每个future都有两个生命阶段：
+\begin{enumerate}
+    \item 当future被创建时第一个阶段开始。因为函数体还没有开始执行，它的任何一部分都还没有被借用。这时，它和其他Rust值一样可以安全地移动。
+    \item 第二个阶段在future第一次被poll时开始。一旦函数体开始执行，它就可能借用存储在future中的变量的引用，然后await，导致future的一部分被借用。在future第一次被poll之后，我们必须假设它已经不能安全地move了。
+\end{enumerate}
+
+第一个生命阶段的灵活性让我们可以把future传递给\texttt{block\_on}和\texttt{spawn}，以及调用适配器方法例如\texttt{race}和\texttt{fuse}，它们全都是以值接受future。事实上，即使创建future的异步函数调用也需要把它返回给调用者，这里也有一次move。
+
+future只有被poll之后才会进入第二个生命阶段。\texttt{poll}方法需要future以\texttt{Pin<\&mut Self>}值传递。\texttt{Pin}是一个指针类型的包装（类似于\texttt{\&mut Self}），它限制了指针的使用方式，确保它们引用的对象（例如\texttt{Self}）不能再次被move。因此在poll一个future之前你必须先创建它的\texttt{Pin}包装的指针。
+
+这就是Rust保证future安全的策略：一个future在被poll之前不可能变得危险；你不能poll一个future，直到你构造一个\texttt{Pin}包装的指针；并且一旦你这么做了，future就不能再move。
+
+“一个不能move的值”听起来好像不可能：在Rust中move无处不在。我们将在下一节中详细解释\texttt{Pin}如何保护future。
+
+尽管这一节是在讨论异步函数，但所有讨论的内容也适用于异步块。一个由异步块创建的新future会像闭包一样从周围的环境中捕获它用到的变量。只有当poll它的future时才会创建对它的内容的引用，将它标记为不能安全地move。
+
+请记住，这种move的脆弱性仅限于异步函数和块的future，以及它们特殊的编译器生成的\texttt{Future}实现。如果你手动为你的类型实现了\texttt{Future}，就像我们在“\nameref{InvokeWaker}”中为我们的\texttt{SpawnBlocking}类型做的一样，这样的future不管是在poll前还是poll后都可以完美地move。在任何手写的\texttt{poll}实现中，借用检查器会确保你借用的\texttt{self}的部分引用会在\texttt{poll}返回时消失。这只是因为异步函数和块有能力在一个函数调用中途挂起执行，如果这个过程中有借用，我们必须谨慎处理它们的future。
+
+\subsection{Pinned 指针}
 
 
