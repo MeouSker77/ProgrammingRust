@@ -1445,6 +1445,64 @@ poll一个\texttt{SpawnBlocking}会检查闭包的值是否已经准备好了，
 
 一旦一个\texttt{Future}返回\texttt{Poll::Ready}，你不应该再去poll它。通常的消耗future的方式，例如\texttt{await}和\texttt{block\_on}都遵守这个规则。如果一个\texttt{SpawnBlocking}被过度poll，不会有什么特别的麻烦发生，但它也没有特别处理这种情况。对手写的future来说这是典型的情况。
 
+\subsection{实现\texttt{block\_on}}
+除了能实现future原语之外，我们也已经有了构建一个简单的executor所需的所有知识。在这一节中，我们将编写我们自己的\texttt{block\_on}。它将比\texttt{async\_std}的版本简单一些；例如，它不支持\texttt{spawn\_local}、task-local变量、或者嵌套调用（在异步代码中调用\texttt{block\_on}）。但它足够运行我们的聊天客户端和服务器。代码如下：
+\begin{minted}{Rust}
+    use waker_fn::waker_fn;         // Cargo.toml: waker-fn = "1.1"
+    use futures_lite::pin;          // Cargo.toml: futures-lite = "1.11"
+    use crossbeam::sync::Parker;    // Cargo.toml: crossbeam = "0.8"
+    use std::future::Future;
+    use std::task::{Context, Poll};
 
+    fn block_on<F: Future>(future: F) -> F::Output {
+        let parker = Parker::new();
+        let unparker = parker.unparker().clone();
+        let waker = waker_fn(move || unparker.unpark());
+        let mut context = Context::from_waker(&waker);
+
+        pin!(future);
+
+        loop {
+            match future.as_mut().poll(&mut context) {
+                Poll::Ready(value) => return value,
+                Poll::Pending => parker.park(),
+            }
+        }
+    }
+\end{minted}
+
+这段代码很短，但却有很多内容，让我们逐步来分解。
+
+\begin{minted}{Rust}
+    let parker = Parker::new();
+    let unparker = parker.unparker().clone();
+\end{minted}
+
+\texttt{crossbeam} crate的\texttt{Parker}类型是一个简单的阻塞原语：调用\texttt{parker.park()}会阻塞当前的线程直到某个别的线程对相应的\texttt{Unparker}调用\texttt{.unpark()}，\texttt{Unparker}通过调用\texttt{parker.unparker()}获得。如果你\texttt{unpark}了一个还没有park的线程，它的下一次\texttt{park}调用将没有阻塞、立即返回。我们的\texttt{block\_on}将使用\texttt{Parker}来在future还没有准备好时等待，并且传递给future的waker将unpark它：
+\begin{minted}{Rust}
+    let waker = waker_fn(move || unparker.unpark());
+\end{minted}
+
+\texttt{waker\_fn} crate中的同名函数将会根据一个给定的闭包创建一个\texttt{Waker}。这里，我们创建了一个\texttt{Waker}，它被调用时会调用闭包\texttt{move || unparker.unpark()}。你可以只使用标准库创建waker，但\texttt{waker\_fn}更加方便一点。
+
+\begin{minted}{Rust}
+    pin!(future);
+\end{minted}
+给定一个类型\texttt{F}的future，\texttt{pin!}宏会获取future的所有权并声明一个同名的新变量，它的类型是\texttt{Pin<\&mut F>}，并且借用那个future。这就给了我们\texttt{poll}方法所需的\texttt{Pin<\&mut Self>}。原因我们将在下一节介绍，但异步函数和块的future在可以被poll之前必须通过\texttt{Pin}来引用。
+
+\begin{minted}{Rust}
+    loop {
+        match future.as_mut().poll(&mut context) {
+            Poll::Ready(value) => return value,
+            Poll::Pending => parker.park(),
+        }
+    }
+\end{minted}
+
+最后，这个poll循环非常简单。传递一个携带我们的waker的上下文之后，我们poll future直到它返回\texttt{Poll::Ready}。如果它返回\texttt{Poll::Pending}，我们就park线程，它会阻塞直到\texttt{waker}被调用。然后我们会再次尝试poll。
+
+\texttt{as\_mut}调用让我们可以在不放弃所有权的情况下poll \texttt{future}；我们将在下一节中更详细地解释这一点。
+
+\section{\texttt{Pin}}
 
 
