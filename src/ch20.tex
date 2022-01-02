@@ -1645,6 +1645,39 @@ future只有被poll之后才会进入第二个生命阶段。\texttt{poll}方法
 我们在普通的异步代码中之所以不用考虑钉住的future，是因为大多数情况下获取一个future的值——await它或者传给一个executor——都会获取future的所有权并在内部管理pinning。例如，我们的\texttt{block\_on}实现就获取了future的所有权，然后使用\texttt{pin!}宏来产生一个poll所需的\texttt{Pin<\&mut F>}。一个\texttt{await}表达式也会获取future的所有权并且在内部使用一种类似\texttt{pin!}宏的方法。
 
 \subsection{\texttt{Unpin} trait}
+然而，不是所有的future都需要这种谨慎地处理。对于任何为普通类型手写的\texttt{Future}实现，例如我们之前提到的\texttt{SpawnBlocking}类型，这种构造和使用pinned指针的限制是不必要的。
 
+这样的类型会实现\texttt{Unpin}标记trait：
+\begin{minted}{Rust}
+    trait Unpin { }
+\end{minted}
+
+Rust中几乎所有的类型都通过编译器的特殊支持实现了\texttt{Unpin}。异步函数和块的future是这个规则的例外。
+
+对于\texttt{Unpin}类型，\texttt{Pin}没有施加任何限制。你可以使用\texttt{Pin::new}从一个普通的指针制造一个pinned指针，也可以使用\texttt{Pin::into\_inner}转换回指针。\texttt{Pin}本身会传递指针自己的\texttt{Deref}和\texttt{DerefMut}实现。
+
+例如，\texttt{String}实现了\texttt{Unpin}，因此我们可以写：
+\begin{minted}{Rust}
+    let mut string = "Pined?".to_string();
+    let mut pinned: Pin<&mut String> = Pin::new(&mut string);
+
+    pinned.push_str(" Not");
+    Pin::into_inner(pinned).push_str(" so much.");
+
+    let new_home = string;
+    assert_eq!(new_home, "Pinned? Not so much.");
+\end{minted}
+
+即使构造出一个\texttt{Pin<\&mut String>}之后，我们也有对原本的字符串的完整可变访问权限，并且一旦\texttt{Pin}被\texttt{into\_inner}消耗，可变引用就会消失，此时我们还可以把它move进一个新的变量中。因此对于那些是\texttt{Unpin}的类型——几乎所有类型都是——\texttt{Pin}只是一个该类型指针的讨厌的包装。
+
+这意味着当你为自己的\texttt{Unpin}类型实现\texttt{Future}时，你的\texttt{poll}实现可以把\texttt{self}看作是一个\texttt{\&mut Self}，而不是一个\texttt{Pin<\&mut Self>}。pin基本可以完全忽略。
+
+你可能会很惊讶\texttt{Pin<\&mut F>}和\texttt{Pin<Box<F>>}实现了\texttt{Unpin}，即使\texttt{F}没有实现。这听起来好像不对——一个\texttt{Pin}怎么能是\texttt{Unpin}？——但如果你仔细想想这两个术语的含义，它确实应该是这样的。即使\texttt{F}一旦被poll之后就不能再安全地move，但一个指向它的指针总是可以安全地move的，不管是否被poll过。只有指针move了，它指向的对象并没有。
+
+当你想把异步函数或块的future传递给一个只接受\texttt{Unpin} future的函数时知道这些是有用的。（这样的函数在\texttt{async\_std}中很罕见，但在异步生态系统的其他地方较为罕见。）即使\texttt{F}不是\texttt{Unpin}，\texttt{Pin<Box<F>>}也是\texttt{Unpin}，因此对一个异步函数或块的future应用\texttt{Box::pin}可以得到一个可以在任何地方使用的future，代价是一次堆分配。
+
+有很多处理\texttt{Pin}的unsafe方法，它们可以让你对指针和它指向的对象做任何事情，即使目标类型不是\texttt{Unpin}。但正如我们在\hyperref[ch22]{第22章}中解释的一样，Rust不能检查这些方法是否被正确使用，确保使用它们的代码的安全性变成了你的责任。
+
+\section{}
 
 
