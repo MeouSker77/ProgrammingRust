@@ -1602,5 +1602,49 @@ future只有被poll之后才会进入第二个生命阶段。\texttt{poll}方法
 请记住，这种move的脆弱性仅限于异步函数和块的future，以及它们特殊的编译器生成的\texttt{Future}实现。如果你手动为你的类型实现了\texttt{Future}，就像我们在“\nameref{InvokeWaker}”中为我们的\texttt{SpawnBlocking}类型做的一样，这样的future不管是在poll前还是poll后都可以完美地move。在任何手写的\texttt{poll}实现中，借用检查器会确保你借用的\texttt{self}的部分引用会在\texttt{poll}返回时消失。这只是因为异步函数和块有能力在一个函数调用中途挂起执行，如果这个过程中有借用，我们必须谨慎处理它们的future。
 
 \subsection{Pinned 指针}
+\texttt{Pin}类型是一个future的指针的包装，它限制了指针的用法来确保future一旦被poll之后就不能再move。对于不会被move的future这些限制可以被忽略，但它们对安全地poll异步函数和块的future是至关重要的。
+
+这里的\emph{指针}，意思是任何实现了\texttt{Deref}或者\texttt{DerefMut}的类型。\texttt{Pin}包装的指针被称为\emph{pinned pointer}。\texttt{Pin<\&mut T>}和\texttt{Pin<Box<T>>}是典型的pinned指针。
+
+标准库中的\texttt{Pin}的定义很简单：
+\begin{minted}{Rust}
+    pub struct Pin<P> {
+        pointer: P,
+    }
+\end{minted}
+
+注意\texttt{pointer}字段\emph{不是}\texttt{pub}的。这意味着唯一构造或者使用\texttt{Pin}的方法就是该类型提供的精心挑选过的方法。
+
+给定一个异步函数或块的future，有一些获取pinned指针的方法：
+\begin{enumerate}
+    \item \texttt{futures-lite} crate提供的\texttt{pin!}宏，把一个\texttt{T}类型的变量替换成一个\texttt{Pin<\&mut T>}类型的新变量。新的变量指向原来的值，原来的值被移动到栈上的一个匿名临时变量中，当新变量离开作用域时，值也会被drop。我们在我们的\texttt{block\_on}实现中使用了\texttt{pin!}来钉住我们想要poll的future。
+    \item 标准库的\texttt{Box::pin}构造器获取任意类型\texttt{T}的值的所有权，把它移动到堆里，然后返回一个\texttt{Pin<Box<T>>}。
+    \item \texttt{Pin<Box<T>>}实现了\texttt{From<Box<T>>}，因此\texttt{Pin::from(boxed)}获取\texttt{boxed}的所有权并返回一个pinned box指向堆上的同一个\texttt{T}值。
+\end{enumerate}
+
+每一种获得future的pinned指针的方式都意味着放弃future的所有权，并且没有办法将它转变回来。pinned指针自身可以move到任何地方，但move一个指针不会move它引用的对象。因此创建一个pinned指针的过程就是在证明你永久放弃了move这个future的能力。这就是想让它可以被安全地poll所需的全部内容。
+
+一旦你钉住了一个future，如果你想poll它，所有的\texttt{Pin<pointer to T>}类型有一个\texttt{as\_mut}方法解引用指针并返回一个\texttt{Pin<&mut T>}，这正是\texttt{poll}所需的。
+
+\texttt{as\_mut}方法还可以帮助你在不放弃所有权的情况下poll一个future。我们的\texttt{block\_on}实现就用到了这一点：
+\begin{minted}{Rust}
+    pin!(future);
+
+    loop {
+        match future.as_mut().poll(&mut context) {
+            Poll::Ready(value) => return value,
+            Poll::Pending => parker.park(),
+        }
+    }
+\end{minted}
+
+这里，\texttt{pin!}宏重新声明\texttt{future}为一个\texttt{Pin<\&mut F>}，因此我们可以把它传递给\texttt{poll}。但可变引用不是\texttt{Copy}，因此\texttt{Pin<\&mut F>}也不能是\texttt{Copy}，这意味着直接调用\texttt{future.poll()}将会获取\texttt{future}的所有权，导致下一次迭代时\texttt{future}的值变为未初始化状态。为了避免这一点，我们调用了\texttt{future.as\_mut()}来在每一次迭代时重新借用一个新的\texttt{Pin<\&mut F>}。
+
+没有办法得到一个被钉住的future的\texttt{\&mut}引用：如果可以的话，你可以使用\texttt{std::mem::replace}或者\texttt{std::mem::swap}来把它move出来，并在原来的地方放一个新的future。
+
+我们在普通的异步代码中之所以不用考虑钉住的future，是因为大多数情况下获取一个future的值——await它或者传给一个executor——都会获取future的所有权并在内部管理pinning。例如，我们的\texttt{block\_on}实现就获取了future的所有权，然后使用\texttt{pin!}宏来产生一个poll所需的\texttt{Pin<\&mut F>}。一个\texttt{await}表达式也会获取future的所有权并且在内部使用一种类似\texttt{pin!}宏的方法。
+
+\subsection{\texttt{Unpin} trait}
+
 
 
