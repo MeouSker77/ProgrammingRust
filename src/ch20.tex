@@ -1561,10 +1561,10 @@ poll一个\texttt{SpawnBlocking}会检查闭包的值是否已经准备好了，
 因为我们刚刚创建这个future，它应该在恢复点\ding{172}，即函数体的开头开始执行。这个状态下，future继续运行时唯一需要的值就是函数参数。
 
 现在假设你已经poll了\texttt{response}几次，它到达了函数体中的这个点：
-\begin{minted}{texcomments}{Rust}
+\begin{minted}[texcomments]{Rust}
     socket.read_to_string(&mut buf).await?; // \ding{174}
 \end{minted}
-\footnote{同上}
+\footnote{同上。}
 
 进一步假设\texttt{read\_to\_string}的结果还没有准备好，因此这一次poll会返回\texttt{Poll::Pending}。这时，future看起来像\autoref{f20-6}。
 

@@ -541,7 +541,7 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
 
 事实证明通过模块来实现访问控制，而不是像Java和C++那样通过类来实现，对于程序设计将是很大的帮助。不仅能减少重复“getter”和“setter”方法，还能消除类似C++中\texttt{friend}声明的需求。一个模块可以定义几个紧密结合的类型，例如\texttt{frond::LeafMap}和\texttt{frond::LeafMapIter}，让它们能按需互相访问彼此的私有字段，同时对程序中的其他部分隐藏实现的细节。
 
-\subsection{静态量和常量}
+\subsection{静态量和常量}\label{static}
 
 除了函数、类型和嵌套模块之外，模块里还可以定义\emph{常量}和\emph{静态量}。
 
