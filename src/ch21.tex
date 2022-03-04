@@ -251,6 +251,17 @@ C++里的这个经典bug你\emph{将不会}看到：
 我们使用\texttt{\$( ... ),+ ,}来匹配一个有额外逗号的列表。然后，我们在模板中递归调用了\texttt{vec!}，但排除了那个逗号。这一次第二条规则将会匹配。
 
 \section{内建的宏}
+Rust编译器提供了几个宏，如果你要定义自己的宏，它们可能会发挥作用。这些宏都不能使用\texttt{macro\_rules!}来实现。它们被硬编码进\texttt{rustc}：
+
+\codeentry{file!(), line!(), column!()}
+
+\hangparagraph{\texttt{file!()}展开成一个字符串字面量：当前的文件名。\texttt{line!()}和\texttt{column!()}展开成\texttt{u32}字面量，表示当前的行号和列号（从1开始计数）。}
+
+\hangparagraph{如果一个宏调用了另一个宏，那个宏又调用了另一个宏，这三个宏在不同的文件中，并且最后一个宏调用了\texttt{file!(), line!()}或者\texttt{column!()}，它会展开成\emph{第一个}宏调用的位置。}
+
+\codeentry{stringify!(...tokens...)}
+
+
 
 
 \section{调试宏}\label{DebugMacro}
