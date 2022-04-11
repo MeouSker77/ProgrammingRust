@@ -335,9 +335,44 @@ Rust还提供了几个方便的宏：
 \hangparagraph{如果你在寻找基本的编写宏的练习，这是一个很好的例子——尤其是你可以在标准库文档中看到它的实际实现非常简单。}
 
 \section{调试宏}\label{DebugMacro}
+调试宏可能很有挑战性。最大的问题是在宏展开的过程中缺少可视性。Rust总是展开所有宏，找到一些错误，然后打印出一条错误信息，但这个错误信息并没有显示出完整的展开后的代码！
 
+这里有三个工具可以帮助你调试宏。（这些特性都是unstable的，但因为它们被设计为用在开发的过程中，而不是最后的代码中，因此在实践中这不是一个很大的问题。）
+
+第一个也是最简单的一个，你可以让\texttt{rustc}显示你的代码在展开所有宏之后是什么样的。使用\texttt{cargo build --verbose}来看看Cargo是怎么调用\texttt{rustc}的。拷贝\texttt{rustc}的命令行并加上\texttt{-Z unstable-options --pretty expanded}选项。完全展开后的代码会输出到终端。不幸的是，只有当你的代码没有语法错误时这种方式才能生效。
+
+第二，Rust提供了一个\texttt{log\_syntax!()}宏简单地在编译期把它的参数打印到终端。你可以使用它来进行\texttt{println!}风格的调试。这个宏需要\texttt{\#![feature(log\_syntax)]}特性标记。
+
+第三，你可以让Rust编译器把所有宏调用记录到终端。在代码中插入\texttt{trace\_macros!(true)}，之后每当Rust展开一个宏时，它都会打印出宏的名字和参数。例如，考虑这个程序：
+\begin{minted}{Rust}
+    #![feature(trace_macros)]
+
+    fn main() {
+        trace_macros!(true);
+        let numbers = vec![1, 2, 3];
+        trace_macros!(false);
+        println!("total: {}", numbers.iter().sum::<u64>());
+    }
+\end{minted}
+
+它会产生如下输出：
+\begin{minted}{text}
+    $ rustup override set nightly
+    ...
+    $ rustc trace_example.rs
+    note: trace_macro
+     --> trace_example.rs:5:19
+      |
+    5 |     let numbers = vec![1, 2, 3];
+      |                   ^^^^^^^^^^^^^
+      |
+      = note: expanding `vec! { 1 , 2 , 3 }`
+      = note: to `< [ _ ] > :: into_vec ( box [ 1 , 2 , 3 ] )`
+\end{minted}
+编译器会显示每一个宏调用的代码，包括展开之前和展开之后的代码。\texttt{trace\_macros!(false);}这一行关闭了追踪，因此\texttt{println!()}的调用不会被追踪。
 
 \section{构建\texttt{json!}宏}
+
 
 
 \subsection{片段类型}\label{FragType}
