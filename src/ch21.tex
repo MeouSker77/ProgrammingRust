@@ -373,6 +373,178 @@ Rust还提供了几个方便的宏：
 
 \section{构建\texttt{json!}宏}
 
+我们已经讨论了\texttt{macro\_rules!}的核心特性。在这一节，我们将渐进式开发一个构建JSON数据的宏。我们将用这个例子来展示开发一个宏的过程、展示\texttt{macro\_rules!}剩余的部分、并提供一些保证你的宏正确工作的建议。
 
+回到\hyperref[ch10]{第10章}，我们使用了这个枚举来代表JSON数据：
+\begin{minted}{Rust}
+    #[derive(Clone, PartialEq, Debug)]
+    enum Json {
+        Null,
+        Boolean(bool),
+        Number(f64),
+        String(String),
+        Array(Vec<Json>),
+        Object(Box<HashMap<String, Json>>)
+    }
+\end{minted}
+
+不幸的是，编写\texttt{Json}值的语法非常复杂：
+\begin{minted}{Rust}
+    let students = Json::Array(vec![
+        Json::Object(Box::new(vec![
+            ("name".to_string(), Json::String("Jim Blandy".to_string())),
+            ("class_of".to_string(), Json::Number(1926.0)),
+            ("major".to_string(), Json::String("Tibetan throat singing".to_string()))
+        ].into_iter().collect())),
+        Json::Object(Box::new(vec![
+            ("name".to_string(), Json::String("Jason Orendorff".to_string())),
+            ("class_of".to_string(), Json::Number(1702.0)),
+            ("major".to_string(), Json::String("Knots".to_string()))
+        ].into_iter().collect()))
+    ]);
+\end{minted}
+
+我们希望能使用更类似JSON的语法来实现同样的效果：
+\begin{minted}{Rust}
+    let students = json!([
+        {
+            "name": "Jim Blandy",
+            "class_of": 1926,
+            "major", "Tibetan throat singing"
+        },
+        {
+            "name": "Jason Orendorff",
+            "class_of": 1702,
+            "major": "Knots"
+        }
+    ]);
+\end{minted}
+
+我们要实现的是一个\texttt{json!}宏，它获取一个JSON值作为参数并展开为类似上一个例子中的表达式。
 
 \subsection{片段类型}\label{FragType}
+编写任何复杂宏的第一步都是指明如何匹配或\emph{解析}期望的输入。
+
+我们已经能看到这个宏将会有好几条规则，因为JSON数据中有几种不同的东西：对象，数组，数字等等。实际上，我们可能会猜测我们将为每一种JSON类型编写一条规则：
+\begin{minted}{Rust}
+    macro_rules! json {
+        (null)    => { Json::Null };
+        ([ ... ]) => { Json::Array(...) };
+        ({ ... }) => { Json::Object(...) };
+        (???)     => { Json::Boolean(...) };
+        (???)     => { Json::Number(...) };
+        (???)     => { Json::String(...) };
+    }
+\end{minted}
+
+这并不完全正确，因为宏模式没法区分最后最终三种情况，但我们稍后将会看到怎么处理它们。前三种情况至少很明显地以不同的token开头，因此我们可以用这些token进行区分。
+
+第一个规则已经可以工作了：
+\begin{minted}{Rust}
+    macro_rules! json {
+        (null) => {
+            Json::Null
+        }
+    }
+
+    #[test]
+    fn json_null() {
+        assert_eq!(json!(null), json::Null);    // passes!
+    }
+\end{minted}
+
+为了支持JSON数组，我们可能要尝试匹配元素为\texttt{expr}：
+\begin{minted}{Rust}
+    macro_rules! json {
+        (null) => {
+            Json::Null
+        };
+        ([ $( $element:expr ),* ]) => {
+            Json::Array(vec![ $( $element ),* ])
+        };
+    }
+\end{minted}
+
+不幸的是，者不能匹配所有的JSON数组。这里有一个会产生问题的例子：
+\begin{minted}{Rust}
+    #[test]
+    fn json_array_with_json_element() {
+        let macro_generated_value = json!(
+            [
+                // 有效的JSON，但不匹配`$element:expr`
+                {
+                    "pitch": 440.0
+                }
+            ]
+        );
+        let hand_coded_value =
+            Json::Array(vec![
+                Json::Object(Box::new(vec![
+                    ("pitch".to_string(), Json::Number(440.0))
+                ].into_iter().collect()))
+            ]);
+        assert_eq!(macro_generated_value, hand_coded_value);
+    }
+\end{minted}
+
+模式\texttt{\$( \$element:expr ),*}意思是“一个逗号分隔的Rust表达式的列表”。但很多JSON值尤其是对象，不是有效的Rust表达式，它们不能匹配。
+
+因为你想要匹配的代码并不都是表达式，所以Rust还支持其他几种片段类型，如\autoref{t21-2}所示。
+
+\begin{table}[htbp]
+    \centering
+    \caption{\texttt{macro\_rules!}支持的片段类型}
+    \label{t21-2}
+    \begin{tabular}{lp{0.7\textwidth}p{0.2\textwidth}}
+        \hline
+        \textbf{片段类型}   & \textbf{匹配的内容（及示例）} &   \textbf{后边可以跟} \\
+        \hline
+        \texttt{expr}   & 一个表达式：\texttt{2 + 2, "udon", x.len()}   & \texttt{=> , ;}   \\
+        \rowcolor{tablecolor}
+        \texttt{stmt}   & 一个表达式或者声明，不包括尾部的分号（很难用；尝试用\texttt{expr}或\texttt{block}代替）   & \texttt{=> , ;} \\
+        \texttt{ty} & 一个类型：\texttt{String, Vec<u8>, (\&str, bool), dyn Read + Send}    & \texttt{=> , ; | \{ [ : > as where} \\
+        \rowcolor{tablecolor}
+        \texttt{path}   & 一个路径（已讨论过）：\texttt{ferns, ::std::sync::mpsc}   & \texttt{=> , ; | \{ [ : > as where} \\
+        \texttt{pat}    & 一个模式（已讨论过）：\texttt{\_, Some(ref x)}    & \texttt{=> , = | if in} \\
+        \rowcolor{tablecolor}
+        \texttt{item}   & 一个item（已讨论过）：\texttt{struct Point \{ x: f64, y: f64 \}, mod ferns;}  & 任何东西 \\
+        \texttt{block}  & 一个块（已讨论过）：\texttt{\{ s += "ok\textbackslash n"; true \}}  & 任何东西  \\
+        \rowcolor{tablecolor}
+        \texttt{meta}   & 一个属性的内容（已讨论过）：\texttt{inline, derive(Copy, Clone), doc="3D models."} & 任何东西 \\
+        \texttt{ident}  & 一个标识符：\texttt{std, Json, longish\_variable\_name}   & 任何东西 \\
+        \rowcolor{tablecolor}
+        \texttt{literal}& 一个字面值：\texttt{1024, "Hello, world!", 1\_000\_000f64}    & 任何东西 \\
+        \texttt{lifetime} & 一个生命周期：\texttt{'a, 'item, 'static}   & 任何东西 \\
+        \rowcolor{tablecolor}
+        \texttt{vis}    & 可见性说明符：\texttt{pub, pub(crate), pub(in module::submodule)} & 任何东西 \\
+        \texttt{tt}     & 一个token树：\texttt{;, >=, \{\}, [0 1 (+ 0 1)]}  & 任何东西 \\
+    \end{tabular}
+\end{table}
+
+表格中的大部分选项严格要求Rust语法。\texttt{expr}类型只匹配Rust表达式（不是JSON值），\texttt{ty}只匹配Rust类型，等等。它们是不可扩展的：没有办法定义一种新的可以用\texttt{expr}识别的运算符或关键字。我们不能用这些来实现匹配任意JSON数据。
+
+最后两个，\texttt{ident}和\texttt{tt}，支持匹配不是Rust代码的参数。\texttt{ident}匹配任何标识符。\texttt{tt}匹配单个\emph{token树}：一对正确匹配的括号：\texttt{(...), [...], \{...\}}，以及其中的任何内容，包括嵌套的token树；或者一个没有括号的单个token，例如\texttt{1926}或\texttt{"Knots"}。
+
+token树正是我们的\texttt{json!}宏所需要的。每一个JSON值都是单个token树：数字、字符串、bool值、\texttt{null}都是单个token，对象和数组是token树。因此我们可以写出像这样的模式：
+\begin{minted}{Rust}
+    macro_rules! json {
+        (null) => {
+            Json::Null
+        };
+        ([ $( $element:tt ),* ]) => {
+            Json::Array(...)
+        };
+        ({ $( $key:tt : $value: tt),* }) => {
+            Json::Object(...)
+        };
+        ($other::tt) => {
+            ... // TODO: 返回数字、字符串、bool值
+        };
+    }
+\end{minted}
+
+这个版本的\texttt{json！}宏可以匹配任何JSON数据。现在我们只需要产生正确的Rust代码。
+
+为了保证Rust在未来可以添加新的语法特性而不会破坏任何你今天写的宏，Rust限制了模式中紧跟在片段之后的token。\autoref{t21-2}中“后边可以跟”这一列展示了哪些token可以跟在模式后面。例如，模式\texttt{\$x:expr ~ \$y:expr}是错的，因为\texttt{~}不允许出现在\texttt{expr}后面。模式\texttt{\$vars:pat => \$handler:expr}是可以的，因为\texttt{\$vars:pat}后跟的是箭头\texttt{=>}，它允许跟在\texttt{pat}后面，而\texttt{\$handler:expr}后面没有跟任何东西，这种情况总是允许的。
+
+\subsection{宏中的递归}
