@@ -261,8 +261,78 @@ Rust编译器提供了几个宏，如果你要定义自己的宏，它们可能�
 
 \codeentry{stringify!(...tokens...)}
 
+\hangparagraph{展开成一个包含给定token的字符串字面量。\texttt{assert!}宏就是使用了它来生成一条包含了断言代码的错误信息。}
 
+\hangparagraph{参数中的宏调用\emph{不会}被展开：\texttt{stringify!(line!())}会展开为\texttt{"line!()"}。}
 
+\hangparagraph{Rust根据token构建字符串，因此生成的字符串里没有换行符或者注释。}
+
+\codeentry{concat!(str0, str1, ...)}
+
+\hangparagraph{连接参数开展为单个字符串字面量。}
+
+Rust还定义了下面这些宏用来查询构建环境：
+
+\codeentry{cfg!(...)}
+
+\hangparagraph{展开为一个bool常量，如果当前的构建环境满足括号里的条件则为\texttt{true}。例如，如果在编译时启用了调试断言那么\texttt{cfg!(debug\_assertions)}为真。}
+
+\hangparagraph{这个宏和\nameref{attribute}中介绍过的\texttt{\#[cfg(...)]}属性的语法完全相同，但它不是条件编译，而是得到一个true或者false。}
+
+\codeentry{env!("VAR\_NAME")}
+
+\hangparagraph{展开为一个字符串：在编译时该环境变量的值。如果这个变量不存在，会产生编译错误。}
+
+\hangparagraph{除了Cargo在编译crate时设置的几个有趣的环境变量之外，这个宏毫无价值。例如，为了得到crate当前的版本，你可以写：}
+\begin{minted}{Rust}
+        let version = env!("CARGO_PKG_VERSION");
+\end{minted}
+
+\hangparagraph{这些环境变量的完整列表见\href{https://doc.rust-lang.org/cargo/reference/environment-variables.html\#environment-variables-cargo-sets-for-crates}{Cargo文档}。}
+
+\codeentry{option\_env!("VAR\_NAME")}
+
+\hangparagraph{它和\texttt{env!}宏一样，除了它返回一个\texttt{Option<\&'static str>}，当环境变量没有设置时返回\texttt{None}。}
+
+还有更多内建的宏可以让你引入另一个文件中的代码或者数据：
+\codeentry{include!("file.rs")}
+
+\hangparagraph{展开为指定文件的内容，必须是有效的Rust代码——表达式或者\hyperref[declaration]{item}的序列。}
+
+\codeentry{include\_str!("file.txt")}
+
+\hangparagraph{展开成一个包含指定文件内容的\texttt{\&'static str}。你可以像这样使用它：}
+
+\begin{minted}{Rust}
+        const COMPOSITOR_SHADER: &str =
+            include_str!("../resources/compositor.glsl");
+\end{minted}
+
+\hangparagraph{如果文件不存在或者不是有效的UTF-8，会产生编译错误。}
+
+\codeentry{include\_bytes!("file.dat")}
+
+\hangparagraph{和上一个基本相同，除了它把文件当作二进制数据而不是UTF-8文本，结果是一个\texttt{\&'static [u8]}。}
+
+和所有的宏一样，这些宏也是在编译时进行处理。如果文件不存在或者不能被读取，就会编译失败。它们不可能在运行时出错。在任何情况下，如果文件名是一个相对路径，它会被解析为相对于当前文件所在的目录的路径。
+
+Rust还提供了几个方便的宏：
+\codeentry{todo!(), unimplemented!()}
+
+\hangparagraph{这些等价于\texttt{panic!()}，但用于表示不同的意图。\texttt{unimplemented!()}出现在\texttt{if}分支、\texttt{march}分支，以及其它还未处理的case中。它总是会panic。\texttt{todo!()}大致相同，但传达的意图是代码还没写完；一些IDE使用它来进行标记。}
+
+\codeentry{matches!(value, pattern)}
+
+\hangparagraph{比较一个值和一个模式，当它们匹配时返回\texttt{true}，否则返回\texttt{false}。它等价于写：}
+
+\begin{minted}{Rust}
+        match value {
+            pattern => true,
+            _ => false
+        }
+\end{minted}
+
+\hangparagraph{如果你在寻找基本的编写宏的练习，这是一个很好的例子——尤其是你可以在标准库文档中看到它的实际实现非常简单。}
 
 \section{调试宏}\label{DebugMacro}
 

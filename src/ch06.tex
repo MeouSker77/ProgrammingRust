@@ -210,7 +210,7 @@ C中的大部分控制流工具都是语句，在Rust中则全是表达式。
 
 在缺少分号的情况下，块的值将是\texttt{page.compute\_size()}返回的值，但一个没有\texttt{else}分支的\texttt{if}语句必须总是返回\texttt{()}。幸运的是，Rust知道这种类型的错误并建议加上分号。
 
-\section{声明}
+\section{声明}\label{declaration}
 
 除了表达式和分号之外，一个块中可能包含任意数量的声明。最常见的情况是\texttt{let}声明，它用来声明局部变量：
 \begin{minted}{Rust}
