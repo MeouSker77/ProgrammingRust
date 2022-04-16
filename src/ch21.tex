@@ -848,5 +848,46 @@ hygiene让宏的使用变得更繁琐了一点，但这是一个特性，而不�
 
 因为\texttt{.to\_string()}方法是标准的\texttt{ToString} trait的一部分，所以我们也使用了\texttt{\$crate}来引用它，并使用了我们在\nameref{fullymethod}中介绍过的语法：\texttt{\$crate::macors::ToString::to\_string(\$key)}。在我们的例子中，为了让宏能正常工作，这并不是必须的，因为\texttt{ToString}在标准prelude里。但如果你在调用一个trait的方法，并且这个trait可能不在调用处的作用域里，那么完全限定方法调用将是最好的方式。
 
+\section{在匹配时避免语法错误}
+下面的宏看起来是有原因的，但它会给Rust带了一些麻烦：
+\begin{minted}{Rust}
+    macro_rules! complain {
+        ($msg:expr) => {
+            println!("Complaint filed: {}", $msg);
+        };
+        (user : $userid:tt , $msg:expr) => {
+            println!("Complaint from user {}: {}", $userid, $msg);
+        };
+    }
+\end{minted}
+
+假如我们像这样调用它：
+\begin{minted}{Rust}
+    complain!(user: "jimb", "the AI lab's chatbots keep picking on me");
+\end{minted}
+
+对人眼来说，显然这会匹配第二个模式。但Rust会首先尝试第一个规则，尝试用\texttt{\$msg:expr}匹配所有的输入。这时事情会变得糟糕起来。\texttt{user: "jimb"}显然不是一个表达式，因此我们会得到一个语法错误。Rust拒绝掩盖语法错误——宏已经足够难调试了。它会立刻报错并中断编译。
+
+如果模式中的其他token匹配失败，rust会移动到下一条规则。只有语法错误会导致终止，并且只有当尝试匹配片段时才会出现语法错误。
+
+这里的问题并不能理解：我们尝试在一条错误的规则中用\texttt{\$msg:expr}匹配一个片段。它会匹配失败，因为我们没想过用这条规则来匹配，调用者是希望用另一条规则来匹配。有两种避免这个错误的方式：
+
+第一，避免易混淆的规则。例如，我们可以修改宏，让每一个模式都以一个不同的标识符开头：
+\begin{minted}{Rust}
+    macro_rules! complain {
+        (msg : $msg:expr) => {
+            println!("Complaint filed: {}", $msg);
+        };
+        (user : $userid:tt , msg : $msg:expr) => {
+            println!("Complaint from user {}: {}", $userid, $msg);
+        };
+    }
+\end{minted}
+
+当宏的参数以\texttt{msg}开头时，我们会得到规则1。当它们以\texttt{user}开头时，我们会得到规则2。我们现在可以在尝试匹配一个片段之前得到正确的规则。
+
+另一种避免伪语法错误的方式是把更加具体的规则放在前面。把\texttt{user :}规则放在第一个就可以解决\texttt{complain!}的问题，会导致语法错误的规则不会再被触发。
+
+
 
 
