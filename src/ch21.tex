@@ -10,9 +10,9 @@ Rust支持\emph{宏(macros)}：一种普通函数无法做到的扩展语言的�
     assert_eq!(gcd(6, 10), 2);
 \end{minted}
 
-这也可以写成一个泛型函数，但\texttt{assert\_eq!}可以做到几件函数做不到的事。一是当断言失败时，\texttt{assert\_eq!}会生成包含断言所在的文件名和行号的错误消息。函数没有办法获得这些信息。但宏可以，因为它们工作的方式完全不同。
+这也可以写成一个泛型函数，但\texttt{assert\_eq!}可以做到几件函数做不到的事。其中一点是当断言失败时，\texttt{assert\_eq!}会生成包含断言所在的文件名和行号的错误消息。函数没有办法获得这些信息，但宏可以，因为它们工作的方式完全不同。
 
-宏是一种缩写。在编译期间，在类型检查之前、更在生成任何机器码之前，每一个宏调用都会被\emph{展开(expand)}——即，被替换为一些Rust代码。上面的宏调用会展开成类似这样的代码：
+宏是一种简写。编译期间在类型检查之前、更在生成任何机器码之前，每一个宏调用都会被\emph{展开(expand)}——即被替换为一些Rust代码。上面的宏调用会展开成类似这样的代码：
 \begin{minted}{Rust}
     match (&gcd(6, 10), &2) {
         (left_val, right_val) => {
@@ -24,7 +24,7 @@ Rust支持\emph{宏(macros)}：一种普通函数无法做到的扩展语言的�
     }
 \end{minted}
 
-\texttt{panic!}也是一个宏，它自己会展开成更多Rust代码（这里没有展示）。那些代码里用到了两个别的宏，\texttt{file!()}和\texttt{line!()}。一旦crate中的每一个宏调用都被完全展开，Rust会进入编译的下一个阶段。
+\texttt{panic!}也是一个宏，它自己会展开成更多Rust代码（这里没有展示）。那些代码里用到了两个别的宏：\texttt{file!()}和\texttt{line!()}。一旦crate中的每一个宏调用都被完全展开，Rust会进入编译的下一个阶段。
 
 在运行时，一个断言失败看起来像这样（并且可能指示\texttt{gcd()}函数中的一个bug，因为\texttt{2}是正确的答案）：
 \begin{minted}{text}
@@ -34,7 +34,7 @@ Rust支持\emph{宏(macros)}：一种普通函数无法做到的扩展语言的�
 
 如果你是从C++来的，你可能经历过一些宏的糟糕体验。Rust的宏采用了一种不同的方式，类似于Scheme的\texttt{syntax-rules}。相比于C++的宏，Rust的宏和语言的其他部分集成得更好，并且因此更不容易出错。宏调用总是用感叹号标记，这样当你阅读代码时它们会很显眼，并且不会在你想调用函数时偶然错误地调用成了宏。Rust的宏从来不会插入不匹配的花括号或圆括号。并且Rust的宏带有模式匹配，这使得编写既可维护又易于使用的宏变得更容易。
 
-在本章中，我们将通过几个简单的示例展示如何编写宏。但和Rust中的很多部分一样，宏值得深入理解，所以我们将介绍一个更复杂的宏的设计，它允许我们直接在我们的程序中嵌入JSON字面量。但除了本书中介绍的部分之外，宏还有更多的内容。因此我们将以一些进一步学习的点结束，既有我们将在这里向你展示的高级技巧，也有功能更加强大的设施称为\emph{过程宏(procedural macros)}。
+在本章中，我们将通过几个简单的示例展示如何编写宏。但和Rust中的很多部分一样，宏值得深入理解，所以我们将介绍一个更复杂的宏的设计，它允许我们直接在我们的程序中嵌入JSON字面量。但除了本书中介绍的部分之外，宏还有更多的内容。因此我们将以一些进一步学习的点结束，既有我们将在这里向你展示的高级技巧，也有功能更强大的被称为\emph{过程宏(procedural macros)}的设施。
 
 \section{宏基础}
 \autoref{f21-1}展示了\texttt{assert\_eq!}宏的部分源码。
@@ -81,7 +81,7 @@ Rust会在编译的前期展开宏。编译器会从头到尾读取源码，在�
 当Rust展开一个\texttt{assert\_eq!}宏调用时，行为和执行一个\texttt{match}表达式非常像。Rust首先根据模式匹配参数，如\autoref{f21-2}所示：
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.8\textwidth]{../img/f21-2.png}
+    \includegraphics[width=0.6\textwidth]{../img/f21-2.png}
     \caption{展开一个宏，第1部分：用模式匹配参数}
     \label{f21-2}
 \end{figure}
@@ -187,7 +187,8 @@ C++里的这个经典bug你\emph{将不会}看到：
 
 当Rust展开一个例如\texttt{vec![1, 2, 3]}的宏调用时，它首先尝试匹配参数\texttt{1, 2, 3}和第一条规则的模式，即\texttt{\$elem:expr ; \$n:expr}。这会匹配失败：\texttt{1}是一个表达式，但这个模式要求它后边有一个分号，然而并没有。因此Rust会移动到第二个规则，等等。如果没有规则可以匹配，就会报错。
 
-第一个规则处理类似\texttt{vec![0u8; 1000]}这样的调用。恰好有一个标准（但不在文档里的）函数\texttt{std::vec::from\_elem}，正好可以完成我们需要的功能，因此这个规则很直观。
+第一个规则处理类似\texttt{vec![0u8; 1000]}这样的调用。恰好有一个标准（但不在文档里的）函数\\
+\texttt{std::vec::from\_elem}，正好可以完成我们需要的功能，因此这个规则很直观。
 
 第二个规则处理\texttt{vec!["udon", "ramen", "soba"]}。模式\texttt{\$( \$x:expr ),*}使用了一个我们之前没有提过的的特性：重复。它匹配0个或多个逗号分隔的表达式。更一般地来说，语法\texttt{\$( PATTERN ),*}用来匹配任意逗号分割的列表，其中列表中的每一项匹配\texttt{PATTERN}。
 
@@ -495,7 +496,7 @@ Rust还提供了几个方便的宏：
     \centering
     \caption{\texttt{macro\_rules!}支持的片段类型}
     \label{t21-2}
-    \begin{tabular}{lp{0.7\textwidth}p{0.2\textwidth}}
+    \begin{tabular}{lp{0.6\textwidth}p{0.2\textwidth}}
         \hline
         \textbf{片段类型}   & \textbf{匹配的内容（及示例）} &   \textbf{后边可以跟} \\
         \hline
@@ -728,9 +729,8 @@ token树正是我们的\texttt{json!}宏所需要的。每一个JSON值都是单
 不同颜色的变量，就好像有不同的名字一样：
 \begin{figure*}[h]
     \centering
-    \includegraphics[width=0.8\textwidth]{../img/f21-4.png}
+    \includegraphics[width=0.8\textwidth]{../img/f21-x.png}
 \end{figure*}
-
 注意这里宏的调用者传入并被粘贴到输出中的代码，例如\texttt{"name"}和\texttt{"actor"}，保持了它们原本的颜色（黑色）。只有宏模板生成的token被染成了另一种颜色。
 
 现在这里有一个叫\texttt{fields}的变量（在调用者中声明）和另一个叫\texttt{fields}的变量（宏引入的）。因为这两个名字的颜色不同，所以这两个变量不会混淆。
@@ -888,6 +888,24 @@ hygiene让宏的使用变得更繁琐了一点，但这是一个特性，而不�
 
 另一种避免伪语法错误的方式是把更加具体的规则放在前面。把\texttt{user :}规则放在第一个就可以解决\texttt{complain!}的问题，会导致语法错误的规则不会再被触发。
 
+\section{\texttt{macro\_rules!}之外}
+宏模式可以解析比JSON更复杂得多的输入，但我们会发现它的复杂性很快就脱离了控制。
 
+Daniel Keep等人的\href{https://danielkeep.github.io/tlborm/book/}{The Litter Book of Rust Macros}是一本优秀的讲解高级\texttt{macro\_rules!}编程的书。这本书非常的清楚和聪明，它比我们这里更加详细地描述了宏展开的每一个概念。它还提出了几种非常巧妙的技术，将\texttt{macro\_rules!}模式作为一种编程语言来解析复杂的输入。这一点我们不太热衷。请小心使用。
 
+Rust 1.15引入了一种单独的机制称为\emph{过程宏(procedural macros)}。过程宏支持扩展\texttt{\#[derive]}属性来实现自定义派生，如\autoref{f21-4}所示。还可以创造自定义的属性，以及新的和之前介绍的\texttt{macro\_rules!}宏调用方式一样的宏。
 
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f21-4.png}
+    \caption{通过\texttt{\#[derive]}属性来调用一个\texttt{IntoJson}过程宏}
+    \label{f21-4}
+\end{figure}
+
+并不存在\texttt{IntoJson} trait，但没关系：一个过程宏可以使用这种方式来插入它需要的代码（在这个例子中，可能是\texttt{impl From<Money> for Json \{ ... \}}。
+
+过程宏之所以被称为“过程”是因为它被实现为一个Rust函数，而不是声明规则集。这个函数通过一个简单的抽象层和编译器交互，并且可以非常复杂。例如，\texttt{diesel}数据库的库使用了过程宏来连接到一个数据库并在编译期根据该数据库的模式生成代码。
+
+因为过程宏要和编译器内部交互，编写高效的宏需要了解编译器的工作原理，这超出了本书的范围。然而，它在\href{https://doc.rust-lang.org/book/ch19-06-macros.html\#procedural-macros-for-generating-code-from-attributes}{在线文档}中有充分的介绍。
+
+也许当读到这里时，你已经决定了你很讨厌宏。那该怎么办呢？一种替代方案是使用构建脚本来生成Rust代码。\href{https://doc.crates.io/build-script.html\#case-study-code-generation}{Cargo文档}一步步地展示了怎么做到这点。它包含编写一个程序生成你想要的Rust代码、在\emph{Cargo.toml}中添加一行以在构建过程中运行这个程序、使用\texttt{include!}把生成的代码引入你的crate。
