@@ -783,3 +783,70 @@ token树正是我们的\texttt{json!}宏所需要的。每一个JSON值都是单
 hygiene让宏的使用变得更繁琐了一点，但这是一个特性，而不是bug：知道了它们不会在背后扰乱局部变量之后，可以更容易地推理hygiene宏。如果你在一个函数里搜索一个类似\texttt{server\_socket}的标识符，你将会发现所有使用了它的地方，包括宏调用。
 
 \subsection{导入和导出宏}
+因为宏在编译的早期被展开，此时Rust还不知道你的项目的完整的模块结构，因此编译器有特殊的方法来导入和导出它们。
+
+在一个模块中可见的宏自动地在它的子模块中可见。为了从一个模块“逆向”导出到它的父模块，可以使用\texttt{\#[macro\_use]}属性。例如，假设我们的\emph{lib.rs}看起来像这样：
+\begin{minted}{Rust}
+    #[macro_use] mod macros;
+    mod client;
+    mod server;
+\end{minted}
+
+\texttt{macros}模块中定义的所有的宏都被导入到了\texttt{lib.rs}，因此它们对crate中的其他部分都可见，包括在\texttt{client}和\texttt{server}中。
+
+使用\texttt{\#[macro\_export]}标记的宏自动地变为\texttt{pub}并可以和其他item一样通过路径引用。
+
+例如，\texttt{lazy\_static} crate提供了一个叫\texttt{lazy\_static}的被\texttt{\#[macro\_export]}标记的宏。为了在你自己的crate中使用这个宏，你可以写：
+\begin{minted}{Rust}
+    use lazy_static::lazy_static;
+    lazy_static!{ }
+\end{minted}
+一旦一个宏被导入之后，就可以像其他的item一样使用它：
+\begin{minted}{Rust}
+    use lazy_static::lazy_static;
+
+    mod m {
+        crate::lazy_static!{ }
+    }
+\end{minted}
+
+当然，实际上这也意味着你的宏可能会在其他的模块中被调用。因此一个导出的宏不应该依赖任何作用域中的东西——没有办法预测使用它的作用域中会有什么。甚至标准prelude的特性也可以被遮蔽。
+
+因此，宏应该使用绝对路径来表示它用到的任何名称。为此\texttt{macro\_rules!}提供了特殊的片段\texttt{\$crate}。它和\texttt{crate}不同，后者是一个可以在任何地方的路径中使用的关键字，而不仅仅是在宏里。\texttt{\$crate}的含义类似于定义这个宏的crate的根模块的绝对路径。我们可以使用\texttt{\$crate::Json}来代替\texttt{Json}，这样即使\texttt{Json}没有被导入也可以工作。\texttt{HashMap}可以改为\texttt{::std::collections::HashMap}或者\texttt{\$crate::macros::HashMap}。在后者的情况下，我们需要重新导出\texttt{HashMap}，因为\texttt{\$crate}不能用来访问crate的私有特性。它实际上会被展开成类似\texttt{::jsonlib}的普通路径。可见性规则不受影响。
+
+在将宏移动到了它自己的\texttt{macros}模块，并修改它使用\texttt{\$crate}之后，它看起来像这样。这是最终的版本：
+\begin{minted}{Rust}
+    // macro.rs
+    pub use std::collections::HashMap;
+    pub use std::boxed::Box;
+    pub use std::string::ToString;
+
+    #[macro_export]
+    macro_rules! json {
+        (null) => {
+            $crate::Json::Null
+        };
+        ([ $( $element:tt ),* ]) => {
+            $crate::Json::Array(vec![ $( json!($element) ),* ])
+        };
+        ({ $( $key:tt : $value:tt ),* }) => {
+            {
+                let mut fields = $crate::macros::Box::new(
+                    $crate::macros::HashMap::new());
+                $(
+                    fields.insert($crate::macros::ToString::to_string($key), 
+                                  json!($value));
+                )*
+                $crate::Json::Object(fields)
+            }
+        };
+        ($other:tt) => {
+            $crate::Json::from($other)
+        };
+    }
+\end{minted}
+
+因为\texttt{.to\_string()}方法是标准的\texttt{ToString} trait的一部分，所以我们也使用了\texttt{\$crate}来引用它，并使用了我们在\nameref{fullymethod}中介绍过的语法：\texttt{\$crate::macors::ToString::to\_string(\$key)}。在我们的例子中，为了让宏能正常工作，这并不是必须的，因为\texttt{ToString}在标准prelude里。但如果你在调用一个trait的方法，并且这个trait可能不在调用处的作用域里，那么完全限定方法调用将是最好的方式。
+
+
+
