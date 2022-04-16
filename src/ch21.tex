@@ -579,3 +579,110 @@ token树正是我们的\texttt{json!}宏所需要的。每一个JSON值都是单
     #![recursion_limit = "256"]
 \end{minted}
 我们的\texttt{json!}宏基本已经完成了。剩下的只有支持布尔、数字和字符串值。
+
+\subsection{宏和trait}
+编写复杂的宏时总是会遇到困难。重要的是要记住，宏并不是解决问题的唯一途径。
+
+这里，我们需要支持\texttt{json!(true)}、\texttt{json!(1.0)}、\texttt{json!("yes")}，把这些值转换成对应的\texttt{Json}值。但宏并不擅长区分类型。假如我们这么写：
+\begin{minted}{Rust}
+    macro_rules! json {
+        (true) => {
+            Json::Boolean(true)
+        };
+        (false) => {
+            Json::Boolean(false)
+        };
+        ...
+    }
+\end{minted}
+
+显然这种方案是行不通的。布尔类型只有两个值，但数字和字符串有很多值。
+
+幸运的是，有一种标准的把多种类型的值转换成另一种特定类型的方法：\texttt{From} trait。我们可以简单地为几种类型实现这个trait：
+\begin{minted}{Rust}
+    impl From<bool> for Json {
+        fn from(b: bool) -> Json {
+            Json::Boolean(b)
+        }
+    }
+
+    impl From<i32> for Json {
+        fn from(i: i32) -> Json {
+            Json::Number(i as f64)
+        }
+    }
+
+    impl From<String> for Json {
+        fn from(s: String) -> Json {
+            Json::String(s)
+        }
+    }
+
+    impl<'a> From<&'a str> for Json {
+        fn from(s: &'a str) -> Json {
+            Json::String(s.to_string())
+        }
+    }
+    ...
+\end{minted}
+
+事实上，所有的12种数字类型应该有非常相似的实现，因此编写一个宏来避免复制粘贴是有意义的：
+\begin{minted}{Rust}
+    macro_rules! impl_from_num_for_json {
+        ( $( $t:ident )* ) => {
+            $(
+                impl From<$t> for Json {
+                    fn from(n: $t) -> Json {
+                        Json::Number(n as f64)
+                    }
+                }
+            )*
+        };
+    }
+
+    impl_from_num_for_json!(u8 i8 u16 i16 u32 i32 u64 i64 u128 i128
+                            usize isize f32 f64);
+\end{minted}
+
+现在我们可以使用\texttt{Json::from(value)}来把\texttt{value}转换成\texttt{Json}。在我们的宏中，看起来像这样：
+\begin{minted}{Rust}
+    ( $other:tt ) => {
+        Json::from($other)  // 处理布尔/数字/字符串
+    };
+\end{minted}
+
+向我们的\texttt{json!}宏中添加了这个规则之后，它就可以通过我们目前写过的所有测试了。把所有部分汇总起来，它现在看起来像这样：
+\begin{minted}{Rust}
+    macro_rules! json {
+        (null) => {
+            Json::Null
+        };
+        ([ $( $element:tt),* ]) => {
+            Json::Array(vec![ $( json!($element) ),* ])
+        };
+        ({ $( $key:tt : $value:tt ),* }) => {
+            Json::Object(Box::new(vec![
+                $( ($key.to_string(), json!($value)) ),*
+            ].into_iter().collect()))
+        };
+        ( $other:tt ) => {
+            Json::from($other)  // 处理布尔/数字/字符串
+        };
+    }
+\end{minted}
+
+事实证明，这个宏意外地支持在JSON数据中使用变量甚至任意的Rust表达式，这是一个有趣的特性：
+\begin{minted}{Rust}
+    let width = 4.0;
+    let desc = 
+        json!({
+            "width": width,
+            "height": (width * 9.0 / 4.0)
+        });
+\end{minted}
+
+因为\texttt{(width * 9.0 / 4.0)}是用括号括起来的，所以它是单个的token树，因此在解析这个对象时宏可以成功地用\texttt{\$value:tt}匹配它。
+
+
+
+
