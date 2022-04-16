@@ -548,3 +548,34 @@ token树正是我们的\texttt{json!}宏所需要的。每一个JSON值都是单
 为了保证Rust在未来可以添加新的语法特性而不会破坏任何你今天写的宏，Rust限制了模式中紧跟在片段之后的token。\autoref{t21-2}中“后边可以跟”这一列展示了哪些token可以跟在模式后面。例如，模式\texttt{\$x:expr ~ \$y:expr}是错的，因为\texttt{~}不允许出现在\texttt{expr}后面。模式\texttt{\$vars:pat => \$handler:expr}是可以的，因为\texttt{\$vars:pat}后跟的是箭头\texttt{=>}，它允许跟在\texttt{pat}后面，而\texttt{\$handler:expr}后面没有跟任何东西，这种情况总是允许的。
 
 \subsection{宏中的递归}
+我们已经见过了一个在宏里调用自身的小例子：我们的\texttt{vec!}的实现使用了递归来支持尾部的逗号。这里我们可以展示一个更加显著的例子：\texttt{json!}需要递归调用它自身。
+
+我们可能会尝试在不递归的情况下支持JSON数组，像这样：
+\begin{minted}{Rust}
+    ([ $( $element:tt ),* ]) => {
+        Json::Array(vec![ $( $element ),* ])
+    };
+\end{minted}
+但这段代码并不能工作。这样只是把JSON数据（\texttt{\$element} token树）粘贴到了Rust表达式之中，但它们是两种不同的语言。
+
+我们需要把数组中的每一个元素从JSON格式转换为Rust代码。幸运的是，有一个宏可以做到这件事：就是我们正在写的这个宏！
+\begin{minted}{Rust}
+    ([ $( $element:tt ),* ]) => {
+        Json::Array(vec![ $( json!($element) ),* ])
+    };
+\end{minted}
+
+这种方式还可以支持对象：
+\begin{minted}{Rust}
+    ({ $( $key:tt : $value:tt ),* }) => {
+        Json::Object(Box::new(vec![
+            $( ($key.to_string(), json!($value)) ),*
+        ].into_iter().collect()))
+    };
+\end{minted}
+
+默认情况下编译器会把宏的递归次数上限设置为64。对于\texttt{json!}宏的常规使用这肯定已经足够了，但有时复杂的递归宏会达到这个上限。你可以在使用这个宏的crate的开头加上这一行来调整上限
+\begin{minted}{Rust}
+    #![recursion_limit = "256"]
+\end{minted}
+我们的\texttt{json!}宏基本已经完成了。剩下的只有支持布尔、数字和字符串值。
