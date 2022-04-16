@@ -683,6 +683,103 @@ token树正是我们的\texttt{json!}宏所需要的。每一个JSON值都是单
 
 因为\texttt{(width * 9.0 / 4.0)}是用括号括起来的，所以它是单个的token树，因此在解析这个对象时宏可以成功地用\texttt{\$value:tt}匹配它。
 
+\subsection{作用域和hygiene}
+在编写宏时一个令人惊讶的问题是它们将来自不同范围的代码粘贴在一起。因此接下来的几页将介绍Rust处理作用域的两种方式：一种用于局部变量和参数，另一种用于其他的东西。
 
+为了展示为什么会有这个问题，让我们重写解析JSON对象的规则（之前展示过的\texttt{json!}宏的第三条规则），让它不再使用临时的vector。我们可以像这样写：
+\begin{minted}{Rust}
+    ({ $($key:tt : $value:tt),* }) => {
+        {
+            let mut fields = Box::new(HashMap::new());
+            $( fields.insert($key.to_string(), json!($value)); )*
+            Json::Object(fields)
+        }
+    };
+\end{minted}
 
+现在我们不再使用\texttt{collect()}，而是通过重复调用\texttt{.insert()}方法来填充\texttt{HashMap}。这意味着我们需要把map存储在一个临时的变量中，这里命名为\texttt{fields}。
 
+但如果调用\texttt{json!}宏的代码中恰好也有一个叫\texttt{fields}的变量，会发生什么呢？
+\begin{minted}{Rust}
+    let fields = "Fields, W.C.";
+    let role = json!({
+        "name": "Larson E. Whipsnade",
+        "actor": fields
+    });
+\end{minted}
+
+展开这个宏时将会把两段代码拼在一起，两段代码中都用了变量\texttt{fields}来表示不同的东西！
+\begin{minted}{Rust}
+    let fields = "Fields, W.C.";
+    let role = {
+        let mut fields = Box::new(HashMap::new());
+        fields.insert("name".to_string(), Json::from("Larson E. Whipsnade"));
+        fields.insert("actor".to_string(), Json::from(fields));
+        Json::Object(fields)
+    };
+\end{minted}
+
+看起来好像只要宏里使用了临时变量就无法避免这个问题，并且你可能已经正在思考可能的解决方案了。也许我们应该把\texttt{json!}宏中的变量重命名为一般情况下调用者不会传入的名字：例如用\texttt{\_\_json\$fields}代替\texttt{fields}。
+
+这里令人惊讶的是\emph{宏可以正常工作}。Rust会为你重命名变量！这个特性一开始在Scheme宏中实现，被称为\emph{hygiene}，因此Rust被认为有\emph{hygienic宏}。
+
+理解hygiene宏的最简单的方式就是想象每一次展开宏时，展开的部分都被染成了不同的颜色。
+
+不同颜色的变量，就好像有不同的名字一样：
+\begin{figure*}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f21-4.png}
+\end{figure*}
+
+注意这里宏的调用者传入并被粘贴到输出中的代码，例如\texttt{"name"}和\texttt{"actor"}，保持了它们原本的颜色（黑色）。只有宏模板生成的token被染成了另一种颜色。
+
+现在这里有一个叫\texttt{fields}的变量（在调用者中声明）和另一个叫\texttt{fields}的变量（宏引入的）。因为这两个名字的颜色不同，所以这两个变量不会混淆。
+
+如果一个宏真的需要引用一个在调用者作用于里的变量，那么调用者必须向宏传递这个变量的名字。
+
+（染色的比喻并不意味着hygiene真的就是这么工作的。实际的机制要更聪明一些：不管是什么颜色，如果两个标识符引用了宏和调用者作用域里的同一个变量，那么就认为它们是相同的。但在Rust中像这样的例子非常少见。如果你理解了上面的例子，那么就使用hygiene宏来说已经足够了。）
+
+你可能已经注意到了很多别的标识符也被染上了一种或多种的颜色：例如\texttt{Box}、\texttt{HashMap}、\texttt{Json}等。就算没有颜色，Rust也可以辨认出这些类型的名字。这是因为Rust中的hygiene仅限于局部变量和参数。对于常量、类型、昂发、模块、静态变量、宏名来说，Rust是“色盲”。
+
+这意味着如果我们的\texttt{json!}宏被用在了\texttt{Box}、\texttt{HashMap}或\texttt{Json}不在作用域里的模块中时，这个宏将不能工作。我们将在下一节中展示怎么避免这个问题。
+
+首先，我们将考虑一个Rust的hygiene会产生阻碍的例子，并且我们需要解决它。假设我们有很多函数都包含下面这一行代码：
+\begin{minted}{Rust}
+    let req = ServerRequest::new(server_socket.session());
+\end{minted}
+
+如果复制粘贴这一行将会很痛苦。我们可以使用宏来代替吗？
+\begin{minted}{Rust}
+    macro_rules! setup_req {
+        () => {
+            let req = ServerRequest::new(server_socket.session());
+        }
+    }
+
+    fn handle_http_request(server_socket: &ServerSocket) {
+        setup_req!();   // 声明`req`，使用了`server_socket`
+        ... // 使用`req`的代码
+    }
+\end{minted}
+
+显然这么写不能工作。必须要让宏里的\texttt{server\_socket}这个名字指向函数里声明的参数\texttt{server\_socket}，\texttt{req}变量恰好相反。但hygiene会保护宏里的名字不会和其他作用域里的名字“碰撞”——即使这正是你想要的行为。
+
+解决方案是把你计划在宏里宏外都要使用的变量全部传进宏里：
+\begin{minted}{Rust}
+    macro_rules! setup_req {
+        ($req:ident, $server_socket:ident) => {
+            let $req = ServerRequest::new($server_socket.session());
+        }
+    }
+
+    fn handle_http_request(server_socket: &ServerSocket) {
+        setup_req!(req, server_socket);
+        ... // 使用`req`的代码
+    }
+\end{minted}
+
+因为\texttt{req}和\texttt{server\_socket}现在由函数提供，所以它们的“颜色”和那个作用域一样。
+
+hygiene让宏的使用变得更繁琐了一点，但这是一个特性，而不是bug：知道了它们不会在背后扰乱局部变量之后，可以更容易地推理hygiene宏。如果你在一个函数里搜索一个类似\texttt{server\_socket}的标识符，你将会发现所有使用了它的地方，包括宏调用。
+
+\subsection{导入和导出宏}
