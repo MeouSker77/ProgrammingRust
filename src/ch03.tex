@@ -1,17 +1,17 @@
 \chapter{基本类型}\label{ch03}
-\emph{这个世界上有很多很多不同类型的书，这是一件好事。但也有很多很多不同类型的人，每个人都想读到一些不同的东西。}
+\emph{这个世界上有很多很多不同类型的书,这是一件好事。但也有很多很多不同类型的人,每个人都想读到一些不同的东西。}
 \begin{flushright}
     ——Lemony Snicket
 \end{flushright}
 
-在很大程度上，Rust语言是围绕它的类型来设计的。它对高性能代码的支持源于让开发者选择不同情况下最合适的数据表示，并在简单性和成本之间取得适当的平衡。Rust的内存和线程安全也依赖于类型系统的健全性，Rust的灵活性则来自于它的泛型和trait。
+在很大程度上,Rust语言是围绕它的类型来设计的。它对高性能代码的支持源于让开发者选择不同情况下最合适的数据表示,并在简单性和成本之间取得适当的平衡。Rust的内存和线程安全也依赖于类型系统的健全性,Rust的灵活性则来自于它的泛型和trait。
 
-这一章将介绍Rust的基本类型。这些源码级别的类型都有对应的成本和性能可预测的机器级的组件。尽管Rust并不保证它会完全按照你的要求精确的表示数据，但只有当它是一个可靠的改进时它才会违背你的要求。
+这一章将介绍Rust的基本类型。这些源码级别的类型都有对应的成本和性能可预测的机器级的组件。尽管Rust并不保证它会完全按照你的要求精确的表示数据,但只有当它是一个可靠的改进时它才会违背你的要求。
 
-与JavaScript或Python这种动态类型语言相比，Rust要求你事先就进行更多规划。你必须写出函数参数和返回值、结构体字段、以及一些其他结构的类型。然而，Rust的两个特性使得这比你想象中的要简单很多：
+与JavaScript或Python这种动态类型语言相比,Rust要求你事先就进行更多规划。你必须写出函数参数和返回值、结构体字段、以及一些其他结构的类型。然而,Rust的两个特性使得这比你想象中的要简单很多:
 
 \begin{itemize}
-    \item 有了你指明的类型，Rust的\emph{类型推导}将会为你推导出剩余的大部分类型。在实践中，通常只有一个类型能够满足给定的变量或表达式。在这种情况下，Rust允许你留空，或者说\emph{省略}这个类型。例如，你可以像下面这样写出一个函数里的所有类型：
+    \item 有了你指明的类型,Rust的\emph{类型推导}将会为你推导出剩余的大部分类型。在实践中,通常只有一个类型能够满足给定的变量或表达式。在这种情况下,Rust允许你留空,或者说\emph{省略}这个类型。例如,你可以像下面这样写出一个函数里的所有类型:
     \begin{minted}{Rust}
     fn build_vector() -> Vec<i16> {
         let mut v: Vec<i16> = Vec::<i16>::new();
@@ -20,7 +20,7 @@
         v
     }
     \end{minted}
-    但这非常杂乱和重复。给定了函数的返回值之后，很明显\texttt{v}必须是\texttt{Vec<i16>}类型：一个16位有符号整数的vector，没有其他的类型可以满足语义。并且据此可以推出vector的每个元素必须是\texttt{i16}类型。这就是Rust的类型推导适用的场景，所以你可以改为：
+    但这非常杂乱和重复。给定了函数的返回值之后,很明显\texttt{v}必须是\texttt{Vec<i16>}类型:一个16位有符号整数的vector,没有其他的类型可以满足语义。并且据此可以推出vector的每个元素必须是\texttt{i16}类型。这就是Rust的类型推导适用的场景,所以你可以改为:
     \begin{minted}{Rust}
     fn build_vector() -> Vec<i16> {
         let mut v = Vec::new();
@@ -29,17 +29,17 @@
         v
     }
     \end{minted}
-    这两个定义是完全等价的，Rust将会生成完全相同的机器代码。类型推导可以回馈一部分动态类型语言的可读性，并且仍能在编译时捕捉到类型错误。
-    \item 函数可以是\emph{泛型}的：一个函数可以同时处理很多不同类型的值。
+    这两个定义是完全等价的,Rust将会生成完全相同的机器代码。类型推导可以回馈一部分动态类型语言的可读性,并且仍能在编译时捕捉到类型错误。
+    \item 函数可以是\emph{泛型}的:一个函数可以同时处理很多不同类型的值。
 
-    在Python和JavaScript中，所有的函数都很自然的是泛型的：一个函数可以操作任何类型的值，只要这个类型有函数体中需要的属性和方法。（这种特性通常被称作\emph{鸭子类型}：如果它像鸭子一样叫，那它就是一只鸭子。）但正是这种灵活性也导致这些语言很难检测出类型错误，在这些语言里测试通常是唯一一种捕捉类型错误的方式。Rust的泛型函数给予了这门语言某种程度上和动态类型同样的灵活性，并且仍能在编译期捕获所有的类型错误。
+    在Python和JavaScript中,所有的函数都很自然的是泛型的:一个函数可以操作任何类型的值,只要这个类型有函数体中需要的属性和方法。(这种特性通常被称作\emph{鸭子类型}:如果它像鸭子一样叫,那它就是一只鸭子。)但正是这种灵活性也导致这些语言很难检测出类型错误,在这些语言里测试通常是唯一一种捕捉类型错误的方式。Rust的泛型函数给予了这门语言某种程度上和动态类型同样的灵活性,并且仍能在编译期捕获所有的类型错误。
 
-    除了灵活性之外，泛型函数和非泛型的函数一样高效。例如，为每个整数类型都编写一个\texttt{sum}函数与编写一个处理所有整数类型的泛型\texttt{sum}函数相比，并没有性能上的优势。我们将在\hyperref[ch11]{第11章}种详细讨论泛型函数。
+    除了灵活性之外,泛型函数和非泛型的函数一样高效。例如,为每个整数类型都编写一个\texttt{sum}函数与编写一个处理所有整数类型的泛型\texttt{sum}函数相比,并没有性能上的优势。我们将在\hyperref[ch11]{第11章}种详细讨论泛型函数。
 \end{itemize}
 
-这一章的剩余部分将会自上而下的覆盖Rust的类型，从最简单的数字类型例如整数和浮点数到持有多个值的复合类型：box、tuple、数组和字符串。
+这一章的剩余部分将会自上而下的覆盖Rust的类型,从最简单的数字类型例如整数和浮点数到持有多个值的复合类型:box、tuple、数组和字符串。
 
-这里有一个Rust中类型的汇总。\hyperref[t3-1]{表3-1}显示了Rust的原始类型，包括一些来自标准库的基本类型，和一些用户自定义类型的示例。
+这里有一个Rust中类型的汇总。\hyperref[t3-1]{表3-1}显示了Rust的原始类型,包括一些来自标准库的基本类型,和一些用户自定义类型的示例。
 
 \begin{longtable}{p{0.25\textwidth}p{0.4\textwidth}p{0.25\textwidth}}
     \caption{Rust中的类型示例}
@@ -49,55 +49,55 @@
     \hline
     \texttt{i8, i16, i32, i64, i128, u8, u16, u32, u64, u128}    & 指定位数的有符号和无符号整数 & \texttt{42, -5i8, 0x400u16, 0o100i16, 20\_922\_789\_888\_000u64, b'*'(u8字节字面量)}    \\
     \rowcolor{tablecolor}
-    \texttt{isize, usize}   & 有符号和无符号整数，和机器里的一个指针一样大（32位或64位）   & \texttt{137, -0b0101\_0010isize, 0xffff\_fc00usize} \\
-    \texttt{f32, f64}       & IEEE浮点数，单精度和双精度                                & \texttt{1.61803, 3.14f32, 6.0221e23f64} \\
+    \texttt{isize, usize}   & 有符号和无符号整数,和机器里的一个指针一样大(32位或64位)   & \texttt{137, -0b0101\_0010isize, 0xffff\_fc00usize} \\
+    \texttt{f32, f64}       & IEEE浮点数,单精度和双精度                                & \texttt{1.61803, 3.14f32, 6.0221e23f64} \\
     \rowcolor{tablecolor}
     \texttt{bool}           & 布尔值            & \texttt{true, false} \\
-    \texttt{char}           & Unicode字符，32位 & \texttt{'*', '\textbackslash n', '字', '\textbackslash x7f', '\textbackslash u\{CA0\}'} \\
+    \texttt{char}           & Unicode字符,32位 & \texttt{'*', '\textbackslash n', '字', '\textbackslash x7f', '\textbackslash u\{CA0\}'} \\
     \rowcolor{tablecolor}
-    \texttt{(char, u8, i32)}                        & Tuple：把类型混合在一起   & \texttt{('\%', 0x7f, -1)} \\
-    \texttt{()}                                     & “单元值”（空tuple）      & \texttt{()} \\
+    \texttt{(char, u8, i32)}                        & Tuple:把类型混合在一起   & \texttt{('\%', 0x7f, -1)} \\
+    \texttt{()}                                     & “单元值”(空tuple)      & \texttt{()} \\
     \rowcolor{tablecolor}
     \texttt{struct S \{ x: f32, y: f32 \}}          & 命名字段结构体            & \texttt{S \{ x: 120.0, y: 209.0 \}} \\
     \texttt{struct T (i32, char);}                  & 元组结构体                & \texttt{T(120, 'X')} \\
     \rowcolor{tablecolor}
-    \texttt{struct E;}                              & 元组结构体，无字段        & \texttt{E} \\
-    \texttt{enum Attend \{ OnTime, Late(u32) \}}    & 枚举，代数数据类型        & \texttt{Attend::Late(5), Attend::OnTime} \\
+    \texttt{struct E;}                              & 元组结构体,无字段        & \texttt{E} \\
+    \texttt{enum Attend \{ OnTime, Late(u32) \}}    & 枚举,代数数据类型        & \texttt{Attend::Late(5), Attend::OnTime} \\
     \rowcolor{tablecolor}
-    \texttt{Box<Attend>}                             & Box：持有一个堆上的值的指针   & \texttt{Box::new(Late(15))} \\
-    \texttt{\&i32, \&mut i32}                       & 共享和可变引用：生命周期不能超过所引用对象的无所有权的指针 & \texttt{\&s.y, \&mut v} \\
+    \texttt{Box<Attend>}                             & Box:持有一个堆上的值的指针   & \texttt{Box::new(Late(15))} \\
+    \texttt{\&i32, \&mut i32}                       & 共享和可变引用:生命周期不能超过所引用对象的无所有权的指针 & \texttt{\&s.y, \&mut v} \\
     \rowcolor{tablecolor}
-    \texttt{String}                                 & UTF-8字符串，动态大小         & \texttt{"ラーメン: ramen"\newline.to\_string()} \\
-    \texttt{\&str}                                  & \texttt{str}的引用：指向UTF-8字符串的无所有权的指针 & \texttt{"そば: soba", \&s[0..12]} \\
+    \texttt{String}                                 & UTF-8字符串,动态大小         & \texttt{"ラーメン: ramen"\newline.to\_string()} \\
+    \texttt{\&str}                                  & \texttt{str}的引用:指向UTF-8字符串的无所有权的指针 & \texttt{"そば: soba", \&s[0..12]} \\
     \rowcolor{tablecolor}
-    \texttt{[f64; 4], [u8; 256]}                    & 固定长度的数组，所有元素的类型都必须相同   & \texttt{[1.0, 0.0, 0.0, 1.0], [b' '; 256]} \\
-    \texttt{Vec<f64>}                               & 可变长度的vector，所有元素的类型都必须相同 & \texttt{vec![0.367, 2.718, 7.389]} \\
+    \texttt{[f64; 4], [u8; 256]}                    & 固定长度的数组,所有元素的类型都必须相同   & \texttt{[1.0, 0.0, 0.0, 1.0], [b' '; 256]} \\
+    \texttt{Vec<f64>}                               & 可变长度的vector,所有元素的类型都必须相同 & \texttt{vec![0.367, 2.718, 7.389]} \\
     \rowcolor{tablecolor}
-    \texttt{\&[u8], \&mut [u8]}                     & 切片的引用：指向数组或vector的一部分，包含指针和长度 & \texttt{\&v[10..20], \&mut a[..]} \\
-    \texttt{Option<\&str>}      & 可选值：\texttt{None}(无值)或\texttt{Some(v)}(有值，值为\texttt{v})   & \texttt{Some("Dr.", None)} \\
+    \texttt{\&[u8], \&mut [u8]}                     & 切片的引用:指向数组或vector的一部分,包含指针和长度 & \texttt{\&v[10..20], \&mut a[..]} \\
+    \texttt{Option<\&str>}      & 可选值:\texttt{None}(无值)或\texttt{Some(v)}(有值,值为\texttt{v})   & \texttt{Some("Dr.", None)} \\
     \rowcolor{tablecolor}
-    \texttt{Result<u64, Error>} & 可能会失败的操作的结果：成功时是\texttt{Ok(v)}，失败时是\texttt{Err(e)} & \texttt{Ok(4096), Err(Error::last\_os\_error())} \\
-    \texttt{\&dyn Any, \&mut dyn Read}  & trait对象：指向一个实现了给定方法的任何值 & \texttt{value as \&dyn Any, \&mut file as \&mut dyn Read} \\
+    \texttt{Result<u64, Error>} & 可能会失败的操作的结果:成功时是\texttt{Ok(v)},失败时是\texttt{Err(e)} & \texttt{Ok(4096), Err(Error::last\_os\_error())} \\
+    \texttt{\&dyn Any, \&mut dyn Read}  & trait对象:指向一个实现了给定方法的任何值 & \texttt{value as \&dyn Any, \&mut file as \&mut dyn Read} \\
     \rowcolor{tablecolor}
     \texttt{fn(\&str) -> bool}          & 函数指针      & \texttt{str::is\_empty}           \\
-    （闭包类型）                         & 闭包         & \texttt{|a, b| \{ a*a + b*b \}}    \\
+    (闭包类型)                         & 闭包         & \texttt{|a, b| \{ a*a + b*b \}}    \\
 \end{longtable}
 
-这些类型中的大部分都会在这一章中介绍，除了下面这些：
+这些类型中的大部分都会在这一章中介绍,除了下面这些:
 \begin{itemize}
     \item 我们将在\hyperref[ch09]{第9章}中单独介绍\texttt{struct}类型。
     \item 我们将在\hyperref[ch10]{第10章}中单独介绍枚举类型。
     \item 我们将在\hyperref[ch11]{第11章}中介绍trait对象。
-    \item 我们将在这里介绍\texttt{String}和\texttt{\&str}的基础，但在\hyperref[ch17]{第17章}中介绍更多细节。
+    \item 我们将在这里介绍\texttt{String}和\texttt{\&str}的基础,但在\hyperref[ch17]{第17章}中介绍更多细节。
     \item 我们将在\hyperref[ch14]{第14章}介绍函数和闭包类型。
 \end{itemize}
 
 \section{固定位数的数字类型}
-Rust类型系统的基础是一组固定宽度的数字类型的集合，这些类型和现代处理器中的硬件类型相匹配。
+Rust类型系统的基础是一组固定宽度的数字类型的集合,这些类型和现代处理器中的硬件类型相匹配。
 
-固定宽度的数字类型可能会溢出或失去精度，但它们适用于大多数的类型，并且比任意精度的整数和精确小数快几千倍。如果你需要那些类型的数字，可以在\texttt{num} crate找到相应的支持。
+固定宽度的数字类型可能会溢出或失去精度,但它们适用于大多数的类型,并且比任意精度的整数和精确小数快几千倍。如果你需要那些类型的数字,可以在\texttt{num} crate找到相应的支持。
 
-Rust的数字类型的名称遵循通用的模式，宽度加上表示的含义（\hyperref[t3-2]{表3-2}）。
+Rust的数字类型的名称遵循通用的模式,宽度加上表示的含义(\hyperref[t3-2]{表3-2})。
 \begin{table}[htbp]
     \centering
     \caption{Rust的数字类型}
@@ -118,11 +118,11 @@ Rust的数字类型的名称遵循通用的模式，宽度加上表示的含义�
     \end{tabular}
 \end{table}
 
-这里，\emph{机器字}是运行代码的机器上的一个指针的大小，32位或者64位。
+这里,\emph{机器字}是运行代码的机器上的一个指针的大小,32位或者64位。
 
 \subsection{整数类型}
 
-Rust的无符号整数使用全部的范围来表示正数和0（\hyperref[t3-3]{表3-3}）。
+Rust的无符号整数使用全部的范围来表示正数和0(\hyperref[t3-3]{表3-3})。
 \begin{table}[htbp]
     \centering
     \caption{Rust无符号整数类型}
@@ -131,19 +131,19 @@ Rust的无符号整数使用全部的范围来表示正数和0（\hyperref[t3-3]
         \hline
         \textbf{类型}   &   \textbf{范围}                   \\
         \hline
-        \texttt{u8}     & 0到$2^{8}-1$（0到255）            \\
+        \texttt{u8}     & 0到$2^{8}-1$(0到255)            \\
         \rowcolor{tablecolor} 
-        \texttt{u16}    & 0到$2^{16}-1$（0到65,535）        \\
-        \texttt{u32}    & 0到$2^{32}-1$（0到4,294,967,295） \\
+        \texttt{u16}    & 0到$2^{16}-1$(0到65,535)        \\
+        \texttt{u32}    & 0到$2^{32}-1$(0到4,294,967,295) \\
         \rowcolor{tablecolor} 
-        \texttt{u64}    & 0到$2^{64}-1$（0到18,446,744,073,709,551,615或1万8千亿）  \\
-        \texttt{u128}   & 0到$2^{128}-1$（0到大约$3.4*10^{38}$）                    \\
+        \texttt{u64}    & 0到$2^{64}-1$(0到18,446,744,073,709,551,615或1万8千亿)  \\
+        \texttt{u128}   & 0到$2^{128}-1$(0到大约$3.4*10^{38}$)                    \\
         \rowcolor{tablecolor} 
         \texttt{usize}  & 0到$2^{32}-1$或$2^{64}-1$         \\
     \end{tabular}
 \end{table}
 
-Rust的有符号整数使用两种互补的表示方法，使用和无符号类型相对应的位模式来表示一个包含正数和负数的范围（\hyperref[t3-4]{表3-4}）。
+Rust的有符号整数使用两种互补的表示方法,使用和无符号类型相对应的位模式来表示一个包含正数和负数的范围(\hyperref[t3-4]{表3-4})。
 \begin{table}[htbp]
     \centering
     \caption{Rust的有符号整数类型}
@@ -152,29 +152,29 @@ Rust的有符号整数使用两种互补的表示方法，使用和无符号类�
         \hline
         \textbf{类型}   &   \textbf{范围}   \\
         \hline
-        \texttt{i8}     & $-2^{7}$到$2^{7}-1$（-128到127）   \\
+        \texttt{i8}     & $-2^{7}$到$2^{7}-1$(-128到127)   \\
         \rowcolor{tablecolor}
-        \texttt{i16}    & $-2^{15}$到$2^{15}-1$（-32,768到32,767）  \\
-        \texttt{i32}    & $-2^{31}$到$2^{31}-1$（-2,147,483,648到2,147,483,647）    \\
+        \texttt{i16}    & $-2^{15}$到$2^{15}-1$(-32,768到32,767)  \\
+        \texttt{i32}    & $-2^{31}$到$2^{31}-1$(-2,147,483,648到2,147,483,647)    \\
         \rowcolor{tablecolor}
-        \texttt{i64}    & $-2^{63}$到$2^{63}-1$（-9,223,372,036,854,775,808到9,223,372,036,854,775,807）    \\
-        \texttt{i128}   & $-2^{127}$到$2^{127-1}$（大约$-1.7\times10^{38}$到$+1.7\times10^{38}$） \\
+        \texttt{i64}    & $-2^{63}$到$2^{63}-1$(-9,223,372,036,854,775,808到9,223,372,036,854,775,807)    \\
+        \texttt{i128}   & $-2^{127}$到$2^{127-1}$(大约$-1.7\times10^{38}$到$+1.7\times10^{38}$) \\
         \rowcolor{tablecolor}
-        \texttt{isize}  & $-2^{31}$到$2^{31}-1$，或者$-2^{63}$到$2^{63}-1$  \\
+        \texttt{isize}  & $-2^{31}$到$2^{31}-1$,或者$-2^{63}$到$2^{63}-1$  \\
     \end{tabular}
 \end{table}
 
-Rust使用\texttt{u8}类型来表示一个字节的值。例如，从二进制文件或者套接字读取数据就会返回\texttt{u8}类型的数据流。
+Rust使用\texttt{u8}类型来表示一个字节的值。例如,从二进制文件或者套接字读取数据就会返回\texttt{u8}类型的数据流。
 
-与C和C++不同，Rust区分了字符和数字类型：\texttt{char}不是\texttt{u8}，也不是\texttt{u32}（尽管它是32位）。我们将会在“\hyperref[char]{字符}”这一节介绍Rust的\texttt{char}类型。
+与C和C++不同,Rust区分了字符和数字类型:\texttt{char}不是\texttt{u8},也不是\texttt{u32}(尽管它是32位)。我们将会在“\hyperref[char]{字符}”这一节介绍Rust的\texttt{char}类型。
 
-\texttt{usize}和\texttt{isize}类似于C和C++中的\texttt{size\_t}和\texttt{ptrdiff\_t}类型。它们的位数和目标机器上地址空间的位数相同：在32位架构上就是32位，在64位架构上就是64位。Rust要求数组索引为\texttt{usize}类型的值。数组或vector或其他任何含有多个元素的数据结构的长度都是\texttt{usize}类型。
+\texttt{usize}和\texttt{isize}类似于C和C++中的\texttt{size\_t}和\texttt{ptrdiff\_t}类型。它们的位数和目标机器上地址空间的位数相同:在32位架构上就是32位,在64位架构上就是64位。Rust要求数组索引为\texttt{usize}类型的值。数组或vector或其他任何含有多个元素的数据结构的长度都是\texttt{usize}类型。
 
-Rust中的整数字面量可以有一个后缀来指示类型：\texttt{42u8}是一个\texttt{u8}类型的值，\texttt{1729isize}是一个\texttt{isize}类型的值。如果一个整数字面量没有类型后缀，Rust将会延迟决定它的类型，直到可以从它的使用中推断出它的类型：存储到一个已知类型的变量中、作为参数传递给一个参数类型已知的函数、和一个已知类型的值比较、以及类似的情况。如果到最后还是有很多类型可以满足，此时如果\texttt{i32}是其中一种可能，Rust将推断它为\texttt{i32}类型。否则，Rust会报歧义错误。
+Rust中的整数字面量可以有一个后缀来指示类型:\texttt{42u8}是一个\texttt{u8}类型的值,\texttt{1729isize}是一个\texttt{isize}类型的值。如果一个整数字面量没有类型后缀,Rust将会延迟决定它的类型,直到可以从它的使用中推断出它的类型:存储到一个已知类型的变量中、作为参数传递给一个参数类型已知的函数、和一个已知类型的值比较、以及类似的情况。如果到最后还是有很多类型可以满足,此时如果\texttt{i32}是其中一种可能,Rust将推断它为\texttt{i32}类型。否则,Rust会报歧义错误。
 
 前缀\texttt{0x, 0o, 0b}分别表示十六进制、八进制、二进制字面量。
 
-为了让长数字更可读，你可以在数字中间插入下划线。例如，你可以把最大的\texttt{u32}值写作\texttt{4\_294\_967\_295}。下划线放置的位置并不重要，所以你可以每四位插入一个下划线来把十六进制和二进制数字分组，例如\texttt{0xffff\_ffff}或者在最后插入下划线分隔类型后缀，例如\texttt{127\_u8}。\hyperref[t3-5]{表3-5}给出了一些整数字面量的例子。
+为了让长数字更可读,你可以在数字中间插入下划线。例如,你可以把最大的\texttt{u32}值写作\texttt{4\_294\_967\_295}。下划线放置的位置并不重要,所以你可以每四位插入一个下划线来把十六进制和二进制数字分组,例如\texttt{0xffff\_ffff}或者在最后插入下划线分隔类型后缀,例如\texttt{127\_u8}。\hyperref[t3-5]{表3-5}给出了一些整数字面量的例子。
 \begin{table}[htbp]
     \centering
     \caption{整数字面量的例子}
@@ -192,9 +192,9 @@ Rust中的整数字面量可以有一个后缀来指示类型：\texttt{42u8}是
     \end{tabular}
 \end{table}
 
-尽管数值类型和\texttt{char}类型是不同的，Rust确实提供了\emph{字节字面量}：很像字符字面量的\texttt{u8}值：\texttt{b'X'}代表字符\texttt{X}的ASCII码值，但是是\texttt{u8}类型的值。例如，因为\texttt{A}的ASCII码值是65，字面量\texttt{b'A'}和\texttt{65u8}是等价的。只有ASCII字符可以出现在字节字面量中。
+尽管数值类型和\texttt{char}类型是不同的,Rust确实提供了\emph{字节字面量}:很像字符字面量的\texttt{u8}值:\texttt{b'X'}代表字符\texttt{X}的ASCII码值,但是是\texttt{u8}类型的值。例如,因为\texttt{A}的ASCII码值是65,字面量\texttt{b'A'}和\texttt{65u8}是等价的。只有ASCII字符可以出现在字节字面量中。
 
-这里有一些不能用单个字符表示的字符，因为它们要么会导致歧义要么很难看出来。\hyperref[t3-6]{表3-6}中的字符只能用反斜杠转移的方式写出来。
+这里有一些不能用单个字符表示的字符,因为它们要么会导致歧义要么很难看出来。\hyperref[t3-6]{表3-6}中的字符只能用反斜杠转移的方式写出来。
 \begin{table}[htbp]
     \centering
     \caption{需要转义的字符}
@@ -203,9 +203,9 @@ Rust中的整数字面量可以有一个后缀来指示类型：\texttt{42u8}是
         \hline
         \textbf{字符}   &   \textbf{字节字面量} & \textbf{等价的数字值} \\
         \hline
-        单引号，\texttt{'}   &   \texttt{b'\textbackslash''}      & 39u8 \\
+        单引号,\texttt{'}   &   \texttt{b'\textbackslash''}      & 39u8 \\
         \rowcolor{tablecolor}
-        反斜杠，\textbackslash &    \texttt{b'\textbackslash\textbackslash'} & 92u8 \\
+        反斜杠,\textbackslash &    \texttt{b'\textbackslash\textbackslash'} & 92u8 \\
         换行        &    \texttt{b'\textbackslash n'}    & 10u8 \\
         \rowcolor{tablecolor}
         回车        &   \texttt{b'\textbackslash r'}     & 13u8 \\
@@ -213,9 +213,9 @@ Rust中的整数字面量可以有一个后缀来指示类型：\texttt{42u8}是
     \end{tabular}
 \end{table}
 
-对于那些难以写出或看出的字符，你可以用它们的十六进制码代替。一个字节字面量的形式是\texttt{b'\textbackslash xHH'}，其中\texttt{HH}是两个十六进制的数字，代表值是\texttt{HH}的字节。例如，你可以将ASCII的“escape”字符的字节字面量写作\texttt{b'\textbackslash x1b'}，因为“escape”的ASCII码是27，也就是16进制的1B。因为字节字面量只是\texttt{u8}类型值的另一种表示方式，考虑使用数字字面量可能可读性会更强：只有当你想表示ASCII码时\texttt{b'\textbackslash x1b'}才会比\texttt{27}更有意义。
+对于那些难以写出或看出的字符,你可以用它们的十六进制码代替。一个字节字面量的形式是\texttt{b'\textbackslash xHH'},其中\texttt{HH}是两个十六进制的数字,代表值是\texttt{HH}的字节。例如,你可以将ASCII的“escape”字符的字节字面量写作\texttt{b'\textbackslash x1b'},因为“escape”的ASCII码是27,也就是16进制的1B。因为字节字面量只是\texttt{u8}类型值的另一种表示方式,考虑使用数字字面量可能可读性会更强:只有当你想表示ASCII码时\texttt{b'\textbackslash x1b'}才会比\texttt{27}更有意义。
 
-你可以将一种整数类型转换为另一种整数类型。我们将会在“\hyperref[cast]{类型转换}”这一节中介绍转换的原理，这里有一些例子：
+你可以将一种整数类型转换为另一种整数类型。我们将会在“\hyperref[cast]{类型转换}”这一节中介绍转换的原理,这里有一些例子:
 \begin{minted}{Rust}
     assert_eq!(   10_i8  as u16,    10_u16); // in range
     assert_eq!( 2525_u16 as i16,  2525_i16); // in range
@@ -234,111 +234,111 @@ Rust中的整数字面量可以有一个后缀来指示类型：\texttt{42u8}是
     assert_eq!(  255_u8  as i8,      -1_i8);
 \end{minted}
 
-标准库提供一些整数的方法来进行操作。例如：
+标准库提供一些整数的方法来进行操作。例如:
 \begin{minted}{Rust}
     assert_eq!(2_u16.pow(4), 16);               // 求指数幂
     assert_eq!((-4_i32).abs(), 4);              // 求绝对值
     assert_eq!(0b101101_u8.count_ones(), 4);    // 位计数
 \end{minted}
 
-你可以在在线文档中找到这些。但是注意，文档中\texttt{i32}（原始类型）和模块导入的类型（搜索\texttt{std::i32}）有不同的单独页面。
+你可以在在线文档中找到这些。但是注意,文档中\texttt{i32}(原始类型)和模块导入的类型(搜索\texttt{std::i32})有不同的单独页面。
 
-在实际编码时，你不需要像我们在这里一样写出类型后缀，因为上下文会自动推断出类型。当推断不出来时，错误信息可能会让你很惊讶。例如，下面的代码不能编译：
+在实际编码时,你不需要像我们在这里一样写出类型后缀,因为上下文会自动推断出类型。当推断不出来时,错误信息可能会让你很惊讶。例如,下面的代码不能编译:
 \begin{minted}{Rust}
     println!("{}", (-4).abs());
 \end{minted}
 
-Rust报错：
+Rust报错:
 \begin{minted}{text}
     error: can't call method `abs` on ambiguous numeric type `{integer}`
 \end{minted}
 
-这可能有点迷惑：所有的整数类型都有\texttt{abs}方法，所以问题在哪呢？从技术角度来说，Rust需要在调用某个类型的方法之前知道这个值的精确类型。只有当所有的方法调用都被解析之后仍然存在歧义才会使用默认的\texttt{i32}类型，而在这里，在解析\texttt{abs}方法时就需要知道\texttt{-4}的类型，默认推导为\texttt{i32}的规则在此时不能生效。解决方法是指明类型，要么加上类型后缀，要么使用类型特定的函数：
+这可能有点迷惑:所有的整数类型都有\texttt{abs}方法,所以问题在哪呢？从技术角度来说,Rust需要在调用某个类型的方法之前知道这个值的精确类型。只有当所有的方法调用都被解析之后仍然存在歧义才会使用默认的\texttt{i32}类型,而在这里,在解析\texttt{abs}方法时就需要知道\texttt{-4}的类型,默认推导为\texttt{i32}的规则在此时不能生效。解决方法是指明类型,要么加上类型后缀,要么使用类型特定的函数:
 \begin{minted}{Rust}
     println!("{}", (-4_i32).abs());
     println!("{}", i32::abs(-4));
 \end{minted}
 
-注意函数调用的优先级高于一元前缀运算符，所以当对负数调用方法时一定要小心。如果这个地方第一个表达式里\texttt{-4\_i32}两侧没有括号，\texttt{-4\_i32.abs()}将会对\texttt{4}调用\texttt{abs}方法，返回正数\texttt{4}，然后求负数返回\texttt{-4}。
+注意函数调用的优先级高于一元前缀运算符,所以当对负数调用方法时一定要小心。如果这个地方第一个表达式里\texttt{-4\_i32}两侧没有括号,\texttt{-4\_i32.abs()}将会对\texttt{4}调用\texttt{abs}方法,返回正数\texttt{4},然后求负数返回\texttt{-4}。
 
 \subsection{Checked、Wrapping、Saturating、Overflowing算术}
 
-当整数运算溢出时，如果是在debug模式下Rust会panic。在release模式下，运算结果会\emph{回环}：它会返回正确的值对结果类型能表示的范围取余之后的结果。（这两种情况下，溢出都不像在C和C++中一样是未定义行为）。
+当整数运算溢出时,如果是在debug模式下Rust会panic。在release模式下,运算结果会\emph{回环}:它会返回正确的值对结果类型能表示的范围取余之后的结果。(这两种情况下,溢出都不像在C和C++中一样是未定义行为)。
 
-例如，下面的代码在debug模式下会panic：
+例如,下面的代码在debug模式下会panic:
 \begin{minted}{Rust}
     let mut i = 1;
     loop {
         i *= 10;    // panic: 尝试乘到溢出
-                    // （但只有在debug模式会panic！）
+                    // (但只有在debug模式会panic！)
     }
 \end{minted}
 
-在release模式下，溢出时乘法会回环成负数，然后循环会无限执行。
+在release模式下,溢出时乘法会回环成负数,然后循环会无限执行。
 
-如果默认行为不是你希望的结果，整数类型提供了一个方法让你指定想要做什么。例如，下面的代码在任何构建模式下都会panic：
+如果默认行为不是你希望的结果,整数类型提供了一个方法让你指定想要做什么。例如,下面的代码在任何构建模式下都会panic:
 \begin{minted}{Rust}
     let mut i: i32 = 1;
     loop {
-        // panic: 乘法溢出（在任何构建模式下）
+        // panic: 乘法溢出(在任何构建模式下)
         i = i.checked_mul(10).expect("multiplication overflowed");
     }
 \end{minted}
 
-这些整数运算的方法可以被分为四个通用的类别：
+这些整数运算的方法可以被分为四个通用的类别:
 \begin{itemize}
-    \item \emph{Checked}操作返回一个结果的\texttt{Option}值：如果运算结果可以被结果类型正确表示就返回\texttt{Some(v)}，否则返回\texttt{None}。例如：
+    \item \emph{Checked}操作返回一个结果的\texttt{Option}值:如果运算结果可以被结果类型正确表示就返回\texttt{Some(v)},否则返回\texttt{None}。例如:
     \begin{minted}{Rust}
     // 10和20的结果可以用u8表示。
     assert_eq!(10_u8).checked_add(20), Some(30));
 
-    // 不幸的是，100和200的和不能用u8表示。
+    // 不幸的是,100和200的和不能用u8表示。
     assert_eq!(100_u8).checked_add(200), None);
 
-    // 求和，如果溢出就panic。
+    // 求和,如果溢出就panic。
     let sum = x.checked_add(y).unwrap();
 
-    // 奇怪的是，在一种特定情况下，有符号除法也可能会导致溢出。
-    // 一个有符号整数能表示-2^(n-1)，但不能表示2^(n-1)。
+    // 奇怪的是,在一种特定情况下,有符号除法也可能会导致溢出。
+    // 一个有符号整数能表示-2^(n-1),但不能表示2^(n-1)。
     assert_eq!((-128_i8).checked_div(-1), None);
     \end{minted}
 
-    \item \emph{Wrapping}操作返回正确的值对结果类型能表示的范围的余数：
+    \item \emph{Wrapping}操作返回正确的值对结果类型能表示的范围的余数:
     \begin{minted}{Rust}
     // 第一个积可以用u16来表示。
-    // 第二个不能，因此我们得到250000对2^16取模。
+    // 第二个不能,因此我们得到250000对2^16取模。
     assert_eq!(100_u16.wrapping_mul(200), 20000);
     assert_eq!(500_u16.wrapping_mul(500), 53392);
 
     // 有符号数的操作可能会回环成负数。
     assert_eq!(500_i16.wrapping_mul(500), -12144);
 
-    // 在移位操作中，移动的位数会回环到该类型的位数之内
+    // 在移位操作中,移动的位数会回环到该类型的位数之内
     // 因此对16位的数字移动17位等于移动1位
     assert_eq!(5_i16.wrapping_shl(17), 10);
     \end{minted}
-    正如解释的那样，这就是release模式下算术操作的行为。使用这种写法的好处是在所有的构建模式下代码的行为都一致。
+    正如解释的那样,这就是release模式下算术操作的行为。使用这种写法的好处是在所有的构建模式下代码的行为都一致。
 
-    \item \emph{Saturating}操作会返回最接近正确结果的表示。换句话说，结果被“截断”到这个类型能表示的最大或最小值：
+    \item \emph{Saturating}操作会返回最接近正确结果的表示。换句话说,结果被“截断”到这个类型能表示的最大或最小值:
     \begin{minted}{Rust}
     assert_eq!(32760_i16.saturating_add(10), 32767);
     assert_eq!((-32760_i16).saturating_sub(10), -32768);
     \end{minted}
     没有饱和除法、取余、位移操作。
 
-    \item \emph{Overflowing}操作返回一个tuple\texttt{(reulst, overflowed)}，其中\texttt{result}是回环版本的方法返回的结果，而\texttt{overflowed}是一个指示是否发生溢出的\texttt{bool}值：
+    \item \emph{Overflowing}操作返回一个tuple\texttt{(reulst, overflowed)},其中\texttt{result}是回环版本的方法返回的结果,而\texttt{overflowed}是一个指示是否发生溢出的\texttt{bool}值:
     \begin{minted}{Rust}
     assert_eq!(255_u8.overflowing_sub(2), (253, false));
     assert_eq!(255_u8.overflowing_add(2), (1, true));
     \end{minted}
-    \texttt{overflowing\_shl}和\texttt{overflowing\_shr}稍微有些偏离这个模式：只有当移位距离恰好等于类型的位宽度时\texttt{overflowed}才为true。实际的移位距离等于要求的距离对位宽度取余后的结果：
+    \texttt{overflowing\_shl}和\texttt{overflowing\_shr}稍微有些偏离这个模式:只有当移位距离恰好等于类型的位宽度时\texttt{overflowed}才为true。实际的移位距离等于要求的距离对位宽度取余后的结果:
     \begin{minted}{Rust}
-    // 对`u16`来说移动17位太多了，17对16取余等于1。
+    // 对`u16`来说移动17位太多了,17对16取余等于1。
     assert_eq!(5_u16.overflowing_shl(17), (10, true));
     \end{minted}
 \end{itemize}
 
-\hyperref[t3-7]{表3-7}中列出了以\texttt{checked\_}，\texttt{wrapping\_}，\texttt{saturating\_}，\texttt{overflowing\_}为前缀的方法。
+\hyperref[t3-7]{表3-7}中列出了以\texttt{checked\_},\texttt{wrapping\_},\texttt{saturating\_},\texttt{overflowing\_}为前缀的方法。
 \begin{table}[htbp]
     \centering
     \caption{操作的名称}
@@ -366,7 +366,7 @@ Rust报错：
 \end{table}
 
 \subsection{浮点数}
-Rust提供IEEE的单精度和双精度浮点数。这两个类型还包括正无穷、负无穷、正0、负0和\emph{非数}值。（\hyperref[t3-8]{表3-8}）
+Rust提供IEEE的单精度和双精度浮点数。这两个类型还包括正无穷、负无穷、正0、负0和\emph{非数}值。(\hyperref[t3-8]{表3-8})
 
 \begin{table}[htbp]
     \centering
@@ -376,13 +376,13 @@ Rust提供IEEE的单精度和双精度浮点数。这两个类型还包括正无
         \hline
         \textbf{类型}   & \textbf{精度} &   \textbf{范围}   \\
         \hline
-        \texttt{f32}    & IEEE单精度浮点数（至少6位十进制数字）    & 大约$-3.4\times10^{38}$到$+3.4\times10^{38}$    \\
+        \texttt{f32}    & IEEE单精度浮点数(至少6位十进制数字)    & 大约$-3.4\times10^{38}$到$+3.4\times10^{38}$    \\
         \rowcolor{tablecolor}
-        \texttt{f64}    & IEEE双精度浮点数（至少15位十进制数字）    & 大约$-1.8\times10^{308}$到$1.8\times10^{308}$   \\
+        \texttt{f64}    & IEEE双精度浮点数(至少15位十进制数字)    & 大约$-1.8\times10^{308}$到$1.8\times10^{308}$   \\
     \end{tabular}
 \end{table}
 
-Rust的\texttt{f32}和\texttt{f64}分别对应C和C++（如果实现支持IEEE浮点数的话）以及Java（总是使用IEEE浮点数）里的\texttt{float}和\texttt{double}类型。
+Rust的\texttt{f32}和\texttt{f64}分别对应C和C++(如果实现支持IEEE浮点数的话)以及Java(总是使用IEEE浮点数)里的\texttt{float}和\texttt{double}类型。
 
 浮点数字面量的一般形式如\hyperref[f3-1]{图3-1}。
 \begin{figure}[htbp]
@@ -392,11 +392,11 @@ Rust的\texttt{f32}和\texttt{f64}分别对应C和C++（如果实现支持IEEE�
     \label{f3-1}
 \end{figure}
 
-整数部分之后的部分都是可选的，但小数部分、指数、或者类型后缀至少需要有一个，才能和整数字面量区分开。小数部分可以只有一个单独的小数点，因此\texttt{5.}是一个有效的浮点数。
+整数部分之后的部分都是可选的,但小数部分、指数、或者类型后缀至少需要有一个,才能和整数字面量区分开。小数部分可以只有一个单独的小数点,因此\texttt{5.}是一个有效的浮点数。
 
-如果一个浮点数字面量缺少类型后置，和处理整数一样，Rust会检查上下文来查看这个值是如何使用的。如果最后它发现两种浮点数类型都可以满足语义，那么它会默认选择\texttt{f64}。
+如果一个浮点数字面量缺少类型后置,和处理整数一样,Rust会检查上下文来查看这个值是如何使用的。如果最后它发现两种浮点数类型都可以满足语义,那么它会默认选择\texttt{f64}。
 
-为了实现类型推导，Rust把整数字面量和浮点数字面量区分为不同的种类：它从来不会把一个浮点数类型推断为整数类型，反之亦然。\hyperref[t3-9]{表3-9}展示了一下浮点数字面量的例子。
+为了实现类型推导,Rust把整数字面量和浮点数字面量区分为不同的种类:它从来不会把一个浮点数类型推断为整数类型,反之亦然。\hyperref[t3-9]{表3-9}展示了一下浮点数字面量的例子。
 
 \begin{table}[htbp]
     \centering
@@ -418,58 +418,58 @@ Rust的\texttt{f32}和\texttt{f64}分别对应C和C++（如果实现支持IEEE�
     \end{tabular}
 \end{table}
 
-\texttt{f32}和\texttt{f64}类型还关联了IEEE要求的特殊常量值例如\texttt{INFINITY}、\texttt{NEG\_INFINITY}（负无穷）、\texttt{NAN}（非数值）、\texttt{MIN}和\texttt{MAX}（最小和最大的有限值）：
+\texttt{f32}和\texttt{f64}类型还关联了IEEE要求的特殊常量值例如\texttt{INFINITY}、\texttt{NEG\_INFINITY}(负无穷)、\texttt{NAN}(非数值)、\texttt{MIN}和\texttt{MAX}(最小和最大的有限值):
 \begin{minted}{Rust}
     assert!((-1. / f32::INFINITY).is_sign_negative());
     assert_eq!(-f32::MIN, f32::MAX);
 \end{minted}
-\texttt{f32}和\texttt{f64}类型提供了完整的数值计算的方法；例如，\texttt{2f64.sqrt()}是2的平方根。还有一些示例：
+\texttt{f32}和\texttt{f64}类型提供了完整的数值计算的方法;例如,\texttt{2f64.sqrt()}是2的平方根。还有一些示例:
 \begin{minted}{Rust}
     assert_eq!(5f32.sqrt() * 5f32.sqrt(), 5.);  // 精确的5.0
     assert_eq!((-1.01f64).floor(), -2.0);
 \end{minted}
 
-再重复一次，方法调用的优先级高于前缀运算符，因此对负数调用方法时确保要用括号括起来。
+再重复一次,方法调用的优先级高于前缀运算符,因此对负数调用方法时确保要用括号括起来。
 
-\texttt{std::f32::consts}和\texttt{std::f64::consts}模块提供了常用的数学常数，例如\texttt{E}、\texttt{PI}、2的平方根。
+\texttt{std::f32::consts}和\texttt{std::f64::consts}模块提供了常用的数学常数,例如\texttt{E}、\texttt{PI}、2的平方根。
 
-当查找文档时，记得既有类型的文档，名称叫“\texttt{f32}(primitive type)”和“\texttt{f64}(primitive type)”，又有模块的文档，名称叫\texttt{std::f32}和\texttt{std::f64}。
+当查找文档时,记得既有类型的文档,名称叫“\texttt{f32}(primitive type)”和“\texttt{f64}(primitive type)”,又有模块的文档,名称叫\texttt{std::f32}和\texttt{std::f64}。
 
-和整数一样，在实际编码时通常你不需要写出浮点数字面量的类型后缀，但如果你要写，那么只需要指明变量和函数其中一个类型即可：
+和整数一样,在实际编码时通常你不需要写出浮点数字面量的类型后缀,但如果你要写,那么只需要指明变量和函数其中一个类型即可:
 \begin{minted}{Rust}
     println!("{}", (2.0_f64).sqrt());
     println!("{}", f64::sqrt(2.0));
 \end{minted}
-和C和C++不同，Rust中几乎没有隐式类型转换。如果一个函数接收\texttt{f64}类型的参数，传递\texttt{i32}的值作为参数将是一个错误。事实上，Rust甚至不允许从\texttt{i16}到\texttt{i32}这样的隐式转换，尽管每一个\texttt{i16}值也都是一个合法的\texttt{i32}值。但你总是可以使用\texttt{as}运算符来进行\texttt{显式}转换：\texttt{i as f64}，或者\texttt{x as i32}。
+和C和C++不同,Rust中几乎没有隐式类型转换。如果一个函数接收\texttt{f64}类型的参数,传递\texttt{i32}的值作为参数将是一个错误。事实上,Rust甚至不允许从\texttt{i16}到\texttt{i32}这样的隐式转换,尽管每一个\texttt{i16}值也都是一个合法的\texttt{i32}值。但你总是可以使用\texttt{as}运算符来进行\texttt{显式}转换:\texttt{i as f64},或者\texttt{x as i32}。
 
-缺少隐式类型转换导致Rust的表达式可能会比C和C++中类似的表达式更加冗长。然而，隐式整数转换经常导致bug和安全漏洞。尤其是用来表示内存中某个东西的长度的整数，可能会导致意外的溢出。在我们的实践中，在Rust中显式写出类型转换可以提醒我们可能忽略的问题。
+缺少隐式类型转换导致Rust的表达式可能会比C和C++中类似的表达式更加冗长。然而,隐式整数转换经常导致bug和安全漏洞。尤其是用来表示内存中某个东西的长度的整数,可能会导致意外的溢出。在我们的实践中,在Rust中显式写出类型转换可以提醒我们可能忽略的问题。
 
 我们会在“\hyperref[cast]{类型转换}”一节中介绍转换的原理。
 
 \section{布尔类型}
 
-Rust的布尔类型\texttt{bool}，只有两个值：\texttt{true}和\texttt{false}。比较运算符例如\texttt{==}和\texttt{<}会产生\texttt{bool}类型的结果：\texttt{2 < 5}的结果是\texttt{true}。
+Rust的布尔类型\texttt{bool},只有两个值:\texttt{true}和\texttt{false}。比较运算符例如\texttt{==}和\texttt{<}会产生\texttt{bool}类型的结果:\texttt{2 < 5}的结果是\texttt{true}。
 
-许多语言都很宽容，允许在需要布尔值的上下文中使用其他类型：C和C++隐式把字符、整数、浮点数和指针转换为布尔值，因此它们可以直接用作\texttt{if}或\texttt{while}语句的条件。Python还允许string、list、字典、甚至集合用作布尔值，如果不为空时视为true。然而Rust非常严格：像\texttt{if}和\texttt{while}这样的控制流的条件必须是\texttt{bool}表达式，短路求值运算符\texttt{\&\&}和\texttt{||}也是这样。你必须写\texttt{if x != 0 \{ ... \}}，而不能写\texttt{if x \{ ... \}}。
+许多语言都很宽容,允许在需要布尔值的上下文中使用其他类型:C和C++隐式把字符、整数、浮点数和指针转换为布尔值,因此它们可以直接用作\texttt{if}或\texttt{while}语句的条件。Python还允许string、list、字典、甚至集合用作布尔值,如果不为空时视为true。然而Rust非常严格:像\texttt{if}和\texttt{while}这样的控制流的条件必须是\texttt{bool}表达式,短路求值运算符\texttt{\&\&}和\texttt{||}也是这样。你必须写\texttt{if x != 0 \{ ... \}},而不能写\texttt{if x \{ ... \}}。
 
-Rust的\texttt{as}运算符可以把\texttt{bool}值转换为整数值：
+Rust的\texttt{as}运算符可以把\texttt{bool}值转换为整数值:
 \begin{minted}{Rust}
     assert_eq!(false as i32, 0);
     assert_eq!(true  as i32, 1);
 \end{minted}
 
-然而，\texttt{as}不能反过来把整数值转换为\texttt{bool}值。你必须显式写出比较运算例如\texttt{x != 0}。
+然而,\texttt{as}不能反过来把整数值转换为\texttt{bool}值。你必须显式写出比较运算例如\texttt{x != 0}。
 
-尽管\texttt{bool}类型只需要单个比特来表示，Rust还是使用整个字节来表示\texttt{bool}，因此你可以创建指向它的指针。
+尽管\texttt{bool}类型只需要单个比特来表示,Rust还是使用整个字节来表示\texttt{bool},因此你可以创建指向它的指针。
 
 \section{字符}\label{char}
-Rust的字符类型\texttt{char}代表一个单独的Unicode字符，是一个32位的值。
+Rust的字符类型\texttt{char}代表一个单独的Unicode字符,是一个32位的值。
 
-Rust使用\texttt{char}表示单个字符，但使用UTF-8编码字符串和文本流。因此，\texttt{String}表示它的文本是一个UTF-8字节序列，而不是字符的数组。
+Rust使用\texttt{char}表示单个字符,但使用UTF-8编码字符串和文本流。因此,\texttt{String}表示它的文本是一个UTF-8字节序列,而不是字符的数组。
 
-字符串字面量是被单括号包围的单个字符，例如\texttt{'8'}或\texttt{'!'}。你可以使用Unicode范围内的任何字符：\texttt{'錆'}是一个\texttt{char}字面量代表日语汉字中的\emph{sabi}（rust）。
+字符串字面量是被单括号包围的单个字符,例如\texttt{'8'}或\texttt{'!'}。你可以使用Unicode范围内的任何字符:\texttt{'錆'}是一个\texttt{char}字面量代表日语汉字中的\emph{sabi}(rust)。
 
-和字节字面量一样，一些字符需要反斜杠转义（\hyperref[t3-10]{表3-10}）。
+和字节字面量一样,一些字符需要反斜杠转义(\hyperref[t3-10]{表3-10})。
 \begin{table}[htbp]
     \centering
     \caption{需要反斜杠转义的字符}
@@ -478,9 +478,9 @@ Rust使用\texttt{char}表示单个字符，但使用UTF-8编码字符串和文�
         \hline
         \textbf{字符}   &   \textbf{Rust字符字面量} \\
         \hline
-        单引号，'   &   \texttt{b'\textbackslash''} \\
+        单引号,'   &   \texttt{b'\textbackslash''} \\
         \rowcolor{tablecolor}
-        反斜杠，\textbackslash &    \texttt{b'\textbackslash\textbackslash'} \\
+        反斜杠,\textbackslash &    \texttt{b'\textbackslash\textbackslash'} \\
         换行        &    \texttt{b'\textbackslash n'} \\
         \rowcolor{tablecolor}
         回车        &   \texttt{b'\textbackslash r'} \\
@@ -488,22 +488,22 @@ Rust使用\texttt{char}表示单个字符，但使用UTF-8编码字符串和文�
     \end{tabular}
 \end{table}
 
-如果你喜欢的话，你可以以十六进制的方式写出一个字符的Unicode编码：
+如果你喜欢的话,你可以以十六进制的方式写出一个字符的Unicode编码:
 \begin{itemize}
-    \item 如果字符的码点在U+0000到U+007F之间（可以据此判断是否在ASCII字符集之中），那么你可以将字符写作\texttt{'\textbackslash xHH'}，\texttt{HH}是一个两位的十六进制数字。例如，字符字面量\texttt{'*'}和\texttt{'\textbackslash x2A'}是等价的，因为字符\texttt{*}的码点是42，十六进制是2A。
-    \item 你可以用\texttt{'\textbackslash u{HHHHHH}'}形式写出任何Unicode字符，\texttt{HHHHHH}是一个最长6位的十六进制数字，可以用下划线分隔。\footnote{译者注：此处原文中给了一个例子，但译者不知道该怎么打出卡纳达语里的字符，复制粘贴也不行，就省略了这个例子。}
+    \item 如果字符的码点在U+0000到U+007F之间(可以据此判断是否在ASCII字符集之中),那么你可以将字符写作\texttt{'\textbackslash xHH'},\texttt{HH}是一个两位的十六进制数字。例如,字符字面量\texttt{'*'}和\texttt{'\textbackslash x2A'}是等价的,因为字符\texttt{*}的码点是42,十六进制是2A。
+    \item 你可以用\texttt{'\textbackslash u{HHHHHH}'}形式写出任何Unicode字符,\texttt{HHHHHH}是一个最长6位的十六进制数字,可以用下划线分隔。\footnote{译者注:此处原文中给了一个例子,但译者不知道该怎么打出卡纳达语里的字符,复制粘贴也不行,就省略了这个例子。}
 \end{itemize}
 
-一个\texttt{char}总是存储一个在0x0000到0xD7FF或0xE000到0x10FFFF之间的Unicode码点。一个\texttt{char}绝不会在两个范围之间（即0xD800到0xDFFF），也不会超出Unicode的编码空间（即大于0x10FFFF）。Rust使用类型系统和动态检查来确保\texttt{char}值总是在允许的范围内。
+一个\texttt{char}总是存储一个在0x0000到0xD7FF或0xE000到0x10FFFF之间的Unicode码点。一个\texttt{char}绝不会在两个范围之间(即0xD800到0xDFFF),也不会超出Unicode的编码空间(即大于0x10FFFF)。Rust使用类型系统和动态检查来确保\texttt{char}值总是在允许的范围内。
 
-Rust永远不会进行\texttt{char}和其他任何类型之间的隐式转换。你可以使用\texttt{as}转换运算符来把\texttt{char}转换为整数类型，对于小于32位的类型，字符值的高位会被截断：\footnote{译者注：这个例子中也省略了卡纳达语字符相关的内容}
+Rust永远不会进行\texttt{char}和其他任何类型之间的隐式转换。你可以使用\texttt{as}转换运算符来把\texttt{char}转换为整数类型,对于小于32位的类型,字符值的高位会被截断:\footnote{译者注:这个例子中也省略了卡纳达语字符相关的内容}
 \begin{minted}{Rust}
     assert_eq!('*' as i32, 42);
 \end{minted}
 
-另外，\texttt{u8}是唯一可以用\texttt{as}运算符转换成\texttt{char}的整数类型：Rust只会对开销很低并且不可能失败的转换使用\texttt{as}运算符，但任何\texttt{u8}之外的整数类型都包含不是有效的Unicode码点的值，因此这些转换需要运行时检查。所以，标准库提供了函数\texttt{std::char::from\_u32}接受任何\texttt{u32}值，并返回\texttt{Option<char>}：如果\texttt{u32}的值不是合法的Unicode码点，\texttt{from\_u32}会返回\texttt{None}；否则，它会返回\texttt{Some(c)}，\texttt{c}就是作为转换结果的\texttt{char}。
+另外,\texttt{u8}是唯一可以用\texttt{as}运算符转换成\texttt{char}的整数类型:Rust只会对开销很低并且不可能失败的转换使用\texttt{as}运算符,但任何\texttt{u8}之外的整数类型都包含不是有效的Unicode码点的值,因此这些转换需要运行时检查。所以,标准库提供了函数\texttt{std::char::from\_u32}接受任何\texttt{u32}值,并返回\texttt{Option<char>}:如果\texttt{u32}的值不是合法的Unicode码点,\texttt{from\_u32}会返回\texttt{None};否则,它会返回\texttt{Some(c)},\texttt{c}就是作为转换结果的\texttt{char}。
 
-标准库为字符类型提供了一些有用的方法，你可以在文档中的“\texttt{char}(primitive type)”和模块“\texttt{std::char}”的页面中查找这些方法。例如：
+标准库为字符类型提供了一些有用的方法,你可以在文档中的“\texttt{char}(primitive type)”和模块“\texttt{std::char}”的页面中查找这些方法。例如:
 \begin{minted}{Rust}
     assert_eq!('*'.is_alphabetic(), false);
     assert_eq!('β'.is_alphabetic(), true);
@@ -511,19 +511,19 @@ Rust永远不会进行\texttt{char}和其他任何类型之间的隐式转换。
     assert_eq!(std::char::from_digit(2, 10), Some('2'));
 \end{minted}
 
-当然，单个字符显然没有字符串和文本流有趣。我们将会在“\hyperref[string]{字符串类型}”中介绍Rust的标准\texttt{String}类型和常用的文本处理操作。
+当然,单个字符显然没有字符串和文本流有趣。我们将会在“\hyperref[string]{字符串类型}”中介绍Rust的标准\texttt{String}类型和常用的文本处理操作。
 
 \section{元组}
-\emph{元组}是两个、或三个、四个、五个、……不同类型的值的组合。你可以将元组看作被逗号分隔和括号包围的元素序列。例如，\texttt{("Brazil", 1985)}是一个元组，它的第一个元素是一个静态分配的字符串，第二个元素是一个整数，它的类型是\texttt{(\&str, i32)}。给定一个元组值\texttt{t}，你可以通过\texttt{t.0}、\texttt{t.1}、……来访问它的元素。
+\emph{元组}是两个、或三个、四个、五个、……不同类型的值的组合。你可以将元组看作被逗号分隔和括号包围的元素序列。例如,\texttt{("Brazil", 1985)}是一个元组,它的第一个元素是一个静态分配的字符串,第二个元素是一个整数,它的类型是\texttt{(\&str, i32)}。给定一个元组值\texttt{t},你可以通过\texttt{t.0}、\texttt{t.1}、……来访问它的元素。
 
-某种程度上，元组类似于数组：这两个类型都代表一系列有固定顺序的值。许多编程语言合并或结合了这两种概念，但在Rust中，它们是完全独立的。一方面，元组的每个元素可以拥有不同的类型，而数组的所有元素必须有相同的类型。另外，元组只允许常数索引，例如\texttt{t.4}。你不可能写\texttt{t.i}或者\texttt{t[i]}来获取第i个元素。
+某种程度上,元组类似于数组:这两个类型都代表一系列有固定顺序的值。许多编程语言合并或结合了这两种概念,但在Rust中,它们是完全独立的。一方面,元组的每个元素可以拥有不同的类型,而数组的所有元素必须有相同的类型。另外,元组只允许常数索引,例如\texttt{t.4}。你不可能写\texttt{t.i}或者\texttt{t[i]}来获取第i个元素。
 
-Rust代码中经常使用元组类型来返回多个值。例如，字符串切片中的\texttt{split\_at}方法：用于将一个字符串切分为两半并返回的函数，被声明为类似如下形式：
+Rust代码中经常使用元组类型来返回多个值。例如,字符串切片中的\texttt{split\_at}方法:用于将一个字符串切分为两半并返回的函数,被声明为类似如下形式:
 \begin{minted}{Rust}
     fn split_at(&self, mid: usize) -> (&str, &str);
 \end{minted}
 
-返回类型\texttt{(\&str, \&str)}是两个字符串切片组成的元组。你可以使用模式匹配语法来把返回的元素赋值给不同的变量：
+返回类型\texttt{(\&str, \&str)}是两个字符串切片组成的元组。你可以使用模式匹配语法来把返回的元素赋值给不同的变量:
 \begin{minted}{Rust}
     let text = "I see the eigenvalue in thine eye";
     let (head, tail) = text.split_at(21);
@@ -531,7 +531,7 @@ Rust代码中经常使用元组类型来返回多个值。例如，字符串切�
     assert_eq!(tail, "in thine eye");
 \end{minted}
 
-这比下边的等价代码可读性更强：
+这比下边的等价代码可读性更强:
 \begin{minted}{Rust}
     let text = "I see the eigenvalue in thine eye";
     let temp = text.split_at(21);
@@ -541,54 +541,54 @@ Rust代码中经常使用元组类型来返回多个值。例如，字符串切�
     assert_eq!(tail, "in thine eye");
 \end{minted}
 
-你也可以将元组视为一种极简的结构体类型。例如，在\hyperref[ch02]{第2章}的曼德勃罗集程序中，我们需要向函数传递要绘制的图片的宽度和高度。我们可以声明一个有\texttt{width}和\texttt{height}成员的结构体，但这么简单的事没有必要搞得这么复杂，因此我们用了一个元组：
+你也可以将元组视为一种极简的结构体类型。例如,在\hyperref[ch02]{第2章}的曼德勃罗集程序中,我们需要向函数传递要绘制的图片的宽度和高度。我们可以声明一个有\texttt{width}和\texttt{height}成员的结构体,但这么简单的事没有必要搞得这么复杂,因此我们用了一个元组:
 \begin{minted}{Rust}
-    /// 写入缓冲区`pixels`，它的大小由`bounds`给出，
+    /// 写入缓冲区`pixels`,它的大小由`bounds`给出,
     /// 写入的文件名是`filename`。
     fn write_image(filename: &str, pixels: &[u8], bounds: (usize, usize))
         -> Result<(), std::io::Error>
     { ... }
 \end{minted}
 
-参数\texttt{bounds}的类型是\texttt{(usize, usize)}，一个有两个\texttt{usize}值的元组。诚然，我们可以直接使用单独的\texttt{width}和\texttt{height}参数，生成的机器代码也会完全相同。这么写的目的只是想表明，我们把图片的大小看成一个值，而不是两个值，使用元组的写法可以清晰的表现出这一点。
+参数\texttt{bounds}的类型是\texttt{(usize, usize)},一个有两个\texttt{usize}值的元组。诚然,我们可以直接使用单独的\texttt{width}和\texttt{height}参数,生成的机器代码也会完全相同。这么写的目的只是想表明,我们把图片的大小看成一个值,而不是两个值,使用元组的写法可以清晰的表现出这一点。
 
-元组的另一个常见用法是0元组\texttt{()}。这通常被称为\emph{单元类型}因为它只有一个取值，也写作\texttt{()}。Rust在上下文要求某种类型，但没有有意义的值要传递的情况下使用单元类型。
+元组的另一个常见用法是0元组\texttt{()}。这通常被称为\emph{单元类型}因为它只有一个取值,也写作\texttt{()}。Rust在上下文要求某种类型,但没有有意义的值要传递的情况下使用单元类型。
 
-例如，一个不返回值的函数的返回类型是\texttt{()}。标准库中的\texttt{std::mem::swap}函数没有有意义的返回值；它只是交换两个参数的值。\texttt{std::mem::swap}的声明如下：
+例如,一个不返回值的函数的返回类型是\texttt{()}。标准库中的\texttt{std::mem::swap}函数没有有意义的返回值;它只是交换两个参数的值。\texttt{std::mem::swap}的声明如下:
 \begin{minted}{Rust}
     fn swap<T>(x: &mut T, y: &mut T);
 \end{minted}
-\texttt{<T>}意味着\texttt{swap}是\emph{泛型}的：你可以将它用于任何类型\texttt{T}的引用。但签名中省略了\texttt{swap}的返回类型，这实际上是返回单元类型的缩写：
+\texttt{<T>}意味着\texttt{swap}是\emph{泛型}的:你可以将它用于任何类型\texttt{T}的引用。但签名中省略了\texttt{swap}的返回类型,这实际上是返回单元类型的缩写:
 \begin{minted}{Rust}
     fn swap<T>(x: &mut T, y: &mut T) -> ();
 \end{minted}
 
-与此类似，我们之前提到的\texttt{write\_image}例子中返回值类型是\texttt{Result<(), std::io::Error>}，这意味着如果出错时函数返回\texttt{std::io::Error}类型的值，如果成功时返回无值。
+与此类似,我们之前提到的\texttt{write\_image}例子中返回值类型是\texttt{Result<(), std::io::Error>},这意味着如果出错时函数返回\texttt{std::io::Error}类型的值,如果成功时返回无值。
 
-如果你想的话，你可以在元组的最后一个元素之后加上一个逗号：类型\texttt{(\&str, i32,)}和\texttt{(\&str, i32)}是等价的，\texttt{("Brazil", 1985,)}和\texttt{("Brazil", 1985)}也是。Rust允许任何逗号分隔的值列表最后加上一个额外的逗号：函数参数、数组、结构体和枚举定义，等等。这对人类来说可能看起来很奇怪，但当需要在最后添加或删除条目时会变得方便一些。
+如果你想的话,你可以在元组的最后一个元素之后加上一个逗号:类型\texttt{(\&str, i32,)}和\texttt{(\&str, i32)}是等价的,\texttt{("Brazil", 1985,)}和\texttt{("Brazil", 1985)}也是。Rust允许任何逗号分隔的值列表最后加上一个额外的逗号:函数参数、数组、结构体和枚举定义,等等。这对人类来说可能看起来很奇怪,但当需要在最后添加或删除条目时会变得方便一些。
 
-为了一致性，还有只包含单个值的元组。字面量\texttt{("lonely hearts",)}是一个包含单个字符串的元组，它的类型是\texttt{(\&str,)}。这里，最后的逗号是必须的，这是为了和单纯的用括号把表达式括起来相区分。
+为了一致性,还有只包含单个值的元组。字面量\texttt{("lonely hearts",)}是一个包含单个字符串的元组,它的类型是\texttt{(\&str,)}。这里,最后的逗号是必须的,这是为了和单纯的用括号把表达式括起来相区分。
 
 \section{指针类型}
 Rust有几个表示内存地址的类型。
 
-这是Rust和其他大多数有垃圾回收语言的不同之处。在Java中，如果\texttt{class Rectangle}包含一个字段\texttt{Vector2D upperLeft}，那么\texttt{upperLeft}实际上是对另一个单独创建的\texttt{Vector2D}对象的引用。在Java中一个对象从来不会真的包含其他对象。
+这是Rust和其他大多数有垃圾回收语言的不同之处。在Java中,如果\texttt{class Rectangle}包含一个字段\texttt{Vector2D upperLeft},那么\texttt{upperLeft}实际上是对另一个单独创建的\texttt{Vector2D}对象的引用。在Java中一个对象从来不会真的包含其他对象。
 
-Rust里则不同。Rust被设计为最少分配内存。默认情况下Rust里是值嵌套的，值\texttt{((0, 0), (1440, 900))}被存储为四个相邻的整数。如果你把它赋值给一个局部变量，那么你将得到一个4个整数大小的局部变量，不会在堆上分配任何内存。
+Rust里则不同。Rust被设计为最少分配内存。默认情况下Rust里是值嵌套的,值\texttt{((0, 0), (1440, 900))}被存储为四个相邻的整数。如果你把它赋值给一个局部变量,那么你将得到一个4个整数大小的局部变量,不会在堆上分配任何内存。
 
-这有助于提高内存效率，但它会导致当Rust程序需要指向其他值的指针时，必须显式使用指针类型。好消息是safe Rust里的指针类型有一些约束来保证不会出现未定义行为，因此Rust中的指针比C++中的更容易正确使用得多。
+这有助于提高内存效率,但它会导致当Rust程序需要指向其他值的指针时,必须显式使用指针类型。好消息是safe Rust里的指针类型有一些约束来保证不会出现未定义行为,因此Rust中的指针比C++中的更容易正确使用得多。
 
-我们将会在这里讨论三种指针类型：引用、box、unsafe指针。
+我们将会在这里讨论三种指针类型:引用、box、unsafe指针。
 
 \subsection{引用}
 
-一个\texttt{\&String}（读作“ref String”）类型的值是一个\texttt{String}值的引用，一个\texttt{\&i32}类型的值是一个\texttt{i32}值的引用，等等。
+一个\texttt{\&String}(读作“ref String”)类型的值是一个\texttt{String}值的引用,一个\texttt{\&i32}类型的值是一个\texttt{i32}值的引用,等等。
 
-把引用想象成Rust的基本指针类型可以让我们更容易理解。在运行时，一个\texttt{i32}的引用是一个单独的机器字，里面存储的是指向的\texttt{i32}值的地址，可能在栈上也可能在堆上。表达式\texttt{\&x}产生一个\texttt{x}的引用；在Rust的术语中，我们称它\emph{借用了\texttt{x}的引用}。给定引用\texttt{r}，表达式\texttt{*r}就是\texttt{r}指向的值。这些类似于C和C++中的\texttt{\&}和\texttt{*}运算符。类似于C指针，当引用离开作用域时并不会自动释放任何资源。
+把引用想象成Rust的基本指针类型可以让我们更容易理解。在运行时,一个\texttt{i32}的引用是一个单独的机器字,里面存储的是指向的\texttt{i32}值的地址,可能在栈上也可能在堆上。表达式\texttt{\&x}产生一个\texttt{x}的引用;在Rust的术语中,我们称它\emph{借用了\texttt{x}的引用}。给定引用\texttt{r},表达式\texttt{*r}就是\texttt{r}指向的值。这些类似于C和C++中的\texttt{\&}和\texttt{*}运算符。类似于C指针,当引用离开作用域时并不会自动释放任何资源。
 
-然而和C指针不同的是，Rust的引用永远不为空：在safe Rust中没有任何办法产生一个空引用。而且和C指针不同，Rust通过追踪值的所有权和生命周期，在编译期就可以杜绝悬垂指针、double free和指针失效的情况。
+然而和C指针不同的是,Rust的引用永远不为空:在safe Rust中没有任何办法产生一个空引用。而且和C指针不同,Rust通过追踪值的所有权和生命周期,在编译期就可以杜绝悬垂指针、double free和指针失效的情况。
 
-Rust的指针有以下两种类型：
+Rust的指针有以下两种类型:
 \begin{flushleft}
     \emph{\texttt{\&T}}
 \end{flushleft}
@@ -596,7 +596,7 @@ Rust的指针有以下两种类型：
 \hangafter 0
 \hangindent 2em
 \noindent
-一个不可变的共享引用。你可以同时拥有同一个值的多个共享的引用，但它们都是只读的：修改它们指向的值是禁止的，就像C中的\texttt{const T*}一样。
+一个不可变的共享引用。你可以同时拥有同一个值的多个共享的引用,但它们都是只读的:修改它们指向的值是禁止的,就像C中的\texttt{const T*}一样。
 
 \begin{flushleft}
     \emph{\texttt{\&mut T}}
@@ -605,38 +605,38 @@ Rust的指针有以下两种类型：
 \hangafter 0
 \hangindent 2em
 \noindent
-一个可变的、独占的应用。你可以读写它指向的值，类似于C中的\texttt{T*}。但只要这个引用存在，你不能再持有任何这个值的其他任何类型的引用。事实上，这时候你唯一可以访问这个值的方法就是通过这个可变引用。
+一个可变的、独占的应用。你可以读写它指向的值,类似于C中的\texttt{T*}。但只要这个引用存在,你不能再持有任何这个值的其他任何类型的引用。事实上,这时候你唯一可以访问这个值的方法就是通过这个可变引用。
 
-Rust使用这种方式来区分共享和可变的引用，以此来强制执行“单个写者或多个读者”规则：要么你可以读写值，要么它只能被任何数量的读者共享。这种分隔由编译器检查来强制执行，它是Rust安全保证的核心。\hyperref[ch05]{第5章}解释了Rust中使用安全引用的规则。
+Rust使用这种方式来区分共享和可变的引用,以此来强制执行“单个写者或多个读者”规则:要么你可以读写值,要么它只能被任何数量的读者共享。这种分隔由编译器检查来强制执行,它是Rust安全保证的核心。\hyperref[ch05]{第5章}解释了Rust中使用安全引用的规则。
 
 \subsection{\texttt{Box}}
 
-最简单的在堆上分配内存的方式是使用\texttt{Box::new}：
+最简单的在堆上分配内存的方式是使用\texttt{Box::new}:
 \begin{minted}{Rust}
     let t = (12, "eggs");
     let b = Box::new(t);    // 在堆上分配一个元组
 \end{minted}
 
-\texttt{t}的类型是\texttt{(i32, \&str)}，因此\texttt{b}的类型是\texttt{Box<(i32, \&str)>}。调用\texttt{Box::new}会在堆上分配足够的内存来存储元组。当\texttt{b}离开作用域时，内存会被立即释放，除非\texttt{b}被\texttt{move}了——例如被返回了。move对Rust处理堆上分配的值的方式至关重要，我们将在\hyperref[ch04]{第4章}详解介绍这一点。
+\texttt{t}的类型是\texttt{(i32, \&str)},因此\texttt{b}的类型是\texttt{Box<(i32, \&str)>}。调用\texttt{Box::new}会在堆上分配足够的内存来存储元组。当\texttt{b}离开作用域时,内存会被立即释放,除非\texttt{b}被\texttt{move}了——例如被返回了。move对Rust处理堆上分配的值的方式至关重要,我们将在\hyperref[ch04]{第4章}详解介绍这一点。
 
 \subsection{原始指针}
 
-Rust也有原始指针类型\texttt{*mut T}和\texttt{*const T}。原始指针类似于C++中的指针。使用原始指针是不安全的，因为Rust无法追踪它指向的到底是什么。例如，原始指针可能是空、或者可能指向被释放的内存、或者现在指向一个和之前不同类型的值。所有C++中经典的指针错误都有可能。
+Rust也有原始指针类型\texttt{*mut T}和\texttt{*const T}。原始指针类似于C++中的指针。使用原始指针是不安全的,因为Rust无法追踪它指向的到底是什么。例如,原始指针可能是空、或者可能指向被释放的内存、或者现在指向一个和之前不同类型的值。所有C++中经典的指针错误都有可能。
 
-然而，你只能在\texttt{unsafe}块中解引用原始指针。\texttt{unsafe}块是Rust中的可选机制，它的安全性取决于你自己。如果你的代码没有\texttt{unsafe}块（或者有\texttt{unsafe}块但里面的代码都是完全正确的），那么整本书中强调的安全性保证都适用。细节见\hyperref[ch22]{第22章}。
+然而,你只能在\texttt{unsafe}块中解引用原始指针。\texttt{unsafe}块是Rust中的可选机制,它的安全性取决于你自己。如果你的代码没有\texttt{unsafe}块(或者有\texttt{unsafe}块但里面的代码都是完全正确的),那么整本书中强调的安全性保证都适用。细节见\hyperref[ch22]{第22章}。
 
 \section{数组、vector和切片}
-Rust有三种表示一系列值的类型：
+Rust有三种表示一系列值的类型:
 \begin{itemize}
-    \item 类型\texttt{[T; N]}表示一个有\texttt{N}个值的数组，每个元素的类型都是\texttt{T}。每个数组的长度必须在编译期已知，并且是类型的一部分。你不能添加新元素或者缩减元素。
-    \item 类型\texttt{Vec<T>}，是类型\texttt{T}的向量。它是动态分配、可增长的类型\texttt{T}的值的序列。vector的元素存储在堆中，所以你可以按需更改vector的大小：可以添加新的元素、附加其它vector、删除元素等。
-    \item 类型\texttt{\&[T]}和\texttt{\&mut [T]}分别是类型\texttt{T}的共享切片和可变切片，它们是数组或vector等其它值中的一部分元素的引用。你可以把切片可做一个指向第一个元素的指针再加上一个可以访问的元素的数量。一个可变的切片\texttt{\&mut [T]}让你可以读取并修改元素，但不能被共享；共享的切片\texttt{\&[T]}允许你在多个读者间共享数据，但不能修改元素。
+    \item 类型\texttt{[T; N]}表示一个有\texttt{N}个值的数组,每个元素的类型都是\texttt{T}。每个数组的长度必须在编译期已知,并且是类型的一部分。你不能添加新元素或者缩减元素。
+    \item 类型\texttt{Vec<T>},是类型\texttt{T}的向量。它是动态分配、可增长的类型\texttt{T}的值的序列。vector的元素存储在堆中,所以你可以按需更改vector的大小:可以添加新的元素、附加其它vector、删除元素等。
+    \item 类型\texttt{\&[T]}和\texttt{\&mut [T]}分别是类型\texttt{T}的共享切片和可变切片,它们是数组或vector等其它值中的一部分元素的引用。你可以把切片可做一个指向第一个元素的指针再加上一个可以访问的元素的数量。一个可变的切片\texttt{\&mut [T]}让你可以读取并修改元素,但不能被共享;共享的切片\texttt{\&[T]}允许你在多个读者间共享数据,但不能修改元素。
 \end{itemize}
 
-如果\texttt{v}是这三种类型中的任意一种，那么表达式\texttt{v.len()}返回\texttt{v}中元素的数量，\texttt{v[i]}返回\texttt{v}中的第\texttt{i+1}个元素。第一个元素是\texttt{v[0]}，最后一个元素是\texttt{v[v.len() - 1]}。Rust会检查\texttt{i}是否在范围内，如果超过了长度范围，表达式会panic。\texttt{v}的长度可能是0，这时任何索引操作都会panic。\texttt{i}必须是\texttt{usize}类型的值，你不能使用任何其他整数类型当作索引。
+如果\texttt{v}是这三种类型中的任意一种,那么表达式\texttt{v.len()}返回\texttt{v}中元素的数量,\texttt{v[i]}返回\texttt{v}中的第\texttt{i+1}个元素。第一个元素是\texttt{v[0]},最后一个元素是\texttt{v[v.len() - 1]}。Rust会检查\texttt{i}是否在范围内,如果超过了长度范围,表达式会panic。\texttt{v}的长度可能是0,这时任何索引操作都会panic。\texttt{i}必须是\texttt{usize}类型的值,你不能使用任何其他整数类型当作索引。
 
 \subsection{数组}
-创建一个数组有几种方式。最简单的方式是用方括号括起来的一系列值：
+创建一个数组有几种方式。最简单的方式是用方括号括起来的一系列值:
 \begin{minted}{Rust}
     let lazy_caterer: [u32; 6] = [1, 2, 4, 7, 11, 16];
     let taxonomy = ["Animalia", "Arthropoda", "Insecta"];
@@ -645,7 +645,7 @@ Rust有三种表示一系列值的类型：
     assert_eq!(taxonomy.len(), 3);
 \end{minted}
 
-对于需要创建一个初始化为指定值的长数组的情况你可以用\texttt{[V; N]}的写法，其中\texttt{V}是每一个元素的初始值，\texttt{N}是长度。例如，\texttt{[true; 10000]}是一个有10,000个\texttt{bool}类型元素的数组，每个元素都被初始化为\texttt{true}：
+对于需要创建一个初始化为指定值的长数组的情况你可以用\texttt{[V; N]}的写法,其中\texttt{V}是每一个元素的初始值,\texttt{N}是长度。例如,\texttt{[true; 10000]}是一个有10,000个\texttt{bool}类型元素的数组,每个元素都被初始化为\texttt{true}:
 \begin{minted}{Rust}
     let mut sieve = [true; 10000];
     for i in 2..100 {
@@ -662,42 +662,42 @@ Rust有三种表示一系列值的类型：
     assert!(!sieve[9876]);
 \end{minted}
 
-你会发现这种语法还可以用于创建固定大小的缓冲区：\texttt{[0u8; 1024]}可以用作一个1K的缓冲区，所有字节全部初始化为0。Rust里没有创建未初始化数组的语法。（更广泛的说，Rust保证代码不可能访问任何未初始化的值。）
+你会发现这种语法还可以用于创建固定大小的缓冲区:\texttt{[0u8; 1024]}可以用作一个1K的缓冲区,所有字节全部初始化为0。Rust里没有创建未初始化数组的语法。(更广泛的说,Rust保证代码不可能访问任何未初始化的值。)
 
-一个数组的长度是类型的一部分，并且在编译期就已经固定。如果\texttt{n}是一个变量，你不能用\texttt{[true; n]}这种语法来得到一个有\texttt{n}个元素的数组。当你需要运行时才能确定的数组时，使用vector来代替。
+一个数组的长度是类型的一部分,并且在编译期就已经固定。如果\texttt{n}是一个变量,你不能用\texttt{[true; n]}这种语法来得到一个有\texttt{n}个元素的数组。当你需要运行时才能确定的数组时,使用vector来代替。
 
-数组有一些有用的方法——迭代元素、搜索、排序、填充、过滤等等——事实上这些方法都是切片的，而不是数组的。但在搜索方法是Rust会隐式的把数组的引用转换为切片，因此你可以直接用数组调用切片的方法：
+数组有一些有用的方法——迭代元素、搜索、排序、填充、过滤等等——事实上这些方法都是切片的,而不是数组的。但在搜索方法是Rust会隐式的把数组的引用转换为切片,因此你可以直接用数组调用切片的方法:
 \begin{minted}{Rust}
     let mut chaos = [3, 5, 4, 1, 2];
     chaos.sort();
     assert_eq!(chaos, [1, 2, 3, 4, 5]);
 \end{minted}
 
-这里，\texttt{sort}方法实际上是为切片定义的，但因为它是以调用者的引用为参数，所以Rust隐式的创建了一个引用整个数组的\texttt{\&mut [i32]}类型的切片，然后在这个切片上调用\texttt{sort}方法。事实上，我们之前提到的\texttt{len}方法最早的时候也是切片的方法。我们将在\hyperref[slice]{切片}这一节中介绍切片。
+这里,\texttt{sort}方法实际上是为切片定义的,但因为它是以调用者的引用为参数,所以Rust隐式的创建了一个引用整个数组的\texttt{\&mut [i32]}类型的切片,然后在这个切片上调用\texttt{sort}方法。事实上,我们之前提到的\texttt{len}方法最早的时候也是切片的方法。我们将在\hyperref[slice]{切片}这一节中介绍切片。
 
 \subsection{vector}\label{vector}
 
-一个\texttt{Vec<T>}是一个长度可变的类型\texttt{T}的数组，它的元素都存储在堆上。
+一个\texttt{Vec<T>}是一个长度可变的类型\texttt{T}的数组,它的元素都存储在堆上。
 
-有几种创建vector的方法。最简单的方法是使用\texttt{vec!}宏，这种语法很像数组字面量：
+有几种创建vector的方法。最简单的方法是使用\texttt{vec!}宏,这种语法很像数组字面量:
 \begin{minted}{Rust}
     let mut primes = vec![2, 3, 5, 7];
     assert_eq!(primes.iter().product::<i32>(), 210);
 \end{minted}
-当然，这是vector，不是数组，因此我们可以动态添加元素：
+当然,这是vector,不是数组,因此我们可以动态添加元素:
 \begin{minted}{Rust}
     primes.push(11);
     primes.push(13);
     assert_eq!(primes.iter().product::<i32>(), 30030);
 \end{minted}
 
-你也可以再次使用类似于数组字面量的语法来创建重复给定值若干次的vector：
+你也可以再次使用类似于数组字面量的语法来创建重复给定值若干次的vector:
 \begin{minted}{Rust}
     fn new_pixel_buffer(rows: usize, cols: usize) -> Vec<u8> {
         vec![0; rows * cols]
     }
 \end{minted}
-\texttt{vec!}宏等价于调用\texttt{Vec::new}创建一个新的空vector，然后向其中添加元素：
+\texttt{vec!}宏等价于调用\texttt{Vec::new}创建一个新的空vector,然后向其中添加元素:
 \begin{minted}{Rust}
     let mut pal = Vec::new();
     pal.push("step");
@@ -707,15 +707,15 @@ Rust有三种表示一系列值的类型：
     assert_eq!(pal, vec!["step", "on", "no", "pets]);
 \end{minted}
 
-另一种创建vector的方法是通过迭代器创建：
+另一种创建vector的方法是通过迭代器创建:
 \begin{minted}{Rust}
     let v: Vec<i32> = (0..5).collect();
     assert_eq!(v, [0, 1, 2, 3, 4]);
 \end{minted}
 
-通常使用\texttt{collect}时你需要给出类型，因为它可以生成不同类型的集合，不只是vector。但指明了\texttt{v}的类型之后，我们需要的集合类型就没有歧义了。
+通常使用\texttt{collect}时你需要给出类型,因为它可以生成不同类型的集合,不只是vector。但指明了\texttt{v}的类型之后,我们需要的集合类型就没有歧义了。
 
-类似于数组，你也可以对vector调用切片的方法：
+类似于数组,你也可以对vector调用切片的方法:
 \begin{minted}{Rust}
     // 回文
     let mut palindrome = vec!["a man", "a plan", "a canal", "panama"];
@@ -724,17 +724,17 @@ Rust有三种表示一系列值的类型：
     assert_eq!(palindrome, vec!["panama", "a canal", "a plan", "a man"]);
 \end{minted}
 
-这里，\texttt{reverse}方法实际上是为切片定义的，但这里调用隐式地借用了vector的\texttt{\&mut [\&str]}切片，然后对它调用了\texttt{reverse}。
+这里,\texttt{reverse}方法实际上是为切片定义的,但这里调用隐式地借用了vector的\texttt{\&mut [\&str]}切片,然后对它调用了\texttt{reverse}。
 
-\texttt{Vec}是Rust中不可或缺的一个类型——它被用在几乎所有需要动态大小列表的场景——所以有很多其他的方法创建构造新的vector或扩展现有的列表，我们将在\hyperref[ch16]{第16章}介绍它们。
+\texttt{Vec}是Rust中不可或缺的一个类型——它被用在几乎所有需要动态大小列表的场景——所以有很多其他的方法创建构造新的vector或扩展现有的列表,我们将在\hyperref[ch16]{第16章}介绍它们。
 
-一个\texttt{Vec<T>}由3个值组成：一个指针指向堆上存储元素的缓冲区，这个缓冲区的所有权属于这个\texttt{Vec<T>}；缓冲区可以存储的元素的数量；它现在实际已经拥有的元素的数量（也就是它的长度）。当缓冲区的的元素到达最大容量时，继续添加元素会导致vector重新分配一个更大的缓冲区，再把已有元素都拷贝过去，然后更新vector的指针和容量，最后释放旧的缓冲区。
+一个\texttt{Vec<T>}由3个值组成:一个指针指向堆上存储元素的缓冲区,这个缓冲区的所有权属于这个\texttt{Vec<T>};缓冲区可以存储的元素的数量;它现在实际已经拥有的元素的数量(也就是它的长度)。当缓冲区的的元素到达最大容量时,继续添加元素会导致vector重新分配一个更大的缓冲区,再把已有元素都拷贝过去,然后更新vector的指针和容量,最后释放旧的缓冲区。
 
-如果你提前知道vector需要存储的元素的数量，你可以使用\texttt{Vec::with\_capacity}来创建一个从一开始就拥有足以存下它们的缓冲区的vector；然后你可以向vector中添加元素，并且不会导致重新分配内存。\texttt{vec!}宏就使用了类似这样的方法，因为它知道最终的vector会有多少个元素。注意这只决定了vector的初始大小，如果你继续添加元素，vector会像通常一样变大。
+如果你提前知道vector需要存储的元素的数量,你可以使用\texttt{Vec::with\_capacity}来创建一个从一开始就拥有足以存下它们的缓冲区的vector;然后你可以向vector中添加元素,并且不会导致重新分配内存。\texttt{vec!}宏就使用了类似这样的方法,因为它知道最终的vector会有多少个元素。注意这只决定了vector的初始大小,如果你继续添加元素,vector会像通常一样变大。
 
-很多库函数都在寻找使用\texttt{Vec::with\_capacity}代替\texttt{Vec::new}的机会。例如，在\texttt{collect}的例子中，迭代器\texttt{0..5}提前知道它会产生5个值，\texttt{collect}函数就可以利用这一点提前分配足够容量的vector。我们将在\hyperref[ch15]{第15章}中介绍这些。
+很多库函数都在寻找使用\texttt{Vec::with\_capacity}代替\texttt{Vec::new}的机会。例如,在\texttt{collect}的例子中,迭代器\texttt{0..5}提前知道它会产生5个值,\texttt{collect}函数就可以利用这一点提前分配足够容量的vector。我们将在\hyperref[ch15]{第15章}中介绍这些。
 
-就像\texttt{len}方法会返回持有的元素数量一样，它的\texttt{capacity}方法会返回它在不重新分配的前提下能存储的最大元素数量：
+就像\texttt{len}方法会返回持有的元素数量一样,它的\texttt{capacity}方法会返回它在不重新分配的前提下能存储的最大元素数量:
 \begin{minted}{Rust}
     let mut v = Vec::with_capacity(2);
     assert_eq!(v.len(), 0);
@@ -751,9 +751,9 @@ Rust有三种表示一系列值的类型：
     println!("capacity is now {}", v.capacity());
 \end{minted}
 
-最后打印出的容量并不保证是4，但通常至少是3，因为vector已经持有3个元素了。
+最后打印出的容量并不保证是4,但通常至少是3,因为vector已经持有3个元素了。
 
-你可以在vector中任意插入或移除元素，尽管这些操作会移动修改位置前面或者后面的元素，因此如果vector很长的时候这些操作会很慢：
+你可以在vector中任意插入或移除元素,尽管这些操作会移动修改位置前面或者后面的元素,因此如果vector很长的时候这些操作会很慢:
 \begin{minted}{Rust}
     let mut v = vec![10, 20, 30, 40, 50];
 
@@ -766,7 +766,7 @@ Rust有三种表示一系列值的类型：
     assert_eq!(v, [10, 30, 35, 40, 50]);
 \end{minted}
 
-你可以使用\texttt{pop}方法移除最后一个元素并返回它。更确切地说，从\texttt{Vec<T>}中弹出只会返回一个\texttt{Option<T>}：如果vector已经为空是\texttt{None}，如果最后一个元素是\texttt{v}就是\texttt{Some(v)}：
+你可以使用\texttt{pop}方法移除最后一个元素并返回它。更确切地说,从\texttt{Vec<T>}中弹出只会返回一个\texttt{Option<T>}:如果vector已经为空是\texttt{None},如果最后一个元素是\texttt{v}就是\texttt{Some(v)}:
 \begin{minted}{Rust}
     let mut v = vec!["Snow Puff", "Glass Gem"];
     assert_eq!(v.pop(), Some("Glass Gem"));
@@ -774,7 +774,7 @@ Rust有三种表示一系列值的类型：
     assert_eq!(v.pop(), None);
 \end{minted}
 
-你可以使用\texttt{for}循环来迭代vector：
+你可以使用\texttt{for}循环来迭代vector:
 \begin{minted}{Rust}
     // 把命令行参数收集为String的vector
     let languages: Vec<String> = std::env::args().skip(1).collect();
@@ -788,7 +788,7 @@ Rust有三种表示一系列值的类型：
     }
 \end{minted}
 
-用一些编程语言的名字来运行这个程序，你就会发现有趣的地方：
+用一些编程语言的名字来运行这个程序,你就会发现有趣的地方:
 \begin{minted}{text}
     $ cargo run Lisp Scheme C C++ Fortran
        Compiling proglangs v0.1.0 (/home/jimb/rust/proglangs)
@@ -801,17 +801,17 @@ Rust有三种表示一系列值的类型：
     Fortran: imperative
 \end{minted}
 
-终于，我们得到了术语\emph{函数式语言}的一个令人满意的定义。\footnote{译者注：此处作者应该是开玩笑。}
+终于,我们得到了术语\emph{函数式语言}的一个令人满意的定义。\footnote{译者注:此处作者应该是开玩笑。}
 
-尽管有函数式的特性，但\texttt{Vec}只是Rust中定义的一个普通类型，不是语言内建的类型。我们将在\hyperref[ch22]{第22章}中介绍实现这样的类型的技术。
+尽管有函数式的特性,但\texttt{Vec}只是Rust中定义的一个普通类型,不是语言内建的类型。我们将在\hyperref[ch22]{第22章}中介绍实现这样的类型的技术。
 
 \subsection{切片}\label{slice}
 
-一个切片，写作\texttt{[T]}，没有长度。它表示数组或vector的一部分。因为切片可以是任意长度，因此切片不能直接存储在变量中或者作为参数传递。切片必须通过引用传递。
+一个切片,写作\texttt{[T]},没有长度。它表示数组或vector的一部分。因为切片可以是任意长度,因此切片不能直接存储在变量中或者作为参数传递。切片必须通过引用传递。
 
-切片的引用是\emph{胖指针}：一个包含指向切片中第一个元素的指针和切片中元素数量的双字值。
+切片的引用是\emph{胖指针}:一个包含指向切片中第一个元素的指针和切片中元素数量的双字值。
 
-假设你正在运行下列代码：
+假设你正在运行下列代码:
 \begin{minted}{Rust}
     let v: Vec<f64> = vec![0.0,  0.707,  1.0,  0.707];
     let a: [f64; 4] =     [0.0, -0.707, -1.0, -0.707];
@@ -820,17 +820,17 @@ Rust有三种表示一系列值的类型：
     let sa: &[f64] = &a;
 \end{minted}
 
-在最后两行中，Rust自动把\texttt{\&Vec<f64>}和\texttt{\&[f64; 4]}转换成了切片的引用。
+在最后两行中,Rust自动把\texttt{\&Vec<f64>}和\texttt{\&[f64; 4]}转换成了切片的引用。
 
-这段代码运行完后，内存布局类似\hyperref[f3-2]{图3-2}中所示：
+这段代码运行完后,内存布局类似\hyperref[f3-2]{图3-2}中所示:
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.9\textwidth]{../img/f3-2.png}
-    \caption{一个vector \texttt{v}和一个数组\texttt{a}，以及分别指向它们的切片\texttt{sv}和\texttt{sa}的内存布局}
+    \caption{一个vector \texttt{v}和一个数组\texttt{a},以及分别指向它们的切片\texttt{sv}和\texttt{sa}的内存布局}
     \label{f3-2}
 \end{figure}
 
-一个普通的引用是一个指向单个值的无所有权指针，而一个切片的引用是一个指向内存中连续的范围的指针。这使得如果你想写一个处理数组或vector的函数，那么切片引用将是一个很好的选择。例如，这里有一个函数打印出一系列值，每个单独一行：
+一个普通的引用是一个指向单个值的无所有权指针,而一个切片的引用是一个指向内存中连续的范围的指针。这使得如果你想写一个处理数组或vector的函数,那么切片引用将是一个很好的选择。例如,这里有一个函数打印出一系列值,每个单独一行:
 \begin{minted}{Rust}
     fn print(n: &[f64]) {
         for elt in n {
@@ -842,58 +842,58 @@ Rust有三种表示一系列值的类型：
     print(&v);  // 可以用于vector
 \end{minted}
 
-因为这个函数的参数是切片引用，你可以像实例中一样传递数组或者vector的引用。事实上，很多你可能以为是数组或vector的方法实际上都是切片的方法：例如\texttt{sort}和\texttt{reverse}方法，实际上都是切片类型\texttt{[T]}的方法。
+因为这个函数的参数是切片引用,你可以像实例中一样传递数组或者vector的引用。事实上,很多你可能以为是数组或vector的方法实际上都是切片的方法:例如\texttt{sort}和\texttt{reverse}方法,实际上都是切片类型\texttt{[T]}的方法。
 
-你可以通过索引一个数组或vector或一个现有切片的一个范围来得到一个切片引用：
+你可以通过索引一个数组或vector或一个现有切片的一个范围来得到一个切片引用:
 \begin{minted}{Rust}
     print(&v[0..2]);    // 打印出v的前两个元素
     print(&a[2..]);     // 打印出从a[2]开始剩余的元素
     print(&sv[1..3]);   // 打印出v[1]和v[2]
 \end{minted}
 
-类似于普通的数组访问，Rust会检查索引的有效性。尝试借用超过数据结尾的切片会导致panic。
+类似于普通的数组访问,Rust会检查索引的有效性。尝试借用超过数据结尾的切片会导致panic。
 
-因为切片类型总是以引用的方式出现，我们也经常用“切片”来指代\texttt{\&[T]}或\texttt{\&str}这样的类型，用最短的名称表达最常用的概念。
+因为切片类型总是以引用的方式出现,我们也经常用“切片”来指代\texttt{\&[T]}或\texttt{\&str}这样的类型,用最短的名称表达最常用的概念。
 
 \section{字符串类型}\label{string}
 
-熟悉C++的程序员应该都知道C++里有两种字符串类型：字符串字面量的类型\texttt{const char *}，标准库里还提供了一个类\texttt{std::string}，用于在运行时动态创建字符串。
+熟悉C++的程序员应该都知道C++里有两种字符串类型:字符串字面量的类型\texttt{const char *},标准库里还提供了一个类\texttt{std::string},用于在运行时动态创建字符串。
 
-Rust的设计与此类似。在这一节中，我们将首先展示字符串字面量的所有写法，然后介绍Rust的两种字符串类型。我们将在\hyperref[ch17]{第17章}中详细讨论字符串和文本的处理。
+Rust的设计与此类似。在这一节中,我们将首先展示字符串字面量的所有写法,然后介绍Rust的两种字符串类型。我们将在\hyperref[ch17]{第17章}中详细讨论字符串和文本的处理。
 
 \subsection{字符串字面量}\label{StrLiteral}
 
-字符串字面量被双引号包裹，和\texttt{char}字面量一样是通过反斜杠来转义：
+字符串字面量被双引号包裹,和\texttt{char}字面量一样是通过反斜杠来转义:
 \begin{minted}{Rust}
     let speech = "\"Ouch!\" said the well.\n";
 \end{minted}
 
-在字符串字面量里和\texttt{char}字面量里不同的一点是，单引号不需要使用反斜杠转义，但双引号需要。
+在字符串字面量里和\texttt{char}字面量里不同的一点是,单引号不需要使用反斜杠转义,但双引号需要。
 
-一个字符串可以占多行：
+一个字符串可以占多行:
 \begin{minted}{Rust}
     println!("In the room the women come and go,
         Singing of Mount Abora");
 \end{minted}
-这个字符串里的换行符被包括在字符串里，因此也会被输出。第二行开头的空格也是。
+这个字符串里的换行符被包括在字符串里,因此也会被输出。第二行开头的空格也是。
 
 
-如果字符串中的一行以反斜杠结尾，那么换行符和下一行的前导空格就会被丢弃掉：
+如果字符串中的一行以反斜杠结尾,那么换行符和下一行的前导空格就会被丢弃掉:
 \begin{minted}{Rust}
     println!("It was a bright, cold day in April, and \
         there were four of us-\
         more or less.");
 \end{minted}
-这段代码会打印出单行文本。打印出的字符串里“and”和“there”之间有一个空格，因为第一行的反斜杠前边有一个空格，而连字符和“more”之间没有空格。
+这段代码会打印出单行文本。打印出的字符串里“and”和“there”之间有一个空格,因为第一行的反斜杠前边有一个空格,而连字符和“more”之间没有空格。
 
-在少数情况下，在字符串里用反斜杠转义反斜杠是一件很烦的事情。（典型的例子就是正则表达式和Windows的路径）对于这种情况，Rust提供了\emph{原始字符串}，原始字符串用小写字母\texttt{r}来标记。原始字符串中的所有反斜杠和空白字符都被原样包含在字符串里，不会识别任何转义：
+在少数情况下,在字符串里用反斜杠转义反斜杠是一件很烦的事情。(典型的例子就是正则表达式和Windows的路径)对于这种情况,Rust提供了\emph{原始字符串},原始字符串用小写字母\texttt{r}来标记。原始字符串中的所有反斜杠和空白字符都被原样包含在字符串里,不会识别任何转义:
 \begin{minted}{Rust}
     let default_win_install_path = r"C:\Program Files\Gorillas";
 
     let pattern = Regex::new(r"\d+(\.\d+)*");
 \end{minted}
 
-你不能通过在前面加上反斜杠来把双引号包含在原始字符串中——记住，我们说的是\emph{不会识别任何转义}。然而，这种情况也有解决的方法。原始字符串的开头和结尾可以用任意相同数量的井号来标记：
+你不能通过在前面加上反斜杠来把双引号包含在原始字符串中——记住,我们说的是\emph{不会识别任何转义}。然而,这种情况也有解决的方法。原始字符串的开头和结尾可以用任意相同数量的井号来标记:
 \begin{minted}{Rust}
     println!(r###"
         This raw string started with 'r###"'.
@@ -902,27 +902,27 @@ Rust的设计与此类似。在这一节中，我们将首先展示字符串字�
     "###);
 \end{minted}
 
-您可以根据需要添加井号，以明确原始字符串的结束位置。
+您可以根据需要添加井号,以明确原始字符串的结束位置。
 
 \subsection{字节字符串}
 
-以\texttt{b}前缀开头的字符串字面量是\emph{字节字符串}。这种字符串实际上是\texttt{u8}值的切片——也就是字节流——而不是Unicode文本：
+以\texttt{b}前缀开头的字符串字面量是\emph{字节字符串}。这种字符串实际上是\texttt{u8}值的切片——也就是字节流——而不是Unicode文本:
 \begin{minted}{Rust}
     let method = b"GET";
     assert_eq!(method, &[b'G', b'E', b'T']);
 \end{minted}
 
-\texttt{method}的类型是\texttt{\&[u8; 3]}：它是一个有三个字节的数组的引用。它没有任何我们之后要讨论的字符串的方法。它和字符串最像的地方就是我们创建它时用的语法。
+\texttt{method}的类型是\texttt{\&[u8; 3]}:它是一个有三个字节的数组的引用。它没有任何我们之后要讨论的字符串的方法。它和字符串最像的地方就是我们创建它时用的语法。
 
-字节字符串可以使用我们之前使用过的所有语法：它也可以跨多行、使用反斜杠转义、使用反斜杠连接多行。还有以\texttt{br"}开头的原始字节字符串。
+字节字符串可以使用我们之前使用过的所有语法:它也可以跨多行、使用反斜杠转义、使用反斜杠连接多行。还有以\texttt{br"}开头的原始字节字符串。
 
-字节字符串不能包含任何任意Unicode字符，它只能包含ASCII和用\texttt{\textbackslash xHH}形式表示的字符。
+字节字符串不能包含任何任意Unicode字符,它只能包含ASCII和用\texttt{\textbackslash xHH}形式表示的字符。
 
 \subsection{内存中的字符串}
 
-Rust的字符串是Unicode字符的序列，但它们并不是作为\texttt{char}的数组存储在内存中。事实上，它使用UTF-8编码存储，这是一种可变长度的编码。每一个ASCII字符被存储为一个字节，其他字符可能会占据多个字节。
+Rust的字符串是Unicode字符的序列,但它们并不是作为\texttt{char}的数组存储在内存中。事实上,它使用UTF-8编码存储,这是一种可变长度的编码。每一个ASCII字符被存储为一个字节,其他字符可能会占据多个字节。
 
-\hyperref{f3-3}{图3-3}显示了下面代码创建的\texttt{String}和\texttt{\&str}：
+\hyperref{f3-3}{图3-3}显示了下面代码创建的\texttt{String}和\texttt{\&str}:
 \begin{minted}{Rust}
     let noodles = "noodles".to_string();
     let oodles = &noodles[1..];
@@ -936,31 +936,31 @@ Rust的字符串是Unicode字符的序列，但它们并不是作为\texttt{char
     \label{f3-3}
 \end{figure}
 
-一个\texttt{String}有一个大小可变的缓冲区来存储UTF-8文本。缓冲区是在堆上分配的，所以他可以按需或按照要求调整缓冲区大小。在这个例子中，\texttt{noodles}是一个拥有8个字节大小的缓冲区的\texttt{String}，其中7个字节已经被使用。你可以将\texttt{String}想象为保证内容是有效UTF-8编码的\texttt{Vec<u8>}；事实上，\texttt{String}就是这么实现的。
+一个\texttt{String}有一个大小可变的缓冲区来存储UTF-8文本。缓冲区是在堆上分配的,所以他可以按需或按照要求调整缓冲区大小。在这个例子中,\texttt{noodles}是一个拥有8个字节大小的缓冲区的\texttt{String},其中7个字节已经被使用。你可以将\texttt{String}想象为保证内容是有效UTF-8编码的\texttt{Vec<u8>};事实上,\texttt{String}就是这么实现的。
 
-一个\texttt{\&str}（读作“stir”或者“字符串切片”）是一个指向其他值拥有的UTF-8文本的引用：它“借用”了这段文本。在这个例子中，\texttt{oodles}是一个指向\texttt{noodles}所持有的文本中的最后六个字节的\texttt{\&str}，因此它表示文本“oodles”。就像其他切片引用一样，\texttt{\&str}是一种胖指针，包括实际数据的地址和长度。你可以将\texttt{\&str}看作一个保证内容为合法的UTF-8编码的\texttt{\&[u8]}。
+一个\texttt{\&str}(读作“stir”或者“字符串切片”)是一个指向其他值拥有的UTF-8文本的引用:它“借用”了这段文本。在这个例子中,\texttt{oodles}是一个指向\texttt{noodles}所持有的文本中的最后六个字节的\texttt{\&str},因此它表示文本“oodles”。就像其他切片引用一样,\texttt{\&str}是一种胖指针,包括实际数据的地址和长度。你可以将\texttt{\&str}看作一个保证内容为合法的UTF-8编码的\texttt{\&[u8]}。
 
-字符串字面量是一个指向预先分配好内存的文本的\texttt{\&str}，实际的文本通常和程序的机器码一起存储到只读的内存区域。在之前的例子中，\texttt{poodles}是一个字符串字面量，指向程序运行时就已经被创建好并且持续到程序退出的7个字节。
+字符串字面量是一个指向预先分配好内存的文本的\texttt{\&str},实际的文本通常和程序的机器码一起存储到只读的内存区域。在之前的例子中,\texttt{poodles}是一个字符串字面量,指向程序运行时就已经被创建好并且持续到程序退出的7个字节。
 
-一个\texttt{String}或\texttt{\&str}的\texttt{len()}方法返回它的长度。但这个长度是以字节为单位，而不是以字符为单位：
+一个\texttt{String}或\texttt{\&str}的\texttt{len()}方法返回它的长度。但这个长度是以字节为单位,而不是以字符为单位:
 \begin{minted}{Rust}
     assert_eq!("某些卡纳达语字符".len(), 24);
     assert_eq!("某些卡纳达语字符".chars().count(), 8);
 \end{minted}
 
-不能修改\texttt{\&str}：
+不能修改\texttt{\&str}:
 \begin{minted}{Rust}
     let mut s = "hello";
-    s[0] = 'c';     // error: `&str`不能被修改，以及其他原因
+    s[0] = 'c';     // error: `&str`不能被修改,以及其他原因
     s.push('\n');   // error: `&str`没有`push`方法
 \end{minted}
 
-要在运行时创建新的字符串，要使用\texttt{String}。
+要在运行时创建新的字符串,要使用\texttt{String}。
 
-类型\texttt{\&mut str}确实存在，但它并不好用，因为几乎所有对UTF-8的操作都可能改变字节长度，而一个切片不能重新分配它指向的参照物。事实上，\texttt{\&mut str}唯一能做的操作是\texttt{make\_ascii\_uppercase}和\texttt{make\_ascii\_lowercase}，这两个操作在原址修改文本，并且只影响单个字节的字符。
+类型\texttt{\&mut str}确实存在,但它并不好用,因为几乎所有对UTF-8的操作都可能改变字节长度,而一个切片不能重新分配它指向的参照物。事实上,\texttt{\&mut str}唯一能做的操作是\texttt{make\_ascii\_uppercase}和\texttt{make\_ascii\_lowercase},这两个操作在原址修改文本,并且只影响单个字节的字符。
 
 \subsection{\texttt{String}}
-\texttt{\&str}和\texttt{\&[T]}很像：都是一个指向某些数据的胖指针。\texttt{String}类似于\texttt{Vec<T>}，如\hyperref[t3-11]{表3-11}所示。
+\texttt{\&str}和\texttt{\&[T]}很像:都是一个指向某些数据的胖指针。\texttt{String}类似于\texttt{Vec<T>},如\hyperref[t3-11]{表3-11}所示。
 
 \begin{table}[htbp]
     \centering
@@ -975,29 +975,29 @@ Rust的字符串是Unicode字符的序列，但它们并不是作为\texttt{char
         有\texttt{::new()}和\texttt{::with\_capacity()}类型关联函数 & 是 & 是 \\
         \texttt{.reserve()}和\texttt{.capacity()}方法 & 是 & 是 \\
         \texttt{.push()}和\texttt{.pop()}方法 & 是 & 是 \\
-        范围语法\texttt{v[start..stop} & 是，返回\texttt{\&[T]} & 是，返回\texttt{\&str} \\
+        范围语法\texttt{v[start..stop} & 是,返回\texttt{\&[T]} & 是,返回\texttt{\&str} \\
         自动转换      & \texttt{\&Vec<T>}到\texttt{\&[T]} & \texttt{\&String}到\texttt{\&str} \\
         继承方法      & 从\texttt{\&[T]} & 从\texttt{\&str} \\
     \end{tabular}
 \end{table}
 
-类似于\texttt{Vec}，每个\texttt{String}都有它自己的在堆上分配的缓冲区，这个缓冲区不和其他任何\texttt{String}共享。当一个\texttt{String}变量离开作用域时，缓冲区会自动释放，除非\texttt{String}被移动了。
+类似于\texttt{Vec},每个\texttt{String}都有它自己的在堆上分配的缓冲区,这个缓冲区不和其他任何\texttt{String}共享。当一个\texttt{String}变量离开作用域时,缓冲区会自动释放,除非\texttt{String}被移动了。
 
-有几种方式创建\texttt{String}：
+有几种方式创建\texttt{String}:
 \begin{itemize}
-    \item \texttt{.to\_string()}方法把\texttt{\&str}转换为一个\texttt{String}，这会拷贝字符串：
+    \item \texttt{.to\_string()}方法把\texttt{\&str}转换为一个\texttt{String},这会拷贝字符串:
     \begin{minted}{Rust}
     let error_message = "too many pets".to_string();
     \end{minted}
-    \texttt{.to\_owned()}方法做同样的事，你可能会看到它用同样的方式使用。它也可以用于其他类型，正如我们在\hyperref[ch13]{第13章}讨论的一样。
+    \texttt{.to\_owned()}方法做同样的事,你可能会看到它用同样的方式使用。它也可以用于其他类型,正如我们在\hyperref[ch13]{第13章}讨论的一样。
 
-    \item \texttt{format!()}宏类似于\texttt{println!()}，区别在于它返回一个新的\texttt{String}而不是把它打印到标准输出，而且它不会再最后自动加上换行符：
+    \item \texttt{format!()}宏类似于\texttt{println!()},区别在于它返回一个新的\texttt{String}而不是把它打印到标准输出,而且它不会再最后自动加上换行符:
     \begin{minted}{Rust}
     assert_eq!(format!("{}°{:02}′{:02}″N", 24, 5, 23),
                "24°05′23″N".to_string());
     \end{minted}
 
-    \item 字符串的数组、切片、vector都有两个方法\texttt{.concat()}和\texttt{.join(sep)}，把多个字符串组合成一个：
+    \item 字符串的数组、切片、vector都有两个方法\texttt{.concat()}和\texttt{.join(sep)},把多个字符串组合成一个:
     \begin{minted}{Rust}
     let bits = vec!["veni", "vidi", "vici"];
     assert_eq!(bits.concat(), "venividivici");
@@ -1005,16 +1005,16 @@ Rust的字符串是Unicode字符的序列，但它们并不是作为\texttt{char
     \end{minted}
 \end{itemize}
 
-有时你需要选择使用\texttt{\&str}还是\texttt{String}。\hyperref[ch05]{第5章}将详细介绍这个问题。现在你只需要知道\texttt{\&str}可以指向任何字符串的任何切片，不管是字符串字面量（存储在可执行文件中）还是\texttt{String}（在运行时分配和释放）。这意味着当允许调用者传递任何类型的字符串时\texttt{\&str}更适合用作参数的类型。
+有时你需要选择使用\texttt{\&str}还是\texttt{String}。\hyperref[ch05]{第5章}将详细介绍这个问题。现在你只需要知道\texttt{\&str}可以指向任何字符串的任何切片,不管是字符串字面量(存储在可执行文件中)还是\texttt{String}(在运行时分配和释放)。这意味着当允许调用者传递任何类型的字符串时\texttt{\&str}更适合用作参数的类型。
 
 \subsection{使用字符串}
 
-字符串支持\texttt{==}和\texttt{!=}运算符。只有当两个字符串含有内容和顺序都完全相同的字符时两个字符串才相等（和它们在内存中的位置无关）：
+字符串支持\texttt{==}和\texttt{!=}运算符。只有当两个字符串含有内容和顺序都完全相同的字符时两个字符串才相等(和它们在内存中的位置无关):
 \begin{minted}{Rust}
     assert!("ONE".to_lowercase() == "one");
 \end{minted}
 
-字符串还支持比较运算符\texttt{<, <=, >, >=}，以及很多你可以在在线文档的“\texttt{str}(primitive type)”或“\texttt{std::str}”模块的页面中找到的有用的方法和函数（或者直接跳转到\hyperref[ch17]{第17章}）。这里有一些例子：
+字符串还支持比较运算符\texttt{<, <=, >, >=},以及很多你可以在在线文档的“\texttt{str}(primitive type)”或“\texttt{std::str}”模块的页面中找到的有用的方法和函数(或者直接跳转到\hyperref[ch17]{第17章})。这里有一些例子:
 \begin{minted}{Rust}
     assert!("peanut".contains("nut"));
     assert_eq!("    clean\n".trim(), "clean");
@@ -1024,29 +1024,29 @@ Rust的字符串是Unicode字符的序列，但它们并不是作为\texttt{char
     }
 \end{minted}
 
-注意，因为Unicode的特性，简单的逐字符比较\emph{并不}总是能给出预期的答案。例如，Rust的字符串\texttt{"th\textbackslash u{e9}"}和\texttt{"the\textbackslash u{301}"}都是有效的\textbf{thé}（法语中表示茶的单词）的Unicode表示。Unicode认为它们它们应该以相同的方式展示和处理，但是Rust把它们当作两个完全不同的字符串。类似的，Rust的比较运算符比如\texttt{<}只是简单的使用基于字符码点值的字典顺序。这种顺序只是偶尔像用户语言和文化中用于文本的排序。我们将在\hyperref[ch17]{第17章}中详细讨论这个问题。
+注意,因为Unicode的特性,简单的逐字符比较\emph{并不}总是能给出预期的答案。例如,Rust的字符串\texttt{"th\textbackslash u{e9}"}和\texttt{"the\textbackslash u{301}"}都是有效的\textbf{thé}(法语中表示茶的单词)的Unicode表示。Unicode认为它们它们应该以相同的方式展示和处理,但是Rust把它们当作两个完全不同的字符串。类似的,Rust的比较运算符比如\texttt{<}只是简单的使用基于字符码点值的字典顺序。这种顺序只是偶尔像用户语言和文化中用于文本的排序。我们将在\hyperref[ch17]{第17章}中详细讨论这个问题。
 
 \subsection{其他类似字符串的类型}
 
-Rust保证字符串是有效的UTF-8字符串。有时一个程序可能会需要处理\emph{非}有效的Unicode字符串。这通常发生在Rust程序与其他不强制遵循Unicode的系统交互时。例如，在大多数操作系统中很容易就能创建一个文件名不是有效的Unicode的文件。当Rust遇到这样的文件名时该如何处理？
+Rust保证字符串是有效的UTF-8字符串。有时一个程序可能会需要处理\emph{非}有效的Unicode字符串。这通常发生在Rust程序与其他不强制遵循Unicode的系统交互时。例如,在大多数操作系统中很容易就能创建一个文件名不是有效的Unicode的文件。当Rust遇到这样的文件名时该如何处理？
 
-Rust的方法是为这些场景提供一些类似字符串的类型：
+Rust的方法是为这些场景提供一些类似字符串的类型:
 \begin{itemize}
     \item 对于Unicode文本坚持使用\texttt{String}和\texttt{\&str}。
-    \item 当处理文件名时，使用\texttt{std::path::PathBuf}和\texttt{\&Path}来代替。
-    \item 当处理完全不是UTF-8编码的二进制数据时，使用\texttt{Vec<u8>}和\texttt{\&[u8]}。
-    \item 当处理环境变量名称或者命令行参数这些由操作系统提供的内容时，使用\texttt{OsString}和\texttt{\&OsStr}。
-    \item 当和以空字符结尾的C库交互时，使用\texttt{std::ffi::CString}和\texttt{\&CStr}。
+    \item 当处理文件名时,使用\texttt{std::path::PathBuf}和\texttt{\&Path}来代替。
+    \item 当处理完全不是UTF-8编码的二进制数据时,使用\texttt{Vec<u8>}和\texttt{\&[u8]}。
+    \item 当处理环境变量名称或者命令行参数这些由操作系统提供的内容时,使用\texttt{OsString}和\texttt{\&OsStr}。
+    \item 当和以空字符结尾的C库交互时,使用\texttt{std::ffi::CString}和\texttt{\&CStr}。
 \end{itemize}
 
 \section{类型别名}
 
-\texttt{type}关键字可以像C++中的\texttt{typedef}一样为已存在的类型声明一个新名字：
+\texttt{type}关键字可以像C++中的\texttt{typedef}一样为已存在的类型声明一个新名字:
 \begin{minted}{Rust}
     type Bytes = Vec<u8>;
 \end{minted}
 
-我们在这里声明的\texttt{Bytes}就是这种特定类型的\texttt{Vec}：
+我们在这里声明的\texttt{Bytes}就是这种特定类型的\texttt{Vec}:
 \begin{minted}{Rust}
     fn decode(data: &Bytes) {
         ...
@@ -1055,8 +1055,8 @@ Rust的方法是为这些场景提供一些类似字符串的类型：
 
 \section{基本类型之外}
 
-类型是Rust的一个核心部分。我们将在整本书中继续讨论类型并介绍新的类型。特别是，Rust 的用户定义类型赋予了语言很多自身的风格。有三种用户自定义的类型，我们将分别在三章中介绍它们：\hyperref[ch09]{第9章}介绍结构体，\hyperref[ch10]{第10章}介绍枚举，\hyperref[ch11]{第11章}介绍trait。
+类型是Rust的一个核心部分。我们将在整本书中继续讨论类型并介绍新的类型。特别是,Rust 的用户定义类型赋予了语言很多自身的风格。有三种用户自定义的类型,我们将分别在三章中介绍它们:\hyperref[ch09]{第9章}介绍结构体,\hyperref[ch10]{第10章}介绍枚举,\hyperref[ch11]{第11章}介绍trait。
 
-函数和闭包有它们自己的类型，这将在\hyperref[ch14]{第14章}中介绍。标准库中的类型将在整本书中介绍。例如，\hyperref[ch16]{第16章}介绍标准集合类型。
+函数和闭包有它们自己的类型,这将在\hyperref[ch14]{第14章}中介绍。标准库中的类型将在整本书中介绍。例如,\hyperref[ch16]{第16章}介绍标准集合类型。
 
-不过，这些都还需要等一会。在我们继续之前，是时候了解一下Rust安全规则的核心概念了。
+不过,这些都还需要等一会。在我们继续之前,是时候了解一下Rust安全规则的核心概念了。

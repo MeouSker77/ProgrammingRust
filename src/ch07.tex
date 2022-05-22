@@ -6,15 +6,15 @@
     ——George Bernard Shaw on dying
 \end{flushright}
 
-Rust的错误处理不同寻常，无法用很短的一个章节来介绍它。其实它里面并没有什么困难的概念，只有一些可能对你来说可能很新的概念。这一章将覆盖Rust中两种不同的错误处理：panic和\texttt{Result}。
+Rust的错误处理不同寻常,无法用很短的一个章节来介绍它。其实它里面并没有什么困难的概念,只有一些可能对你来说可能很新的概念。这一章将覆盖Rust中两种不同的错误处理:panic和\texttt{Result}。
 
-一般的错误使用\texttt{Result}类型来处理，\texttt{Result}通常代表程序之外的东西引起的问题，例如错误的输入、网络中断、权限问题等。这种情况的出现不由我们决定，即使是一个完全没有bug的程序也可能随时遇到它们。这一章中的大部分内容都是在讨论这种错误。我们将首先介绍panic，因为它比较简单。
+一般的错误使用\texttt{Result}类型来处理,\texttt{Result}通常代表程序之外的东西引起的问题,例如错误的输入、网络中断、权限问题等。这种情况的出现不由我们决定,即使是一个完全没有bug的程序也可能随时遇到它们。这一章中的大部分内容都是在讨论这种错误。我们将首先介绍panic,因为它比较简单。
 
-panic是另一种错误，一种\emph{永远不应该发生}的错误。
+panic是另一种错误,一种\emph{永远不应该发生}的错误。
 
 \section{panic}
 
-当程序遇到一些由程序自身的bug导致的非常糟糕的事情时它会panic。例如：
+当程序遇到一些由程序自身的bug导致的非常糟糕的事情时它会panic。例如:
 \begin{itemize}
     \item 数组访问越界
     \item 整数除以0
@@ -22,14 +22,14 @@ panic是另一种错误，一种\emph{永远不应该发生}的错误。
     \item 断言失败
 \end{itemize}
 
-（还有一个宏\texttt{panic!()}，用于当你的代码自己发现了错误，想要直接触发panic的情况。\texttt{panic!()}接受可选的\texttt{println!()}-风格的参数，用于构建错误信息。）
+(还有一个宏\texttt{panic!()},用于当你的代码自己发现了错误,想要直接触发panic的情况。\texttt{panic!()}接受可选的\texttt{println!()}-风格的参数,用于构建错误信息。)
 
-这些条件的共同之处在于——它们都是程序员的错。一条好的经验法则是：“不要panic”。
+这些条件的共同之处在于——它们都是程序员的错。一条好的经验法则是:“不要panic”。
 
-但是我们都有犯错误的时候。当这些不该发生的错误发生了的时候，该怎么办？值得注意的是，Rust给了你一个选择：Rust可以展开堆栈或者中止进程。栈展开是默认行为。
+但是我们都有犯错误的时候。当这些不该发生的错误发生了的时候,该怎么办？值得注意的是,Rust给了你一个选择:Rust可以展开堆栈或者中止进程。栈展开是默认行为。
 
 \subsection{栈展开}\label{unwind}
-当海盗们瓜分抢来的战利品时，船长将得到一半的战利品。普通的船员们均分剩下的一半。（海盗们讨厌分数，因此如果均分时不能除尽，结果会向下取整，余数将分给船上的鹦鹉。）
+当海盗们瓜分抢来的战利品时,船长将得到一半的战利品。普通的船员们均分剩下的一半。(海盗们讨厌分数,因此如果均分时不能除尽,结果会向下取整,余数将分给船上的鹦鹉。)
 \begin{minted}{Rust}
     fn pirate_share(total: u64, crew_size: usize) -> u64 {
         let half = total / 2;
@@ -37,63 +37,63 @@ panic是另一种错误，一种\emph{永远不应该发生}的错误。
     }
 \end{minted}
 
-这段代码也许可以工作几个世纪，直到有一天船长是抢劫之后唯一的幸存者。如果我们传递的\texttt{crew\_size}为0，它将会除以0。在C++中，这将是未定义行为。在Rust中，它会触发panic，panic通常会按照如下方式继续：
+这段代码也许可以工作几个世纪,直到有一天船长是抢劫之后唯一的幸存者。如果我们传递的\texttt{crew\_size}为0,它将会除以0。在C++中,这将是未定义行为。在Rust中,它会触发panic,panic通常会按照如下方式继续:
 \begin{itemize}
-    \item 打印一条错误消息到终端：
+    \item 打印一条错误消息到终端:
     \begin{minted}{text}
     thread 'main' panicked at 'attempt to divide by zero',
     pirates.rs:3780
     note: Run with `RUST_BACKTRACE=1` for a backtrace.
     \end{minted}
 
-    如果你设置了\texttt{RUST\_BACKTRACE}环境变量，Rust还会打印出此时的堆栈信息。
+    如果你设置了\texttt{RUST\_BACKTRACE}环境变量,Rust还会打印出此时的堆栈信息。
 
     \item 堆栈被展开。这和C++中的异常处理很像。
     
     任何当前函数内的临时值、局部变量、或者参数都会按照与它们创建时相反的顺序被drop掉。
 
-    drop一个值意味着清理它：函数使用过的任何\texttt{String}或\texttt{Vec}都会被释放，任何打开的\texttt{File}都会被关闭，等等。用户自定义的\texttt{drop}方法也会被调用，见“\hyperref[drop]{Drop}”一节。在\texttt{pirate\_share()}的例子中，没有要清理的内容。
+    drop一个值意味着清理它:函数使用过的任何\texttt{String}或\texttt{Vec}都会被释放,任何打开的\texttt{File}都会被关闭,等等。用户自定义的\texttt{drop}方法也会被调用,见“\hyperref[drop]{Drop}”一节。在\texttt{pirate\_share()}的例子中,没有要清理的内容。
 
-    一旦当前的函数调用被清理完毕，我们会移动到它的调用者，以同样的方式drop它的变量和参数。然后我们移动到\emph{那个}函数的调用者，以此类推。
+    一旦当前的函数调用被清理完毕,我们会移动到它的调用者,以同样的方式drop它的变量和参数。然后我们移动到\emph{那个}函数的调用者,以此类推。
 
-    \item 最后，线程退出。如果panic的线程是主线程，整个进程会退出（退出代码不为0）。
+    \item 最后,线程退出。如果panic的线程是主线程,整个进程会退出(退出代码不为0)。
 \end{itemize}
 
-对这种有序的处理，也许\emph{panic}是一个有误导性的名字。panic并不是崩溃，也不是未定义行为，它更类似于Java中的\texttt{RuntimeException}或C++中的\texttt{std::logic\_error}。它的行为都是良定义的，它只是不应该发生。
+对这种有序的处理,也许\emph{panic}是一个有误导性的名字。panic并不是崩溃,也不是未定义行为,它更类似于Java中的\texttt{RuntimeException}或C++中的\texttt{std::logic\_error}。它的行为都是良定义的,它只是不应该发生。
 
-panic是安全的。它不违背Rust中的任何安全规则，即使你设法在一个标准库的方法中引起panic，它也用于不会导致悬垂指针或者初始化到一半的值。关键在于Rust在任何错误的事情发生之前就捕捉到了无效的数组访问或者类似的情况。如果继续下去将是不安全的，所以Rust会展开堆栈。但进程的其他部分可以继续运行。
+panic是安全的。它不违背Rust中的任何安全规则,即使你设法在一个标准库的方法中引起panic,它也用于不会导致悬垂指针或者初始化到一半的值。关键在于Rust在任何错误的事情发生之前就捕捉到了无效的数组访问或者类似的情况。如果继续下去将是不安全的,所以Rust会展开堆栈。但进程的其他部分可以继续运行。
 
-panic是以线程为单位。一个线程可以panic，而其他线程继续处理它们的业务。在\hyperref[ch19]{第19章}中，我们会展示一个父线程怎么查明一个子线程是否panic并优雅地处理错误。
+panic是以线程为单位。一个线程可以panic,而其他线程继续处理它们的业务。在\hyperref[ch19]{第19章}中,我们会展示一个父线程怎么查明一个子线程是否panic并优雅地处理错误。
 
-还有一种方式\emph{捕获}栈展开，允许线程存活并继续运行。标准库函数\\
-\texttt{std::panic::catch\_unwind()}可以做到这一点。我们不会解释如何使用它，但Rust的测试工具使用了这个机制，用于在测试时断言失败的情况下恢复执行（当编写可以在C或C++中调用的Rust代码时这也是必须的，因为在非Rust代码中的栈展开是未定义行为，见\hyperref[ch22]{第22章}）。
+还有一种方式\emph{捕获}栈展开,允许线程存活并继续运行。标准库函数\\
+\texttt{std::panic::catch\_unwind()}可以做到这一点。我们不会解释如何使用它,但Rust的测试工具使用了这个机制,用于在测试时断言失败的情况下恢复执行(当编写可以在C或C++中调用的Rust代码时这也是必须的,因为在非Rust代码中的栈展开是未定义行为,见\hyperref[ch22]{第22章})。
 
-理想情况下，我们希望没有bug并且永远不会panic的代码。但没有完美的事物，你可以使用线程和\texttt{catch\_unwind()}来处理panic，让你的程序更加健壮。一个重要的警告是这些工具只会捕获展开堆栈的panic。不是所有的panic都以这种方式处理。
+理想情况下,我们希望没有bug并且永远不会panic的代码。但没有完美的事物,你可以使用线程和\texttt{catch\_unwind()}来处理panic,让你的程序更加健壮。一个重要的警告是这些工具只会捕获展开堆栈的panic。不是所有的panic都以这种方式处理。
 
 \subsection{中止}
-栈展开是默认的panic行为，但还有两种情况下Rust不会尝试展开堆栈。
+栈展开是默认的panic行为,但还有两种情况下Rust不会尝试展开堆栈。
 
-如果在Rust尝试清理时一个\texttt{.drop()}方法触发了第二次panic，Rust会认为这是致命错误，它会停止栈展开并中止整个进程。
+如果在Rust尝试清理时一个\texttt{.drop()}方法触发了第二次panic,Rust会认为这是致命错误,它会停止栈展开并中止整个进程。
 
-还有，Rust的panic行为可以自定义。如果你以参数\texttt{-C panic=abort}编译，程序中的\emph{第一个}panic会立即中止进程。（这个选项下，Rust不需要知道如何展开堆栈，因此可以减小编译出的代码的体积。）
+还有,Rust的panic行为可以自定义。如果你以参数\texttt{-C panic=abort}编译,程序中的\emph{第一个}panic会立即中止进程。(这个选项下,Rust不需要知道如何展开堆栈,因此可以减小编译出的代码的体积。)
 
-最后总结一下关于Rust中panic的讨论。没有更多要说的了，因为普通的Rust代码没有义务处理panic。即使你使用了线程或\texttt{catch\_unwind()}，所有处理panic的代码很可能会集中在少数部分。没有理由检查程序中的每一个函数然后预测并处理里面的bug。其他因素导致的错误则是另一码事。
+最后总结一下关于Rust中panic的讨论。没有更多要说的了,因为普通的Rust代码没有义务处理panic。即使你使用了线程或\texttt{catch\_unwind()},所有处理panic的代码很可能会集中在少数部分。没有理由检查程序中的每一个函数然后预测并处理里面的bug。其他因素导致的错误则是另一码事。
 
 \section{Result}
 
-Rust里没有异常，可能会失败的函数可以通过返回\texttt{Result}来表达类似的含义：
+Rust里没有异常,可能会失败的函数可以通过返回\texttt{Result}来表达类似的含义:
 \begin{minted}{Rust}
     fn get_weather(location: LatLng) -> Result<WeatherReport, io::Error>
 \end{minted}
-\texttt{Result}类型表明可能会失败。当调用\texttt{get\_weather()}函数时，它可能会返回\emph{成功的结果}\texttt{Ok(weather)}，其中\texttt{weather}是一个新的\texttt{WeatherReport}值；或者返回一个\emph{错误的结果}\\
-\texttt{Err(error\_value)}，其中\texttt{error\_value}是一个解释错误的\texttt{io::Error}。
+\texttt{Result}类型表明可能会失败。当调用\texttt{get\_weather()}函数时,它可能会返回\emph{成功的结果}\texttt{Ok(weather)},其中\texttt{weather}是一个新的\texttt{WeatherReport}值;或者返回一个\emph{错误的结果}\\
+\texttt{Err(error\_value)},其中\texttt{error\_value}是一个解释错误的\texttt{io::Error}。
 
-Rust要求我们每次调用这个函数时都要进行一些错误处理。我们必须对返回的\texttt{Result}做\emph{一些处理}，才能得到\texttt{WeatherReport}值。如果\texttt{Result}值没有被使用的话编译器也会警告。
+Rust要求我们每次调用这个函数时都要进行一些错误处理。我们必须对返回的\texttt{Result}做\emph{一些处理},才能得到\texttt{WeatherReport}值。如果\texttt{Result}值没有被使用的话编译器也会警告。
 
-在\hyperref[ch10]{第10章}中，我们将看到标准库是怎么定义\texttt{Result}的、以及你该怎么自己定义类似的类型。现在，我们将专注于如何使用\texttt{Result}来进行错误处理。我们将看到如何捕捉、传播和报告错误，以及一些组织和使用\texttt{Result}类型的常见模式。
+在\hyperref[ch10]{第10章}中,我们将看到标准库是怎么定义\texttt{Result}的、以及你该怎么自己定义类似的类型。现在,我们将专注于如何使用\texttt{Result}来进行错误处理。我们将看到如何捕捉、传播和报告错误,以及一些组织和使用\texttt{Result}类型的常见模式。
 
 \subsection{捕捉错误}
-最通用的处理\texttt{Result}的方法就是我们在\hyperref[ch02]{第2章}中展示的：使用\texttt{match}表达式。
+最通用的处理\texttt{Result}的方法就是我们在\hyperref[ch02]{第2章}中展示的:使用\texttt{match}表达式。
 \begin{minted}{Rust}
     match get_weather(hometown) {
         Ok(report) => {
@@ -106,38 +106,38 @@ Rust要求我们每次调用这个函数时都要进行一些错误处理。我�
     }
 \end{minted}
 
-这在Rust中等价于其它语言的\texttt{try/catch}。当你想要自己处理错误，不把错误传递给调用者时你可以使用这种方式。
+这在Rust中等价于其它语言的\texttt{try/catch}。当你想要自己处理错误,不把错误传递给调用者时你可以使用这种方式。
 
-\texttt{match}有些繁琐，所以\texttt{Result<T, E>}提供了一些在常见场景下很有用的方法。这些方法中的每一个的内部实现都用到了\texttt{match}表达式。（\texttt{Result}的全部方法可以查询在线文档。这里列出的方法是我们最常使用的。）
+\texttt{match}有些繁琐,所以\texttt{Result<T, E>}提供了一些在常见场景下很有用的方法。这些方法中的每一个的内部实现都用到了\texttt{match}表达式。(\texttt{Result}的全部方法可以查询在线文档。这里列出的方法是我们最常使用的。)
 
 \codeentry{result.is\_ok(), result.is\_err()}
 \hangparagraph{返回一个\texttt{bool}值表示\texttt{result}是成功还是错误。}
 
 \codeentry{result.ok()}
-\hangparagraph{以\texttt{Option<T>}类型返回成功的结果。如果\texttt{result}是一个成功的结果，会返回\\
-\texttt{Some(success\_value)}；否则会返回\texttt{None}，丢弃错误的值。}
+\hangparagraph{以\texttt{Option<T>}类型返回成功的结果。如果\texttt{result}是一个成功的结果,会返回\\
+\texttt{Some(success\_value)};否则会返回\texttt{None},丢弃错误的值。}
 
 \codeentry{result.err()}
 \hangparagraph{以\texttt{Option<E>}类型返回错误的值。}
 
 \codeentry{result.unwrap\_or(fallback)}
-\hangparagraph{如果\texttt{result}是成功的结果的话，返回成功的值。否则，返回\texttt{fallback}，丢弃错误的值。}
+\hangparagraph{如果\texttt{result}是成功的结果的话,返回成功的值。否则,返回\texttt{fallback},丢弃错误的值。}
 
 \begin{minted}{Rust}
     // 南加州通常的天气情况。
     const THE_USUAL: WeatherReport = WeatherReport::Sunny(72);
 
     // 获取真实的天气预报。
-    // 如果失败，倒退到通常的情况。
+    // 如果失败,倒退到通常的情况。
     let report = get_weather(los_angeles).unwrap_or(THE_USUAL);
 
     display_weather(los_angeles, &report);
 \end{minted}
 
-\hangparagraph{这是\texttt{.ok()}的一个漂亮的替代，因为返回的类型是\texttt{T}而不是\texttt{Option<T>}。当然，只有当存在有意义的fallback值时这么写才有用。}
+\hangparagraph{这是\texttt{.ok()}的一个漂亮的替代,因为返回的类型是\texttt{T}而不是\texttt{Option<T>}。当然,只有当存在有意义的fallback值时这么写才有用。}
 
 \codeentry{result.unwrap\_or\_else(fallback\_fn)}
-\hangparagraph{这和上一个类似，但不再是直接传递fallback值，而是传递一个函数或者闭包。这通常用于计算fallback时会很浪费时间的情况，因为只有当结果是错误时，\texttt{fallback\_fn}才会被调用。}
+\hangparagraph{这和上一个类似,但不再是直接传递fallback值,而是传递一个函数或者闭包。这通常用于计算fallback时会很浪费时间的情况,因为只有当结果是错误时,\texttt{fallback\_fn}才会被调用。}
 
 \begin{minted}{Rust}
     let report =
@@ -148,47 +148,47 @@ Rust要求我们每次调用这个函数时都要进行一些错误处理。我�
 \hangparagraph{\hyperref[ch14]{第14章}会详细介绍闭包。}
 
 \codeentry{result.unwrap()}
-\hangparagraph{如果\texttt{result}是成功的结果，会返回成功的值。然而，如果\texttt{result}是错误的结果，这个方法会panic。这个方法有它的用途，我们将在之后讨论。}
+\hangparagraph{如果\texttt{result}是成功的结果,会返回成功的值。然而,如果\texttt{result}是错误的结果,这个方法会panic。这个方法有它的用途,我们将在之后讨论。}
 
 \codeentry{result.expect(message)}
-\hangparagraph{和\texttt{.unwrap()}基本相同，不过你可以提供一条panic时打印的错误信息。}
+\hangparagraph{和\texttt{.unwrap()}基本相同,不过你可以提供一条panic时打印的错误信息。}
 
-最后，还有一些和引用相关的方法：
+最后,还有一些和引用相关的方法:
 \codeentry{result.as\_ref()}
 \hangparagraph{把一个\texttt{Result<T, E>}转换为\texttt{Result<\&T, \&E>}。}
 
 \codeentry{result.as\_mut()}
-\hangparagraph{和上面类似，但借用可变引用。返回类型是\texttt{Result<\&mut T, \&mut E>}。}
+\hangparagraph{和上面类似,但借用可变引用。返回类型是\texttt{Result<\&mut T, \&mut E>}。}
 
-最后两个方法很有用的一个原因是这里列出的其他所有方法，除了\texttt{.is\_ok()}和\texttt{.is\_err()}之外，都会\emph{消耗}操作的\texttt{result}值。也就是说，它们以值获取\texttt{self}参数。有时如果能访问\texttt{result}里的值而不破坏它也会带来便利，这正是\texttt{.as\_ref()}和\texttt{.as\_mut()}做的事情。例如，假设你想调用\texttt{result.ok()}，但你需要\texttt{result}保持完好。你可以写\texttt{result.as\_ref().ok()}，它只会借用\texttt{result}，返回\texttt{Option<\&T>}而不是\texttt{Option<T>}。
+最后两个方法很有用的一个原因是这里列出的其他所有方法,除了\texttt{.is\_ok()}和\texttt{.is\_err()}之外,都会\emph{消耗}操作的\texttt{result}值。也就是说,它们以值获取\texttt{self}参数。有时如果能访问\texttt{result}里的值而不破坏它也会带来便利,这正是\texttt{.as\_ref()}和\texttt{.as\_mut()}做的事情。例如,假设你想调用\texttt{result.ok()},但你需要\texttt{result}保持完好。你可以写\texttt{result.as\_ref().ok()},它只会借用\texttt{result},返回\texttt{Option<\&T>}而不是\texttt{Option<T>}。
 
 \subsection{Result类型别名}
-有时你会看到Rust的文档中看起来像是省略了\texttt{Result}的错误类型：
+有时你会看到Rust的文档中看起来像是省略了\texttt{Result}的错误类型:
 \begin{minted}{Rust}
     fn remove_file(path: &Path) -> Result<()>
 \end{minted}
 这意味着这里使用了一个\texttt{Result}类型的别名。
 
-类型别名是一种缩写的类型名。模块通常会定义一个\texttt{Result}类型的类型别名来避免在模块内几乎每个函数中都重复书写相同的错误类型。例如，标准库的\texttt{std::io}模块就包含这样一行代码：
+类型别名是一种缩写的类型名。模块通常会定义一个\texttt{Result}类型的类型别名来避免在模块内几乎每个函数中都重复书写相同的错误类型。例如,标准库的\texttt{std::io}模块就包含这样一行代码:
 \begin{minted}{Rust}
     pub type Result<T> = result::Result<T, Error>;
 \end{minted}
 
-这里定义了一个公有类型\texttt{std::io::Result<T>}。它是\texttt{Result<T, E>}的一个别名，\\
-把\texttt{std::io::Error}硬编码为错误类型。在实践中，这意味着如果你写了\texttt{use std::io}，Rust将会把\texttt{io::Result<String>}看作\texttt{Result<String, io::Error>}的缩写。
+这里定义了一个公有类型\texttt{std::io::Result<T>}。它是\texttt{Result<T, E>}的一个别名,\\
+把\texttt{std::io::Error}硬编码为错误类型。在实践中,这意味着如果你写了\texttt{use std::io},Rust将会把\texttt{io::Result<String>}看作\texttt{Result<String, io::Error>}的缩写。
 
-当类似于\texttt{Result<()>}的东西出现在在线文档里的时候，你可以点击标识符\texttt{Result}来查看使用了哪个类型别名和具体的错误类型。在实践中，通常能从上下文中明显地推断出错误类型。
+当类似于\texttt{Result<()>}的东西出现在在线文档里的时候,你可以点击标识符\texttt{Result}来查看使用了哪个类型别名和具体的错误类型。在实践中,通常能从上下文中明显地推断出错误类型。
 
 \subsection{打印错误}\label{printerror}
-有时处理错误的唯一方法就是把它打印到终端然后继续运行程序。我们已经展示了一种这样做的方法：
+有时处理错误的唯一方法就是把它打印到终端然后继续运行程序。我们已经展示了一种这样做的方法:
 \begin{minted}{Rust}
     println!("error querying the weather: {}", err);
 \end{minted}
 
-标准库定义了几个错误类型：\texttt{std::io::Error}、\texttt{std::fmt::Error}、\texttt{std::str::Utf8Error}等等。它们全都实现了一个公共接口\texttt{std::error::Error} trait，这意味着它们共享下面的特性和方法：
+标准库定义了几个错误类型:\texttt{std::io::Error}、\texttt{std::fmt::Error}、\texttt{std::str::Utf8Error}等等。它们全都实现了一个公共接口\texttt{std::error::Error} trait,这意味着它们共享下面的特性和方法:
 
 \codeentry{println!()}
-\hangparagraph{所有的错误类型都可以用它来打印。使用\texttt{\{\}}格式说明符只会显式一条简短的错误消息。作为替代，你可以使用\texttt{\{:?\}}格式说明符来获取错误的\texttt{Debug}视图。这对用户不是很友好，但包含更多的额外信息。}
+\hangparagraph{所有的错误类型都可以用它来打印。使用\texttt{\{\}}格式说明符只会显式一条简短的错误消息。作为替代,你可以使用\texttt{\{:?\}}格式说明符来获取错误的\texttt{Debug}视图。这对用户不是很友好,但包含更多的额外信息。}
 \begin{minted}{text}
     // result of `println!("error: {}", err);`
     error: failed to lookup address information: No address associated with
@@ -204,9 +204,9 @@ Rust要求我们每次调用这个函数时都要进行一些错误处理。我�
 \hangparagraph{返回一个\texttt{String}类型的错误消息。}
 
 \codeentry{err.source()}
-\hangparagraph{返回一个导致\texttt{err}的底层错误，如果有的话。例如，一个网络错误可能会导致一次银行交易失败，这可能反过来导致你的船被收回。如果\texttt{err.to\_string()}是\texttt{"boat was repossessed"}，那么\texttt{err.source()}可能返回一个有关失败的交易的错误。那个错误的\texttt{.to\_string()}可能是\texttt{"failed to transfer \$300 to United Yacht Supply"}，它的\texttt{.source()}可能是一个有关网络中断导致错误的详情的\texttt{io::Error}。第三个错误就是根源，因此它的\texttt{.source()}方法会返回\texttt{None}。因为标准库只包含低级的特性，所以标准库中的错误的来源通常都是\texttt{None}。}
+\hangparagraph{返回一个导致\texttt{err}的底层错误,如果有的话。例如,一个网络错误可能会导致一次银行交易失败,这可能反过来导致你的船被收回。如果\texttt{err.to\_string()}是\texttt{"boat was repossessed"},那么\texttt{err.source()}可能返回一个有关失败的交易的错误。那个错误的\texttt{.to\_string()}可能是\texttt{"failed to transfer \$300 to United Yacht Supply"},它的\texttt{.source()}可能是一个有关网络中断导致错误的详情的\texttt{io::Error}。第三个错误就是根源,因此它的\texttt{.source()}方法会返回\texttt{None}。因为标准库只包含低级的特性,所以标准库中的错误的来源通常都是\texttt{None}。}
 
-打印一个错误值并不会打印出它的来源。如果你想要打印出所有可用的信息，使用这个函数：
+打印一个错误值并不会打印出它的来源。如果你想要打印出所有可用的信息,使用这个函数:
 \begin{minted}{Rust}
     use std::error::Error;
     use std::io::{Write, stderr};
@@ -224,28 +224,28 @@ Rust要求我们每次调用这个函数时都要进行一些错误处理。我�
     }
 \end{minted}
 
-\texttt{writeln!}宏类似于\texttt{println!}宏，除了它把数据写入你指定的流。这里，我们将错误消息写入到了标准错误流\texttt{std::io::stderr}。我们也可以使用\texttt{eprintln!}宏来做同样的事，不过如果中途出错\texttt{eprintln!}会panic。在\texttt{print\_error}中，我们希望忽略写入消息时出现的错误；我们会在这一章中的“\hyperref[ignoreerr]{忽略错误}”一节中解释原因。
+\texttt{writeln!}宏类似于\texttt{println!}宏,除了它把数据写入你指定的流。这里,我们将错误消息写入到了标准错误流\texttt{std::io::stderr}。我们也可以使用\texttt{eprintln!}宏来做同样的事,不过如果中途出错\texttt{eprintln!}会panic。在\texttt{print\_error}中,我们希望忽略写入消息时出现的错误;我们会在这一章中的“\hyperref[ignoreerr]{忽略错误}”一节中解释原因。
 
-标准库的错误类型不包含堆栈追踪，不过当使用unstable版本的Rust编译器时，流行的\texttt{anyhow} crate提供了一个现成的有堆栈跟踪的错误类型（Rust 1.50版本中，标准库中捕获堆栈追踪的函数还没有被稳定化）。
+标准库的错误类型不包含堆栈追踪,不过当使用unstable版本的Rust编译器时,流行的\texttt{anyhow} crate提供了一个现成的有堆栈跟踪的错误类型(Rust 1.50版本中,标准库中捕获堆栈追踪的函数还没有被稳定化)。
 
 \subsection{传播错误}\label{properror}
-很多时候当我们尝试一些可能会失败的操作时，我们并不想立即捕捉并处理错误，在每一个可能出错的地方都使用10行的\texttt{match}表达式太过繁琐。
+很多时候当我们尝试一些可能会失败的操作时,我们并不想立即捕捉并处理错误,在每一个可能出错的地方都使用10行的\texttt{match}表达式太过繁琐。
 
-取而代之的是，当错误出现时我们通常希望让调用者处理它。我们把错误沿着调用栈往上\emph{传播}。
+取而代之的是,当错误出现时我们通常希望让调用者处理它。我们把错误沿着调用栈往上\emph{传播}。
 
-Rust有一个\texttt{?}运算符来做这个工作。你可以在任何产生\texttt{Result}的表达式后加上\texttt{?}，例如返回\texttt{Result}的函数调用：
+Rust有一个\texttt{?}运算符来做这个工作。你可以在任何产生\texttt{Result}的表达式后加上\texttt{?},例如返回\texttt{Result}的函数调用:
 \begin{minted}{Rust}
     let weather = get_weather(hometown)?;
 \end{minted}
 
-\texttt{?}运算符的行为取决于函数返回成功的结果还是错误的结果：
+\texttt{?}运算符的行为取决于函数返回成功的结果还是错误的结果:
 \begin{itemize}
-    \item 成功时，它会解包\texttt{Result}来获取成功的值。这里\texttt{weather}的类型并不是\\
-    \texttt{Result<WeatherReport, io::Error>}，而是\texttt{WeatherReport}。
-    \item 错误时，它会立刻从函数里返回，把错误沿着调用链向上传递。为了做到这一点，\texttt{?}只能用于返回值是\texttt{Result}类型的函数里的\texttt{Result}值。
+    \item 成功时,它会解包\texttt{Result}来获取成功的值。这里\texttt{weather}的类型并不是\\
+    \texttt{Result<WeatherReport, io::Error>},而是\texttt{WeatherReport}。
+    \item 错误时,它会立刻从函数里返回,把错误沿着调用链向上传递。为了做到这一点,\texttt{?}只能用于返回值是\texttt{Result}类型的函数里的\texttt{Result}值。
 \end{itemize}
 
-\texttt{?}运算符并没有魔法。你可以使用\texttt{match}表达式做到相同的事，只不过要繁琐很多：
+\texttt{?}运算符并没有魔法。你可以使用\texttt{match}表达式做到相同的事,只不过要繁琐很多:
 \begin{minted}{Rust}
     let weather = match get_weather(hometown) {
         Ok(success_value) => success_value,
@@ -253,15 +253,15 @@ Rust有一个\texttt{?}运算符来做这个工作。你可以在任何产生\te
     };
 \end{minted}
 
-这和\texttt{?}运算符的唯一区别是一些涉及类型和转换的细节，我们将在下一节中讨论这些细节。
+这和\texttt{?}运算符的唯一区别是一些涉及类型和转换的细节,我们将在下一节中讨论这些细节。
 
-在旧代码中，你可能还会看到\texttt{try!()}宏，在Rust 1.13引入\texttt{?}运算符之前它是传播错误的通常方法：
+在旧代码中,你可能还会看到\texttt{try!()}宏,在Rust 1.13引入\texttt{?}运算符之前它是传播错误的通常方法:
 \begin{minted}{Rust}
     let weather = try!(get_weather(hometown));
 \end{minted}
 这个宏会展开成类似于上面的\texttt{match}表达式。
 
-我们很容易忘记程序中的错误究竟有多么无孔不入，尤其是那些与操作系统交互的代码。\texttt{?}运算符有时会在几乎每一行代码中出现：
+我们很容易忘记程序中的错误究竟有多么无孔不入,尤其是那些与操作系统交互的代码。\texttt{?}运算符有时会在几乎每一行代码中出现:
 \begin{minted}{Rust}
     use std::fs;
     use std::io;
@@ -276,13 +276,13 @@ Rust有一个\texttt{?}运算符来做这个工作。你可以在任何产生\te
     }
 \end{minted}
 
-\texttt{?}也能用于\texttt{Option}类型。在一个返回\texttt{Option}的函数中，你可以使用\texttt{?}来解包值，并在为\texttt{None}的情况下直接返回：
+\texttt{?}也能用于\texttt{Option}类型。在一个返回\texttt{Option}的函数中,你可以使用\texttt{?}来解包值,并在为\texttt{None}的情况下直接返回:
 \begin{minted}{Rust}
     let weather = get_weather(hometown).ok()?;
 \end{minted}
 
 \subsection{处理多种错误类型}\label{MultiErr}
-通常，可能会出错的不止一件事情。假设我们要从文本文件中读取一个数字：
+通常,可能会出错的不止一件事情。假设我们要从文本文件中读取一个数字:
 \begin{minted}{Rust}
     use std::io::{self, BufRead};
 
@@ -298,7 +298,7 @@ Rust有一个\texttt{?}运算符来做这个工作。你可以在任何产生\te
     }
 \end{minted}
 
-Rust会报一个编译时错误：
+Rust会报一个编译时错误:
 \begin{minted}{text}
     error: `?` couldn't convert the error to `std::io::Error`
 
@@ -311,22 +311,22 @@ Rust会报一个编译时错误：
     on the error value using the `From` trait
 \end{minted}
 
-当我们接触到\hyperref[ch11]{第11章}中有关trait的内容时才能明白错误消息中的术语。到现在为止，只要知道Rust是在说\texttt{?}运算符不能把\texttt{std::num::ParseIntError}转换为\texttt{std::io::Error}类型就够了。
+当我们接触到\hyperref[ch11]{第11章}中有关trait的内容时才能明白错误消息中的术语。到现在为止,只要知道Rust是在说\texttt{?}运算符不能把\texttt{std::num::ParseIntError}转换为\texttt{std::io::Error}类型就够了。
 
 这里的问题在于从文件中读取一行和解析整数会产生两种不同的错误类型。\texttt{line\_result}的类型是\texttt{Result<String, std::io::Error>}。\texttt{line.parse()}的类型是\texttt{Result<i64,\\
-std::num::ParseIntError>}。我们的\texttt{read\_numbers()}函数的返回类型只能容乃\texttt{io::Error}。Rust尝试把\texttt{ParseIntError}转换为\texttt{io::Error}，但这样的转换并不存在，所以向我们汇报了一个错误。
+std::num::ParseIntError>}。我们的\texttt{read\_numbers()}函数的返回类型只能容乃\texttt{io::Error}。Rust尝试把\texttt{ParseIntError}转换为\texttt{io::Error},但这样的转换并不存在,所以向我们汇报了一个错误。
 
-有几种处理这个错误的方法。例如，我们在\hyperref[ch02]{第2章}中用于创建曼德勃罗集的图片文件的\texttt{image} crate中就定义了它自己的错误类型\texttt{ImageError}，并实现了从\texttt{io::Error}和几种其他错误类型到\texttt{ImageError}的转换。如果你想要走这条路，可以尝试\texttt{thiserror} crate，它被设计的目的就是帮你只用少量代码定义良好的错误类型。
+有几种处理这个错误的方法。例如,我们在\hyperref[ch02]{第2章}中用于创建曼德勃罗集的图片文件的\texttt{image} crate中就定义了它自己的错误类型\texttt{ImageError},并实现了从\texttt{io::Error}和几种其他错误类型到\texttt{ImageError}的转换。如果你想要走这条路,可以尝试\texttt{thiserror} crate,它被设计的目的就是帮你只用少量代码定义良好的错误类型。
 
-一个更简单的方法是使用Rust内建的机制。所有标准库里的错误类型都可以转换为类型\texttt{Box<dyn std::error::Error + Send + Sync + 'static>}。这有一些复杂，不过\texttt{dyn std::error::Error}代表“任何错误”，而\texttt{Send + Sync + 'static}使它可以安全地在线程间传递，这通常也是你想要的\footnote{你也可以考虑使用流行的\texttt{anyhow} crate，它提供类似于我们的\texttt{GenericError}和\texttt{GenericResult}的类型，不过还带有一些其他的有用的特性。}。为了方便，你可以定义类型别名：
+一个更简单的方法是使用Rust内建的机制。所有标准库里的错误类型都可以转换为类型\texttt{Box<dyn std::error::Error + Send + Sync + 'static>}。这有一些复杂,不过\texttt{dyn std::error::Error}代表“任何错误”,而\texttt{Send + Sync + 'static}使它可以安全地在线程间传递,这通常也是你想要的\footnote{你也可以考虑使用流行的\texttt{anyhow} crate,它提供类似于我们的\texttt{GenericError}和\texttt{GenericResult}的类型,不过还带有一些其他的有用的特性。}。为了方便,你可以定义类型别名:
 \begin{minted}{Rust}
     type GenericError = Box<dyn std::error::Error + Send + Sync + 'static>;
     type GenericResult<T> = Result<T, GenericError>;
 \end{minted}
 
-然后，把\texttt{read\_numbers()}的返回类型修改为\texttt{GenericResult<Vec<i64>>}。修改之后，函数就可以编译了。\texttt{?}运算符会在需要的时候把任何错误类型转换为\texttt{GenericError}。
+然后,把\texttt{read\_numbers()}的返回类型修改为\texttt{GenericResult<Vec<i64>>}。修改之后,函数就可以编译了。\texttt{?}运算符会在需要的时候把任何错误类型转换为\texttt{GenericError}。
 
-顺带，\texttt{?}运算符通过一个标准库方法来完成自动转换，你也可以手动使用这个方法。可以调用\texttt{GenericError::from()}来将任何错误转换为\texttt{GenericError}类型：
+顺带,\texttt{?}运算符通过一个标准库方法来完成自动转换,你也可以手动使用这个方法。可以调用\texttt{GenericError::from()}来将任何错误转换为\texttt{GenericError}类型:
 \begin{minted}{Rust}
     let io_error = io::Error::new(      // 创建一个我们自己的io::Error
         io::ErrorKind::Other, "timed out");
@@ -335,7 +335,7 @@ std::num::ParseIntError>}。我们的\texttt{read\_numbers()}函数的返回类�
 
 我们将在\hyperref[ch13]{第13章}中详细介绍\texttt{From} trait和它的\texttt{from()}方法。
 
-用\texttt{GenericError}方法处理的缺点是返回类型将不能精确地告诉调用者到底发生了什么类型的错误。如果你要调用一个返回\texttt{GenericResult}的函数并且向处理某一种特性类型的错误，然而继续传播其它所有类型的错误，可以使用泛型方法\texttt{error.downcast\_ref::<ErrorType>()}。\emph{如果}这个错误正好是你指定的错误类型：
+用\texttt{GenericError}方法处理的缺点是返回类型将不能精确地告诉调用者到底发生了什么类型的错误。如果你要调用一个返回\texttt{GenericResult}的函数并且向处理某一种特性类型的错误,然而继续传播其它所有类型的错误,可以使用泛型方法\texttt{error.downcast\_ref::<ErrorType>()}。\emph{如果}这个错误正好是你指定的错误类型:
 \begin{minted}{Rust}
     loop {
         match compile_project() {
@@ -351,10 +351,10 @@ std::num::ParseIntError>}。我们的\texttt{read\_numbers()}函数的返回类�
     }
 \end{minted}
 
-许多语言都有类似这样的内建语法，但它们通常极少被用到。Rust使用一个方法来完成这件事。
+许多语言都有类似这样的内建语法,但它们通常极少被用到。Rust使用一个方法来完成这件事。
 
 \subsection{处理“不可能发生”的错误}
-有时我们\emph{知道}有一些错误不可能发生。例如，假设我们正在编写一个解析配置文件的函数，并且我们发现中文件接下来的内容是一串数字的字符串：
+有时我们\emph{知道}有一些错误不可能发生。例如,假设我们正在编写一个解析配置文件的函数,并且我们发现中文件接下来的内容是一串数字的字符串:
 \begin{minted}{Rust}
     if next_char.is_digit(10) {
         let start = current_index;
@@ -363,73 +363,73 @@ std::num::ParseIntError>}。我们的\texttt{read\_numbers()}函数的返回类�
         ...
 \end{minted}
 
-我们想把这一串数字转换为一个真正的数字。有一个标准的方法可以做到这一点：
+我们想把这一串数字转换为一个真正的数字。有一个标准的方法可以做到这一点:
 \begin{minted}{Rust}
     let num = digits.parse::<u64>();
 \end{minted}
 
-现在的问题是：\texttt{str.parse::<u64>()}方法并不返回\texttt{u64}。它返回一个\texttt{Result}。它可能失败，因为一些字符串不能转换为数字：
+现在的问题是:\texttt{str.parse::<u64>()}方法并不返回\texttt{u64}。它返回一个\texttt{Result}。它可能失败,因为一些字符串不能转换为数字:
 \begin{minted}{Rust}
     "bleen".parse::<u64>()  // ParseIntError: invalid digit
 \end{minted}
 
-但我们确切的知道，在我们的例子中，\texttt{digits}只包含一串数字。我们应该怎么做？
+但我们确切的知道,在我们的例子中,\texttt{digits}只包含一串数字。我们应该怎么做？
 
-如果我们写的代码返回一个\texttt{GenericResult}，我们可以在后边加上一个\texttt{?}然后忘记它。否则，我们就必须为不可能发生的错误编写错误处理的代码。此时最佳的选择将是使用\texttt{.unwrap()}，如果结果是\texttt{Err}的话这个方法会panic，但如果是\texttt{Ok}的话则直接返回成功的值：
+如果我们写的代码返回一个\texttt{GenericResult},我们可以在后边加上一个\texttt{?}然后忘记它。否则,我们就必须为不可能发生的错误编写错误处理的代码。此时最佳的选择将是使用\texttt{.unwrap()},如果结果是\texttt{Err}的话这个方法会panic,但如果是\texttt{Ok}的话则直接返回成功的值:
 \begin{minted}{Rust}
     let num = digits.parse::<u64>.unwrap();
 \end{minted}
 
-这和使用\texttt{?}很像，不同之处在于如果我们判断错误，这个错误\emph{可能}发生，那么当它发生时会panic。
+这和使用\texttt{?}很像,不同之处在于如果我们判断错误,这个错误\emph{可能}发生,那么当它发生时会panic。
 
-事实上，在某些特殊情况下这个例子也可能出错。如果输入包含足够长的数字串，那么数字将会过大不能存储在\texttt{u64}中：
+事实上,在某些特殊情况下这个例子也可能出错。如果输入包含足够长的数字串,那么数字将会过大不能存储在\texttt{u64}中:
 \begin{minted}{Rust}
     "99999999999999999999".parse::<u64>()   // 溢出错误
 \end{minted}
 在这个特殊情况下使用\texttt{.unwrap()}将会是一个bug。错误的输入不应该导致panic。
 
-也就是说，确实有可能出现\texttt{Result}值一定不是错误的情况。例如，在\hyperref[ch18]{第18章}中，你会看到\texttt{Write} trait为文本和二进制输出定义了一组通用的方法（\texttt{.write()等}）。所有这些方法返回\texttt{io::Result}，但如果你要写入到一个\texttt{Vec<u8>}，那么它们不可能失败。在这种情况下，使用\texttt{.unwrap()}或者\texttt{.expect(message)}来处理\texttt{Result}是可以接受的。
+也就是说,确实有可能出现\texttt{Result}值一定不是错误的情况。例如,在\hyperref[ch18]{第18章}中,你会看到\texttt{Write} trait为文本和二进制输出定义了一组通用的方法(\texttt{.write()等})。所有这些方法返回\texttt{io::Result},但如果你要写入到一个\texttt{Vec<u8>},那么它们不可能失败。在这种情况下,使用\texttt{.unwrap()}或者\texttt{.expect(message)}来处理\texttt{Result}是可以接受的。
 
-如果当错误发生时说明出现了非常奇怪的情况，以至于你确实想直接panic，那么这些方法也很有用：
+如果当错误发生时说明出现了非常奇怪的情况,以至于你确实想直接panic,那么这些方法也很有用:
 \begin{minted}{Rust}
     fn print_file_age(filename: &Path, last_modified: SystemTime) {
         let age = last_modified.elapsed().expect("system clock drift");
     }
 \end{minted}
 
-这里，\texttt{.elapsed()}方法只在当前系统时间比文件创建的时间\emph{更早}的情况下才会失败。如果文件是新创建的，并且在我们的程序运行期间系统的始终被往后调了，就有可能出现这种情况。取决于代码如何使被使用，在这种情况下panic，而不是处理错误或者传播给调用者，是一个合理的判断。
+这里,\texttt{.elapsed()}方法只在当前系统时间比文件创建的时间\emph{更早}的情况下才会失败。如果文件是新创建的,并且在我们的程序运行期间系统的始终被往后调了,就有可能出现这种情况。取决于代码如何使被使用,在这种情况下panic,而不是处理错误或者传播给调用者,是一个合理的判断。
 
 \subsection{忽略错误}\label{ignoreerr}
-偶尔我们只是想忽略一个错误。例如，在我们的\texttt{print\_error}函数中，我们必须处理打印一个错误时触发另一个错误的罕见场景。这有可能发生，例如，如果\texttt{stderr}通过管道连接到其他进程，并且那个进程被杀死了。我们原本尝试汇报的错误可能更重要，需要传播；而\texttt{stderr}的错误我们想直接忽略，但Rust编译器会警告有未使用的\texttt{Result}值：
+偶尔我们只是想忽略一个错误。例如,在我们的\texttt{print\_error}函数中,我们必须处理打印一个错误时触发另一个错误的罕见场景。这有可能发生,例如,如果\texttt{stderr}通过管道连接到其他进程,并且那个进程被杀死了。我们原本尝试汇报的错误可能更重要,需要传播;而\texttt{stderr}的错误我们想直接忽略,但Rust编译器会警告有未使用的\texttt{Result}值:
 \begin{minted}{Rust}
-    writeln!(stderr(), "error: {}", err);   // 警告：未使用的结果
+    writeln!(stderr(), "error: {}", err);   // 警告:未使用的结果
 \end{minted}
 
-惯用写法\texttt{let \_ = ...}可以用来消除这个警告：
+惯用写法\texttt{let \_ = ...}可以用来消除这个警告:
 \begin{minted}{Rust}
-    let _ = writeln!(stderr(), "error: {}", err);   // ok，忽略结果
+    let _ = writeln!(stderr(), "error: {}", err);   // ok,忽略结果
 \end{minted}
 
 \subsection{在main()中处理错误}
-在大多数产生\texttt{Result}的场景中，将错误向上传递给调用者是正确的行为。这也是为什么\texttt{?}在Rust中是单个字符。正如我们所见，在一些程序中它被用于很多行代码。
+在大多数产生\texttt{Result}的场景中,将错误向上传递给调用者是正确的行为。这也是为什么\texttt{?}在Rust中是单个字符。正如我们所见,在一些程序中它被用于很多行代码。
 
-但如果你把一个错误传播的够长了，已经到达了\texttt{main()}，必须要对它做些处理了。通常情况下，\texttt{main()}不能使用\texttt{?}因为它的返回类型不是\texttt{Result}：
+但如果你把一个错误传播的够长了,已经到达了\texttt{main()},必须要对它做些处理了。通常情况下,\texttt{main()}不能使用\texttt{?}因为它的返回类型不是\texttt{Result}:
 \begin{minted}{Rust}
     fn main() {
         calculate_tides()?; // error: can't pass the buck any further
     }
 \end{minted}
 
-在\texttt{main()}中处理错误的最简单方法就是使用\texttt{.expect()}：
+在\texttt{main()}中处理错误的最简单方法就是使用\texttt{.expect()}:
 \begin{minted}{Rust}
     fn main() {
         calculate_tides().expect("error");  // the buck stops here
     }
 \end{minted}
 
-如果\texttt{calculate\_tides()}返回一个错误结果，那么\texttt{.expect()}方法会panic。在主线程中panic会打印一条错误消息并以非0的退出码退出程序。我们将会在小程序中一直使用这种写法。这是开始。
+如果\texttt{calculate\_tides()}返回一个错误结果,那么\texttt{.expect()}方法会panic。在主线程中panic会打印一条错误消息并以非0的退出码退出程序。我们将会在小程序中一直使用这种写法。这是开始。
 
-错误消息有一点吓人：
+错误消息有一点吓人:
 \begin{minted}{text}
     $ tidecalc --planet mercury
     thread 'main' panicked at 'error: "moon not found"', src/main.rs:2:23
@@ -438,7 +438,7 @@ std::num::ParseIntError>}。我们的\texttt{read\_numbers()}函数的返回类�
 \end{minted}
 错误消息在干扰中丢失。\texttt{RUST\_BACKTRACE=1}也是一个错误的建议。
 
-然而，你可以修改\texttt{main()}的类型签名，让它返回一个\texttt{Result}类型，这样你可以使用\texttt{?}：
+然而,你可以修改\texttt{main()}的类型签名,让它返回一个\texttt{Result}类型,这样你可以使用\texttt{?}:
 \begin{minted}{Rust}
     fn main() -> Result<(), TideCalcError> {
         let tides = calculate_tides()?;
@@ -447,14 +447,14 @@ std::num::ParseIntError>}。我们的\texttt{read\_numbers()}函数的返回类�
     }
 \end{minted}
 
-这可以用于任何可以以\texttt{{:?}}格式符打印的错误类型，所有的标准错误类型例如\\
-\texttt{std::io::Error}都满足条件。这种方法易于使用并且给出更好的错误消息，但并不是理想的方案：
+这可以用于任何可以以\texttt{{:?}}格式符打印的错误类型,所有的标准错误类型例如\\
+\texttt{std::io::Error}都满足条件。这种方法易于使用并且给出更好的错误消息,但并不是理想的方案:
 \begin{minted}{text}
     $ tidecalc --planet mercury
     Error: TideCalcError { error_type: NoMoon, message: "moon not found" }
 \end{minted}
 
-如果你要处理更复杂的错误类型或者想在信息中包含更多信息，那你可以自己打印错误信息：
+如果你要处理更复杂的错误类型或者想在信息中包含更多信息,那你可以自己打印错误信息:
 \begin{minted}{Rust}
     fn main() {
         lf let Err(err) = calculate_tides() {
@@ -464,18 +464,18 @@ std::num::ParseIntError>}。我们的\texttt{read\_numbers()}函数的返回类�
     }
 \end{minted}
 
-这段代码使用了\texttt{if let}表达式来打印错误消息，只有当\texttt{calculate\_tides()}的调用返回错误结果时才会打印消息。更多有关\texttt{if let}表达式的细节，见\hyperref[ch10]{第10章}。\texttt{print\_error}函数在“\hyperref[printerror]{打印错误}”中列出。
+这段代码使用了\texttt{if let}表达式来打印错误消息,只有当\texttt{calculate\_tides()}的调用返回错误结果时才会打印消息。更多有关\texttt{if let}表达式的细节,见\hyperref[ch10]{第10章}。\texttt{print\_error}函数在“\hyperref[printerror]{打印错误}”中列出。
 
-现在输出变得漂亮整洁：
+现在输出变得漂亮整洁:
 \begin{minted}{text}
     $ tidecalc --planet mercury
     error: moon not found
 \end{minted}
 
 \subsection{声明自定义错误类型}
-假设你在编写一个新的JSON解析器，而且你想让它有自己的自定义错误类型。（我们还没有介绍如何自定义类型，不过再过几章就会介绍了。错误类型很方便，因此我们将在此处提供一些先睹为快的预览。）
+假设你在编写一个新的JSON解析器,而且你想让它有自己的自定义错误类型。(我们还没有介绍如何自定义类型,不过再过几章就会介绍了。错误类型很方便,因此我们将在此处提供一些先睹为快的预览。)
 
-你需要编写的最少的代码如下：
+你需要编写的最少的代码如下:
 \begin{minted}{Rust}
     // json/src/error.rs
 
@@ -487,7 +487,7 @@ std::num::ParseIntError>}。我们的\texttt{read\_numbers()}函数的返回类�
     }
 \end{minted}
 
-这个结构体将被称作\texttt{json::error::JsonError}，当你需要返回一个这种类型的错误时，你可以这么写：
+这个结构体将被称作\texttt{json::error::JsonError},当你需要返回一个这种类型的错误时,你可以这么写:
 \begin{minted}{Rust}
     return Err(JsonError {
         "message": "expected ']' at end of array".to_string(),
@@ -496,7 +496,7 @@ std::num::ParseIntError>}。我们的\texttt{read\_numbers()}函数的返回类�
     });
 \end{minted}
 
-这没有任何问题。然而，如果你想让你的错误类型能像标准错误类型一样工作，这可能也是你的库的使用者希望的，那么你需要再多做一些工作：
+这没有任何问题。然而,如果你想让你的错误类型能像标准错误类型一样工作,这可能也是你的库的使用者希望的,那么你需要再多做一些工作:
 \begin{minted}{Rust}
     use std::fmt;
 
@@ -507,14 +507,14 @@ std::num::ParseIntError>}。我们的\texttt{read\_numbers()}函数的返回类�
         }
     }
 
-    // 错误需要实现std::error::Error trait，
+    // 错误需要实现std::error::Error trait,
     // 但Error的方法的默认实现已经足够了。
     impl std::error::Error for JsonError { }
 \end{minted}
 
 \texttt{impl}关键字、\texttt{self}和其它内容将会在几章之后解释。
 
-和Rust语言中的其它很多方面一样，有一些crate可以让错误处理变得更加易用和和简洁。有很多选择，但其中使用最广泛的是\texttt{thiserror}，它帮你完成上述所有的工作，让你可以像这样定义错误：
+和Rust语言中的其它很多方面一样,有一些crate可以让错误处理变得更加易用和和简洁。有很多选择,但其中使用最广泛的是\texttt{thiserror},它帮你完成上述所有的工作,让你可以像这样定义错误:
 \begin{minted}{Rust}
     use thiserror::Error;
     #[derive(Error, Debug)]
@@ -526,17 +526,17 @@ std::num::ParseIntError>}。我们的\texttt{read\_numbers()}函数的返回类�
     }
 \end{minted}
 
-\texttt{\#[derive(Error)]}指示会告诉\texttt{thiserror}生成之前展示的代码，这可以节省很多时间和工作。
+\texttt{\#[derive(Error)]}指示会告诉\texttt{thiserror}生成之前展示的代码,这可以节省很多时间和工作。
 
 \subsection{为什么选择Result}
-现在我们已经知道足够多，可以理解Rust为什么选择\texttt{Result}而不是异常了。这是这个设计的关键点：
+现在我们已经知道足够多,可以理解Rust为什么选择\texttt{Result}而不是异常了。这是这个设计的关键点:
 \begin{itemize}
-    \item Rust需要程序员在每个可能出现错误的点做出决策，并记录在代码中。这是一个很好的设计，否则很容易因为疏忽而忘记处理错误。
-    \item 最常见的决策是传播错误，并且使用单个字符\texttt{?}来完成。因此，因此，错误传播不会像在C和Go中那样扰乱你的代码。并且它还是可见的：你可以在一大段代码中一眼看到错误在哪里被传播。
-    \item 因为错误是函数返回值的一部分，所以很容看出哪些函数可能失败、哪些不可能。如果你把一个函数改成可能失败，你必须修改它的返回类型，因此编译器会让你同时更新下游使用了函数的代码。
-    \item Rust通过检查确保\texttt{Result}值被使用，因此你不会偶然遗漏错误（在C中这是一种常见的错误）。
-    \item 因为\texttt{Result}是一个类似其他类型的数据类型，它可以方便的在相同的集合中存储成功和失败的结果。这让它可以很容易的建模部分成功的情况。例如，如果你在编写一个程序从读取一个文本文件中的几百万条记录，并且你需要一种方法来应对大多数会成功但有些会失败的可能结果，你可以使用一个\texttt{Result}的vector来表示这种情形。
+    \item Rust需要程序员在每个可能出现错误的点做出决策,并记录在代码中。这是一个很好的设计,否则很容易因为疏忽而忘记处理错误。
+    \item 最常见的决策是传播错误,并且使用单个字符\texttt{?}来完成。因此,因此,错误传播不会像在C和Go中那样扰乱你的代码。并且它还是可见的:你可以在一大段代码中一眼看到错误在哪里被传播。
+    \item 因为错误是函数返回值的一部分,所以很容看出哪些函数可能失败、哪些不可能。如果你把一个函数改成可能失败,你必须修改它的返回类型,因此编译器会让你同时更新下游使用了函数的代码。
+    \item Rust通过检查确保\texttt{Result}值被使用,因此你不会偶然遗漏错误(在C中这是一种常见的错误)。
+    \item 因为\texttt{Result}是一个类似其他类型的数据类型,它可以方便的在相同的集合中存储成功和失败的结果。这让它可以很容易的建模部分成功的情况。例如,如果你在编写一个程序从读取一个文本文件中的几百万条记录,并且你需要一种方法来应对大多数会成功但有些会失败的可能结果,你可以使用一个\texttt{Result}的vector来表示这种情形。
 \end{itemize}
 
-代价就是你会发现你在Rust中关于错误处理的思考和设计会比在其他语言中更多。和许多其他领域一样，Rust对错误处理的要求比你习惯的要更严格一点。对系统级编程语言来说，这是值得的。
+代价就是你会发现你在Rust中关于错误处理的思考和设计会比在其他语言中更多。和许多其他领域一样,Rust对错误处理的要求比你习惯的要更严格一点。对系统级编程语言来说,这是值得的。
 
