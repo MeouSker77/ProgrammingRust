@@ -262,7 +262,7 @@ Rust语言内建有对测试的支持。为了测试我们的\texttt{gcd}函数�
                  .expect("error parsing argument"));
 \end{minted}
 
-这里我们调用了\texttt{u64::from\_str}来尝试将命令行参数解析为64位整数。和通过\texttt{u64}类型的值调用的方法不同，\texttt{u64::from\_str}是一个和\texttt{u64}类型的值关联的方法，类似于C++和Java中的静态方法。\texttt{from\_str}函数不直接返回一个\texttt{u64}类型的值，而是返回一个\texttt{Result}类型的值来表示解析是否成功。一个\texttt{Rusult}类型的值有两种可能：
+这里我们调用了\texttt{u64::from\_str}来尝试将命令行参数解析为64位整数。和通过\texttt{u64}类型的值调用的方法不同，\texttt{u64::from\_str}是一个和\texttt{u64}类型的值关联的方法，类似于C++和Java中的静态方法。\texttt{from\_str}函数不直接返回一个\texttt{u64}类型的值，而是返回一个\texttt{Result}类型的值来表示解析是否成功。一个\texttt{Result}类型的值有两种可能：
 
 \begin{itemize}
     \item 一个写作\texttt{Ok(v)}，表示解析成功，\texttt{v}就是解析出的值。
