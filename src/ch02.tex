@@ -421,7 +421,7 @@ crate有一些可选的特性：这些特性是有些用户可能用不到、但
 
 因为相应的文本中包含很多双引号，所以我们使用了Rust的raw string语法：字母\texttt{r}、0个或多个井号（\texttt{\#}字符）、一个双引号，string的内容、最后以另一个双引号加上和开头处相同数量的井号结尾。raw string中出现的任何字符都不会被转义，包括双引号；事实上，没有转义的序列例如\texttt{\textbackslash"}也可以被识别。我们可以通过增多井号的数量来保证终止的标记不会出现在字符串内容中。
 
-编写完\texttt{main.rs}之后，我们可以使用\texttt{carto run}命令来运行它：它会自动获取所需的crate、编译它们、编译我们自己的程序、并链接在一起、然后启动它：
+编写完\texttt{main.rs}之后，我们可以使用\texttt{cargo run}命令来运行它：它会自动获取所需的crate、编译它们、编译我们自己的程序、并链接在一起、然后启动它：
 \begin{minted}{text}
     $ cargo run
         Updating crates.io index
