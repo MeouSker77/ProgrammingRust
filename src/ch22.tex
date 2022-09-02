@@ -1,4 +1,28 @@
 \chapter{unsafe代码}\label{ch22}
 
+\emph{Let no one think of me that I am humble or weak or passive; \\
+Let them understand I am of a diﬀerent kind: dangerous to my enemies, loyal to my friends. \\
+To such a life glory belongs.}
+
+系统级编程的乐趣在于，在每一个安全的语言和精心设计的抽象之下，都是不安全的机器语言和比特位。你也可以在Rust中写出这样的代码。
+
+到目前为止本书中介绍的语言部分，例如类型、生命周期、约束检查等都可以自动保证你的程序完全没有内存错误和数据竞争。但这种自动的技术有它的局限性；Rust并不能识别出来很多有价值的技术是安全的。
+
+\emph{unsafe代码}让你可以告诉Rust，“我要使用一些你不能保证安全的特性”。把一个块或者函数标记为unsafe之后，你就可以调用标准库中的\texttt{unsafe}函数、解引用unsafe指针、调用其他语言例如C和C++编写的函数等。Rust的其他安全性检查依然生效：类型检查、生命周期检查、约束检查等仍然和之前一样。unsafe代码只是允许了一小部分额外的特性。
+
+正是因为有了允许超出safe Rust界限的能力，Rust才能实现它自身的大部分基础特性，和C/C++一样，Rust也被用来实现它自己的标准库。unsafe代码可以让\texttt{Vec}类型更高效地管理它的缓冲区；让\texttt{std::io}模块和操作系统交互；让\texttt{std::thread}和\texttt{std::sync}模块提供并发原语。
+
+本章介绍了unsafe特性的一些基础：
+
+\begin{enumerate}
+    \item Rust的\texttt{unsafe}块区分开了普通的safe Rust代码和使用unsafe特性的代码。
+    \item 你可以把函数标记为\texttt{unsafe}，提醒调用者他们必须遵守的一些额外约束来避免未定义行为。
+    \item 原始指针和它们的方法运行对内存进行不受限的访问，并允许你构建Rust的类型系统可能禁止的数据结构。Rust的引用虽然安全，但却是受限制的，原始指针正如每个C或C++程序员所知，是一个强大而锋利的工具。
+    \item 理解未定义行为的定义将会帮助你理解为什么它们比得到错误结果还要糟糕的多。
+    \item unsafe trait，类似于\texttt{unsafe}函数，隐含了每个实现（而不是每个调用者）都要遵守的规则。
+\end{enumerate}
+
+\section{unsafe从何而来？}
 
 \section{原始指针}\label{rawp}
+
