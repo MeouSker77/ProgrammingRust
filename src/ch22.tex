@@ -84,5 +84,78 @@ To such a life glory belongs.}
     \item 当你正在考虑编写一个\texttt{unsafe}块时，你可以花费一点时间来问问自己你的任务是否真的需要这些特性。如果是为了性能，你是否有测量数据表明这真的是一个性能瓶颈？可能有一种在safe Rust中也可以实现相同效果的方法。
 \end{enumerate}
 
+\section{示例：一个高效的ASCII字符类型}
+这里有一个示例，\texttt{Ascii}是一个字符串类型，它确保它的内容总是有效的ASCII字符。这个类型使用一个unsafe特性来提供到\texttt{String}的0开销转换：
+\begin{minted}{Rust}
+    mod my_ascii {
+        /// 一个ASCII编码的字符串
+        #[derive(Debug, Eq, PartialEq)]
+        pub struct Ascii(
+            // 它必须只存有有效的ASCII文本：从`0`到`0x7f`的字节序列
+            Vec<u8>
+        );
+
+        impl Ascii {
+            /// 从`bytes`中的Ascii文本创建一个`Ascii`。
+            /// 如果`bytes`中含有任何非ASCII字符就返回一个`NotAsciiError`错误。
+            pub fn from_bytes(bytes: Vec<u8>) -> Result<Ascii, NotAsciiError> {
+                if bytes.iter().any(|&byte| !byte.is_ascii()) {
+                    return Err(NotAsciiError(bytes));
+                }
+                Ok(Ascii(bytes))
+            }
+        }
+
+        // 当转换失败时，我们会给出不能转换的vector。
+        // 它应该实现`std::error::Error`，这里为了简洁就省略了。
+        #[derive(Debug, Eq, PartialEq)]
+        pub struct NotAsciiError(pub Vec<u8>);
+
+        // 安全、高效的转换，使用unsafe代码实现。
+        impl From<Ascii> for String {
+            fn from(ascii: Ascii) -> String {
+                // 如果这个模块没有bug的话，这里就是安全的，
+                // 因为有效的ASCII文本也是有效的UTF-8文本。
+                unsafe { String::from_utf8_unchecked(ascii.0) }
+            }
+        }
+        ...
+    }
+\end{minted}
+
+这个模块的关键是\texttt{Ascii}类型的定义。这个类型本身被标记为\texttt{pub}，来让它在\texttt{my\_ascii}模块外可见。但它的\texttt{Vec<u8>}元素\emph{不是}public的，因此只有\texttt{my\_ascii}模块里的方法可以创建一个\texttt{Ascii}值或者访问它的元素。这完全控制了模块里哪些代码是公开的哪些是不公开的。只要public的构造器和方法能确保新创建的\texttt{Ascii}值是有效的，并始终保持有效，那么程序的其他部分就不可能违反规则。并且public的构造器\texttt{Ascii::from\_bytes}确实小心地检查了给定的vector来确保能从它构建出一个有效的\texttt{Ascii}。出于简洁性的考虑，我们并没有展示出每一个方法，但你可以想象还有一些处理文本的方法，这些方法同样确保\texttt{Ascii}的值总是有效的ASCII文本，就像\texttt{String}的方法确保它的内容总是有效的UTF-8.
+
+这样的安排让我们可以非常高效地为\texttt{String}实现\texttt{From<Ascii>}。unsafe函数\texttt{String::from\_utf8\_unchecked}获取一个字节vector并根据它的内容构建一个\texttt{String}，并且不检查它的内容是否是有效的UTF-8文本；这个函数的合约就是调用者要负责这一点。幸运的是，\texttt{Ascii}类型强迫的规则正是满足\texttt{from\_utf8\_unchecked}的合约所需的条件。正如我们在\nameref{utf8}中解释的一样，任何有效的ASCII文本都是有效的UTF-8文本，因此\texttt{Ascii}内部的\texttt{Vec<u8>}可以立刻作为一个\texttt{String}的缓冲区使用。
+
+有了这些定义之后，你可以写这样的代码：
+\begin{minted}{Rust}
+    use my_ascii::Ascii;
+
+    let bytes: Vec<u8> = b"ASCII and ye shall receive".to_vec();
+
+    // 这里的调用没有任何内存分配或者文本拷贝，只进行一次扫描。
+    let ascii: Ascii = Ascii::from_bytes(bytes)
+        .unwrap();  // 我们已经知道了bytes是没问题的。
+
+    // 这里的调用是0开销的：没有内存分配、拷贝、扫描。
+    let string = String::from(ascii);
+
+    assert_eq!(string, "ASCII and ye shall receive");
+\end{minted}
+
+使用\texttt{Ascii}不需要unsafe块。我们已经使用unsafe操作实现了一个safe的接口，并且安排好只依赖模块自己的代码而不是用户的行为来满足它的合约。
+
+\texttt{Ascii}只是一个\texttt{Vec<u8>}的包装，并在模块里隐藏了一些强迫它的内容需要满足的规则。一个这样的类型被称为\emph{newtype}，它是Rust中非常普遍的一种模式。Rust自己的\texttt{String}类型就使用完全相同的方式定义的，区别只有它的内容被限制为UTF-8，而不是ASCII。事实上，这是标准库里\texttt{String}的定义：
+\begin{minted}{Rust}
+    pub struct String {
+        vec: Vec<u8>,
+    }
+\end{minted}
+
+在机器语言的层面上，是完全没有Rust的类型信息的，一个newtype和它的元素有完全相同的内存表示，因此构建一个newtype完全不需要任何额外的机器指令。在\texttt{Ascii::from\_bytes}中，表达式\texttt{Ascii(bytes)}只是表明\texttt{Vec<u8>}现在的内存表示持有的是一个\texttt{Ascii}值。类似的，\texttt{String::from\_utf8\_unchecked}在内联的情况下可能不包含任何机器指令：它只表明\texttt{Vec<u8>}现在被认为是一个\texttt{String}。
+
+\section{unsafe函数}
+
+
 \section{原始指针}\label{rawp}
 
