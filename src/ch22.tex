@@ -23,6 +23,43 @@ To such a life glory belongs.}
 \end{enumerate}
 
 \section{unsafe从何而来？}
+在本书的开头处，我们曾经展示过一个C程序，它以一种非常令人惊讶的方式崩溃。这是因为它违背了C标准的一个规则。你可以在Rust中实现相同的效果：
+
+\begin{minted}{bash}
+    $cat crash.rs
+    fn main() {
+        let mut a: usize = 0;
+        let ptr = &mut a as *mut usize;
+        unsafe {
+            *ptr.offset(3) = 0x7ffff72f484c;
+        }
+    }
+    $ cargo build
+       Compiling unsafe-samples v0.1.0
+        Finished debug [unoptimized + debuginfo] target(s) in 0.44s
+    $ ../../target/debug/crash
+    crash: Error: .netrc file is readable by others.
+    crash: Remove password or make file unreadable by others.
+    Segmentation fault (core dumped)
+    $
+\end{minted}
+
+这个程序借用了局部变量\texttt{a}的一个可变引用，然后把它转换成了\texttt{*mut usize}类型的原始指针，然后使用了它的\texttt{offset}方法来产生一个指向三个字之后的位置的指针。这里恰巧存储了\texttt{main}的返回地址。这个程序用一个常量覆盖了返回地址，因此从\texttt{main}返回之后程序的行为就很奇怪。这个崩溃之所以可行，是因为程序错误使用了unsafe的特性——在这个例子中，就是解引用原始指针的能力。
+
+一个unsafe特性通常隐含了一份\emph{合约（contract）}：即一组Rust不能自动强制，但你必须遵守才能避免\emph{未定义行为}的规则。
+
+一份合约超出了普通的类型检查和生命周期检查，它们隐含着一些unsafe特性特定的规则。通常来说，Rust本身完全不知道这些合约，它们只在unsafe特性的文档里得到解释。例如，原始指针类型的合约是禁止解引用一个指向的位置超出原来指向物的末尾的原始指针。这个例子中的表达式\texttt{*ptr.offset(3) = ...}打破了这个合约。但是，正如上面所示，Rust没有任何警告，成功编译了这个程序：它的安全检查并没有检测出来这个违规行为。当你使用unsafe特性时，你作为程序员，需要负责检查你的代码遵守了它们的合约。
+
+很多特性如果想正确使用，都要遵守一定的规则。但这些规则并不是我们这里说的合约，除非它们可能会导致未定义行为。未定义行为是一种Rust假设你的代码中绝对不会出现的行为。例如，Rust假设你不会用别的值覆盖函数的返回地址。通过了Rust通常的安全检查并且遵守了使用到的unsafe特性的合约的代码不可能会出现这样的行为。因为这个程序违反了原始指针的合约，因此它的行为变得未定义，并最终崩溃。
+
+如果你的代码出现了未定义行为，说明你打破了你负责的一部分，Rust拒绝预测结果。从系统库的深处抛出来一个错误并崩溃是一种可能的结果；把你的计算机的控制权交给攻击者是另一种可能的结果。不同的Rust版本可能也会有不同的行为。然而，有时未定义行为不一定会产生可见的结果。例如，如果这里的\texttt{main}函数永远不会返回（可能调用了\texttt{std::process::exit}）来提前终止程序），那么错误的返回地址也无关紧要。
+
+你只能在\texttt{unsafe}块或者\texttt{unsafe}函数里使用unsafe特性；我们将在接下来的小节介绍它们。它们让unsafe特性不容易被忽略：通过强迫你写一个\texttt{unsafe}块或者函数，Rust能确保你知道你的代码可能要遵守一些额外的规则。
+
+\section{unsafe块}
+
+
+
 
 \section{原始指针}\label{rawp}
 
