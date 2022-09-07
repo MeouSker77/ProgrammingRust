@@ -17,7 +17,12 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
       - name: build pdf file
         run: |
+          pip install Pygments
           cd src
           tectonic -Z shell-escape main.tex
