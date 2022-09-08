@@ -38,7 +38,7 @@
 
 ## 下载
 
-见release
+见[Nightly Build](https://github.com/MeouSker77/ProgrammingRust/releases/tag/v0.99)
 
 ---
 
@@ -47,5 +47,5 @@
 - pdf文件直接在github中打开可能会失败，建议下载到本地再打开
 - 翻译的过程中仅保留了原版的内容，并没有还原原版的格式，例如配色方案、标题格式、页眉页脚格式等都和原版不同
 - 因为这本书内容比较长，为了尽快翻译完，在翻译的过程中并不会花时间校对。所以可能错误会比较多，如果发现错误，欢迎提出issue或PR。
-- 我把生成的pdf文件放在了release界面，只有我添加了足够多的新内容才会发布新的release。目前的计划是每一章发布一版新的release。
+- Github Action会每天自动从最新的代码编译pdf，并上传到release的Nightly Build标签里。
 - 本人在某些时间段可能会很忙没时间翻译。但请放心，如果我哪天决定弃坑，一定会在这里通知，所以请不要担心我是不是弃坑了
