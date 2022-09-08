@@ -224,7 +224,17 @@ To such a life glory belongs.}
 不幸的是，在实际编程中遇到懒得解释它们的合约的unsafe函数并不罕见。他们期望你能依靠自己的经验和知识自己推导出这些规则。
 
 \section{unsafe块还是unsafe函数？}
+你可能会想知道是使用\texttt{unsafe}块还是直接把整个函数标记为unsafe。我们推荐的方法是首先判断函数：
+\begin{enumerate}
+    \item 如果这个函数可能被误用，可以成功编译但可能导致未定义行为，那么你应该将它标记为unsafe。正确使用这个函数的规则就是它的合约，也正是合约的存在让它变得unsafe。
+    \item 否则，这个函数是safe的：没有调用能让它产生未定义行为。它不应该被标记为\texttt{unsafe}。
+\end{enumerate}
 
+这个函数在函数体里是否使用unsafe特性并不这个重要，关键是合约的存在。之前我们展示过一个没有使用unsafe特性的unsafe函数，也展示过一个使用了unsafe特性的safe函数。
+
+不要只因为你在函数体里使用了unsafe特性就把safe的函数标记为\texttt{unsafe}。这只会让函数更难用，并且迷惑调用者，让他以为这里有一个合约。正确的做法是使用一个\texttt{unsafe}块，即使这个块就是整个函数体。
+
+\section{未定义行为}
 
 
 \section{原始指针}\label{rawp}
