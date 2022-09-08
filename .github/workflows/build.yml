@@ -23,13 +23,14 @@ jobs:
         run: |
           pip install Pygments
           cd src
-          tectonic -Z shell-escape main.tex
+          sed '/includeonly/d' main.tex > ProgrammingRust.tex
+          tectonic -Z shell-escape ProgrammingRust.tex
 
       - name: upload pdf file to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: src/main.pdf
-          asset_name: main.pdf
+          file: src/ProgrammingRust.pdf
+          asset_name: ProgrammingRust.pdf
           tag: refs/tags/v0.99
           overwrite: true
