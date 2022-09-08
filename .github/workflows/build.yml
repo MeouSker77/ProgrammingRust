@@ -1,0 +1,35 @@
+name: Nightly Build
+
+on:
+  schedule:
+    - cron: '0 16 * * *'
+  workflow_dispatch:
+
+jobs:
+  build-pdf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: wtfjoke/setup-tectonic@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: check build
+        run: |
+          pip install Pygments
+          cd src
+          tectonic -Z shell-escape main.tex
+
+      - name: upload pdf file to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: src/main.pdf
+          asset_name: main.pdf
+          tag: refs/tags/v0.99
+          overwrite: true
