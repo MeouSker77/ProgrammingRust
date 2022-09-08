@@ -1,4 +1,4 @@
-name: Build PDF File
+name: Check Build
 
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
         with:
           python-version: 3.7
 
-      - name: build pdf file
+      - name: check build
         run: |
           pip install Pygments
           cd src
