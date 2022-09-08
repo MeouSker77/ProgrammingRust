@@ -155,6 +155,76 @@ To such a life glory belongs.}
 在机器语言的层面上，是完全没有Rust的类型信息的，一个newtype和它的元素有完全相同的内存表示，因此构建一个newtype完全不需要任何额外的机器指令。在\texttt{Ascii::from\_bytes}中，表达式\texttt{Ascii(bytes)}只是表明\texttt{Vec<u8>}现在的内存表示持有的是一个\texttt{Ascii}值。类似的，\texttt{String::from\_utf8\_unchecked}在内联的情况下可能不包含任何机器指令：它只表明\texttt{Vec<u8>}现在被认为是一个\texttt{String}。
 
 \section{unsafe函数}
+\texttt{unsafe}函数的定义就像一个以\texttt{unsafe}开头的普通函数。\texttt{unsafe}函数的函数体自动被认为是一个\texttt{unsafe}块。
+
+你只能在\texttt{unsafe}块里调用\texttt{unsafe}函数。这意味着将一个函数标记为\texttt{unsafe}可以警告调用者这个函数有一个额外的合约，必须满足这个合约才能避免未定义行为。
+
+例如，这里有一个新的\texttt{Ascii}类的构造器，这个构造器从一个字节vector构建一个\texttt{Ascii}，并且不检查内容是否是有效的ASCII：
+\begin{minted}{Rust}
+    // 这段代码必须放在`my_ascii`模块中。
+    impl Ascii {
+        /// 从`bytes`构建一个`Ascii`值，不检查`bytes`是否是有效的ASCII文本。
+        ///
+        /// 这个函数直接返回一个`Ascii`，而不是像`from_bytes`一样返回一个
+        /// `Result<Ascii, NotAsciiError>`。
+        ///
+        /// # 安全性
+        ///
+        /// 调用者必须确保`bytes`只包含ASCII字符：每个字节都不大于0x7f。
+        /// 否则，最后的结果是未定义的。
+        pub unsafe fn from_bytes_unchecked(bytes: Vec<u8>) -> Ascii {
+            Ascii(bytes)
+        }
+    }
+\end{minted}
+
+如果调用\texttt{Ascii::from\_bytes\_unchecked}的代码总是知道vector中只包含有效的ASCII字符，那么\texttt{Ascii::from\_bytes}里的检查就只是在浪费时间，并且调用者还必须处理永远不会出现的\texttt{Err}结果。\texttt{Ascii::from\_bytes}可以简化这种情况下的调用和错误处理。
+
+但之前我们曾经强调过\texttt{Ascii}的public构造器和方法保证\texttt{Ascii}的值是有效的的重要性。\texttt{from\_bytes\_unchecked}是不是没有遵守这个规则？
+
+不完全是：\texttt{from\_bytes\_unchecked}把它的责任通过它的合约交给了调用者。这个合约的存在正是它应该被标记为\texttt{unsafe}的原因：虽然这个函数本身没有进行unsafe的操作，但它的调用者必须遵守一些Rust不能强制的规则才能避免未定义行为。
+
+你真的能通过打破\texttt{Ascii::from\_bytes\_unchecked}的合约来导致未定义行为吗？是的。你可以像下面这样构造一个无效的\texttt{String}：
+\begin{minted}{Rust}
+    // 想象这个vector是一些我们认为会产生ASCII文本的操作的结果，
+    // 但这个操作出错了。
+    let bytes = vec![0xf7, 0xbf, 0xbf, 0xbf];
+    let ascii = unsafe {
+        // 当`bytes`含有非ASCII值时这个unsafe的合约就被打破了
+        Ascii::from_bytes_unchecked(bytes)
+    };
+
+    let bogus: String = ascii.into();
+
+    // `bogus` 现在包含无效的UTF-8。
+    // 解析它的第一个字符会产生一个无效的Unicode码点的`char`，
+    // 这是未定义行为，因此Rust不知道这个断言的行为会是什么样的。
+    assert_eq!(bogus.chars().next().unwrap() as u32, 0x1fffff);
+\end{minted}
+
+在特定版本的Rust和特定的平台上，这个断言会输出下面的错误信息并失败：
+\begin{minted}{text}
+    thread 'main' panicked at 'assertion failed: `(left == right)`
+      left: `2097151`
+     right: `2097151`, src/main.rs:42:5
+\end{minted}
+
+这两个数字在我们看来似乎是相等的，但这不是Rust的问题；这是之前的\texttt{unsafe}块的问题。当我们说未定义行为会导致无法预料的结果时，这就是其中一种情况。
+
+这个例子展示了两个有关bug和unsafe代码的关键事实：
+\begin{enumerate}
+    \item \emph{\texttt{unsafe}块之前发生的bug可能会打破合约}。一个\texttt{unsafe}块是否会导致未定义行为可能不仅仅取决于这个块本身，还取决于提供它要操作的值的代码。你的\texttt{unsafe}代码依赖的任何东西都是和安全相关的。只有当模块的其他部分正确的维护了\texttt{Ascii}相关的内容时，基于\texttt{String::from\_utf\_unchecked}的\texttt{Ascii}到\texttt{String}的转换才是安全的。
+    \item \emph{打破合约的结果可能在你离开\texttt{unsafe}块之后才会出现}。不遵守unsafe特性而导致的未定义行为通常不会在\texttt{unsafe}块本身里出现。如上面所示，构造一个bogus \texttt{String}可能不会有问题，直到程序的程序执行中才出现问题。
+\end{enumerate}
+
+本质上讲，Rsut的类型检查、借用检查和其他的静态检查都是在分析你的程序并尝试证明它不可能会出现未定义行为。当Rust成功编译你的程序时，这意味着它成功地证明了这一点。一个\texttt{unsafe}块是这个证明中的例外：等于你在告诉Rust“它没有问题，相信我”。你的声明是否正确可能依赖程序的任何会影响到\texttt{unsafe}块的部分，并且出错时产生的结果也可能出现在任何被\texttt{unsafe}块影响的地方。\texttt{unsafe}关键字也是在提醒你，你无法完全享受到它的安全检查的好处。
+
+如果可以选择的话，你应该尽量选择使用安全的没有合约的接口。它们更容易使用，因为用户可以依赖Rust的安全检查来保证他们的代码不可能出现未定义行为。即使你的实现使用了unsafe特性，最好使用Rust的类型、生命周期和模块系统来满足它们的合约，同事只使用你自己就可以保证的，而不是把责任传递给调用者。
+
+不幸的是，在实际编程中遇到懒得解释它们的合约的unsafe函数并不罕见。他们期望你能依靠自己的经验和知识自己推导出这些规则。
+
+\section{unsafe块还是unsafe函数？}
+
 
 
 \section{原始指针}\label{rawp}
