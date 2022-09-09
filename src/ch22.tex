@@ -302,7 +302,64 @@ To such a life glory belongs.}
 在C和C++中，即使你的程序没有报错成功通过了编译也意义不大；正如我们在这本书的引言中解释的，即使是用那些保持高标准代码的广受欢迎的库编写的最好的C和C++程序在实践中也会出现未定义行为。
 
 \section{unsafe trait}
+\emph{\texttt{unsafe} trait}是一种特殊的trait，它们有一个Rust无法检查或者强制实现必须遵守的规则，实现必须遵守这些规则才能避免未定义行为。为了实现一个unsafe trait，你必须将实现标记为unsafe的。理解trait的合约并确保你的实现满足合约是你的责任。
 
+一个用unsafe trait来约束类型变量的函数通常自身也会使用unsafe特性，并且它们只依赖这些unsafe trait的合约来满足自己的合约。一个错误的trait实现可能会导致这样的函数出现未定义行为。
+
+\texttt{std::marker::Send}和\texttt{std::marker::Sync}是unsafe trait的典型例子。这些trait并没有定义任何方法，因此可以很容易地为任何类型实现它们。但它们确实有合约：\texttt{Send}要求实现者可以安全地移动到另一个线程中，\texttt{Sync}要求实现者必须能安全地通过共享引用在线程间共享。为一个不恰当的类型实现\texttt{Send}将会使\texttt{std::sync::Mutex}不能再保证没有数据竞争。
+
+这里有个简单的例子，Rust标准库曾经包含了一个叫\texttt{core::nonzero::Zeroable}的unsafe trait，它用来表示那些可以通过把所有字节置为0来安全地初始化的类型。举个例子，把一个\texttt{usize}置0是可以的，但把一个\texttt{\&T}置0会产生空引用，如果解引用就会崩溃。对于那些实现了\texttt{Zeroable}的类型，有一些可行的优化：你可以使用\texttt{std::ptr::write\_bytes}（\texttt{memset}在Rust中的等价函数）或者一个分配置0内存页的系统调用来快速地初始化它们的数组。（\texttt{Zeroable}是unstable的，并且在Rust 1.26中被移到只在\texttt{num} crate中内部使用，但它是一个好的、简单的、真实的例子。）
+
+\texttt{Zeroable}是一个类型标记trait，没有方法或者关联类型：
+\begin{minted}{Rust}
+    pub unsafe trait Zeroable {}
+\end{minted}
+
+为恰当的类型实现这个trait非常的直观：
+\begin{minted}{Rust}
+    unsafe impl Zeroable for u8 {}
+    unsafe impl Zeroable for i32 {}
+    unsafe impl Zeroable for usize {}
+    // 其他的整数类型同理
+\end{minted}
+
+有了这些定义，我们可以编写一个函数，它可以快速地分配一个给定长度的\texttt{Zeroable}类型的vector：
+\begin{minted}{Rust}
+    use core::nonzero::Zeroable;
+
+    fn zeroed_vector<T>(len: usize) -> Vec<T>
+        where T: Zeroable
+    {
+        let mut vec = Vec::with_capacity(len);
+        unsafe {
+            std::ptr::write_bytes(vec.as_mut_ptr(), 0, len);
+            vec.set_len(len);
+        }
+        vec
+    }
+\end{minted}
+
+这个函数首先用给定的容量创建一个空的\texttt{Vec}，然后调用\texttt{write\_bytes}用0来填充未初始化的缓冲区。（\texttt{write\_bytes}函数把\texttt{len}看做\texttt{T}类型元素的数量，而不是字节的数量，因此这个调用确实填充了整个缓冲区。）vector的\texttt{set\_len}方法只修改它的长度，不对缓冲区进行任何操作；这是unsafe的，因为你必须保证新的缓冲区空间内都包含正确初始化的\texttt{T}类型的值。但这正是\texttt{T: Zeroable}约束的：一个0字节的块代表一个有效的\texttt{T}值。我们对\texttt{set\_len}的使用是安全的。
+
+这里，我们来使用它：
+\begin{minted}{Rust}
+    let v: Vec<usize> = zeroed_vector(100_000);
+    assert!(v.iter().all(|&u| u == 0));
+\end{minted}
+
+显然\texttt{Zeroable}必须是一个unsafe的trait，因为一个不遵守合约的实现可能导致未定义行为：
+\begin{minted}{Rust}
+    struct HoldsRef<'a>(&'a mut i32);
+
+    unsafe impl<'a> Zeroable for HoldsRef<'a> { }
+
+    let mut v: Vec<HoldsRef> = zeroed_vector(1);
+    *v[0].0 = 1;    // 崩溃：解引用空指针
+\end{minted}
+
+Rust不知道\texttt{Zeroable}表示什么，所以它不能分辨出哪些类型的实现是不恰当的。和其他的unsafe特性一样，理解并遵守unsafe trait的合约是你的责任。
+
+注意unsafe代码绝对不能依赖正确实现的普通的safe trait。例如，假设有一个\texttt{std::hash::Hasher} trait的实现简单地返回一个随机的哈希值，这个值和被哈希的值没有一点关系。这个trait要求同样的值两次被哈希时必须产生相同的哈希值，但这个现实并不满足这个要求；它很显然是错误的。但因为\texttt{Hasher}并不是unsafe的trait，unsafe代码在使用这个哈稀器的时候不应该出现未定义行为。\texttt{std::collections::HashMap}类型是被精心编写的，它遵守所有用到的unsafe特性的合约，不管哈稀器的行为是什么样的。具体的来说，即使哈希表不能正确地工作：查找可能失败，表项可能随机出现或者消，但整个表也不会出现未定义行为。
 
 \section{原始指针}\label{rawp}
 
