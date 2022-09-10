@@ -457,7 +457,7 @@ unsized类型的原始指针是胖指针，就像相应的引用或\texttt{Box}�
 完整又精确的原始指针的合约很难简单地说清楚，也可能会随着语言的改进发生改变。但这里列出的原则应该能保证代码是安全的。
 
 \subsection{示例：\texttt{RefWithFlag}}\label{RefWithFlag}
-这里有一个例子展示了怎么使用原始指针来进行一些经典的位级操作并把它包装为一个完全安全的Rust类型。这个模块定义了一个类型\texttt{RefWithFlag<'a, T>}，它持有一个\texttt{\&'a T}和一个\texttt{bool}，类似于元祖\texttt{(\&'a, bool)}一样。但它只占用一个机器字而不是两个。这种技术通常用在垃圾回收器和虚拟机中，其中的某些类型（例如表示任意对象的类型）的实例非常多，以至于如果能减小一个机器字就可以大大减少内存占用：
+这里有一个例子展示了怎么使用原始指针来进行一些经典的位级操作并把它包装为一个完全安全的Rust类型。这个模块定义了一个类型\texttt{RefWithFlag<'a, T>}，它持有一个\texttt{\&'a T}和一个\texttt{bool}，类似于元组\texttt{(\&'a, bool)}一样。但它只占用一个机器字而不是两个。这种技术通常用在垃圾回收器和虚拟机中，其中的某些类型（例如表示任意对象的类型）的实例非常多，以至于如果能减小一个机器字就可以大大减少内存占用：
 \begin{minted}{Rust}
     mod ref_with_flag {
         use std::marker::PhantomData;
@@ -529,3 +529,37 @@ Rust中的空原始指针和C/C++中一样，都是0地址。对任何类型\tex
 
 有一些方法可以检查一个原始指针是不是空的。最简单的是\texttt{is\_null}方法，但\texttt{as\_ref}方法可能会更加便捷：它接受一个\texttt{*const T}指针然后返回一个\texttt{Option<\&'a T>}，把空指针转换为\texttt{None}。类似的，\texttt{as\_mut}方法把一个\texttt{*mut T}转换成\texttt{Option<\&'a mut T>}。
 
+\subsection{类型大小和对齐}
+一个\texttt{Sized}类型的值在内存中的字节数是固定的，并且必须放置在一个是\emph{对齐}值倍数的地址处。例如，一个\texttt{(i32, i32)}元组占用8个字节，几乎所有的处理器都喜欢把它放在一个4的倍数的地址处。
+
+\texttt{std::mem::size\_of::<T>()}返回\texttt{T}类型的字节数，\texttt{std::mem::align\_of::<T>()}返回它要求的对齐数。例如：
+\begin{minted}{Rust}
+    assert_eq!(std::mem::size_of::<i64>(), 8);
+    assert_eq!(std::mem::align_of::<(i32, i32)>(), 4);
+\end{minted}
+
+任何类型的对齐总是2的幂。
+
+一个类型的大小通常向上取它的对齐的倍数，即使从技术上讲它用不了那么多空间。例如，虽然元组\texttt{(f32, u8)}只需要5个字节，但\texttt{size\_of::<(f32, u8)>()}是8，因为\texttt{align\_of<(f32, u8)>()}是4。这确保了如果有一个数组，那么元素大小的大小总是等于一个元素到下一个元素的距离。
+
+对于unsized的类型，大小和对齐取决于具体的值。给第一个unsized值的引用，\texttt{std::mem::size\_of\_val}和\texttt{std::mem::align\_of\_val}函数返回这个值的大小和对齐。这些函数可以同时用于\texttt{Sized}和unsized类型：
+\begin{minted}{Rust}
+    // 切片的胖指针会携带长度。
+    let slice: &[i32] = &[1, 3, 9, 27, 81];
+    assert_eq!(std::mem::size_of_val(slice), 20);
+
+    let text: &str = "alligator";
+    assert_eq!(std::mem::size_of_val(text), 9);
+
+    use std::fmt::Display;
+    let unremarkable: &dyn Dispaly = &193_u8;
+    let remarkable: &dyn Dispaly = &0.0072973525664;
+
+    // 这些函数返回trait对象指向的值的大小和对齐，
+    // 而不是trait对象本身。
+    // 这些信息来自于trait对象引用的虚表。
+    assert_eq!(std::mem::size_of_val(unremarkable), 1);
+    assert_eq!(std::mem::align_of_val(remarkable), 8);
+\end{minted}
+
+\subsection{指针算术}
