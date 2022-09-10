@@ -525,5 +525,7 @@ unsized类型的原始指针是胖指针，就像相应的引用或\texttt{Box}�
 \texttt{RefWithFlag}和我们之前展示过的\texttt{Ascii}类型使用了相同的策略来避免未定义行为。这个类型本身是\texttt{pub}的，但它的字段不是，这意味着只有在\texttt{ref\_with\_flag}模块内的代码可以创建或访问\texttt{RefWithFlag}值。你不需要检查太多代码就能确信\texttt{ptr\_and\_bit}字段始终是正确构造的。
 
 \subsection{可空的指针}
+Rust中的空原始指针和C/C++中一样，都是0地址。对任何类型\texttt{T}，\texttt{std::ptr::null<T>}函数会返回一个\texttt{*const T}空指针，\texttt{std::ptr::null\_mut<T>}返回一个\texttt{*mut T}空指针。
 
+有一些方法可以检查一个原始指针是不是空的。最简单的是\texttt{is\_null}方法，但\texttt{as\_ref}方法可能会更加便捷：它接受一个\texttt{*const T}指针然后返回一个\texttt{Option<\&'a T>}，把空指针转换为\texttt{None}。类似的，\texttt{as\_mut}方法把一个\texttt{*mut T}转换成\texttt{Option<\&'a mut T>}。
 
