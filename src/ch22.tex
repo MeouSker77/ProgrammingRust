@@ -444,7 +444,7 @@ unsized类型的原始指针是胖指针，就像相应的引用或\texttt{Box}�
 \begin{enumerate}
     \item 解引用空指针或悬垂指针是未定义行为，指向未初始化内存或超出作用域的值的指针也是如此。
     \item 解引用没有按照类型正确对齐的指针是未定义行为。
-    \item 你可以从解引用原始指针获得的值借用引用，不过只有当这么做满足\nameref{ch05}中介绍的引用安全性规则时才可以：引用不能超出被引用对象的生命周期、共享的访问是只读的访问、可变的访问是独占的访问。（这个规则很容易在无意中被违反，因为原始指针通常被用来创建非标准共享或所有权的数据结构。）
+    \item 你可以从解引用原始指针获得的值借用引用，不过只有当这么做满足\autoref{ch05}中介绍的引用安全性规则时才可以：引用不能超出被引用对象的生命周期、共享的访问是只读的访问、可变的访问是独占的访问。（这个规则很容易在无意中被违反，因为原始指针通常被用来创建非标准共享或所有权的数据结构。）
     \item 只有当一个原始指针指向的对象是正确的该类型的值时你才能使用它指向的对象。例如，你必须确保解引用一个\texttt{*const char}返回一个正确的Unicode码点。
     \item 在使用原始指针的\texttt{offset}和\texttt{wrapping\_offset}方法时你必须确保最后指向的位置还在一开始指向的那个对象的值或者内存块里。\\ 如果你先把一个指针转换成整数，然后进行任何的算术运算，再把它转换回指针，那么结果必须是\texttt{offset}的规则允许你产生的指针。
     \item 如果你对原始指针指向的对象赋值，你必须保证不违反其中任何一个类型的不变量。例如，如果你有一个指向一个\texttt{String}的字节的\texttt{*mut u8}指针，你对这个\texttt{u8}赋的值必须保证\texttt{String}持有的仍是有效的UTF-8。
@@ -457,3 +457,73 @@ unsized类型的原始指针是胖指针，就像相应的引用或\texttt{Box}�
 完整又精确的原始指针的合约很难简单地说清楚，也可能会随着语言的改进发生改变。但这里列出的原则应该能保证代码是安全的。
 
 \subsection{示例：\texttt{RefWithFlag}}\label{RefWithFlag}
+这里有一个例子展示了怎么使用原始指针来进行一些经典的位级操作并把它包装为一个完全安全的Rust类型。这个模块定义了一个类型\texttt{RefWithFlag<'a, T>}，它持有一个\texttt{\&'a T}和一个\texttt{bool}，类似于元祖\texttt{(\&'a, bool)}一样。但它只占用一个机器字而不是两个。这种技术通常用在垃圾回收器和虚拟机中，其中的某些类型（例如表示任意对象的类型）的实例非常多，以至于如果能减小一个机器字就可以大大减少内存占用：
+\begin{minted}{Rust}
+    mod ref_with_flag {
+        use std::marker::PhantomData;
+        use std::mem::align_of;
+
+        ///
+        pub struct RefWithFlag<'a, T> {
+            ptr_and_bit: usize,
+            behaves_like: PhantomData<&'a T> // 不占用空间
+        }
+
+        impl<'a, T: 'a> RefWithFlag<'a, T> {
+            pub fn new(ptr: &'a T, flag: bool) -> RefWithFlag<T> {
+                assert!(align_of::<T>() % 2 == 0);
+                RefWithFlag {
+                    ptr_and_bit: ptr as *const T as usize | flag as usize,
+                    behaves_like: PhantomData
+                }
+            }
+
+            pub fn get_ref(&self) -> &'a T {
+                unsafe {
+                    let ptr = (self.ptr_and_bit & !1) as *const T;
+                    &*ptr
+                }
+            }
+
+            pub fn get_flag(&self) -> bool {
+                self.ptr_and_bit & 1 != 0
+            }
+        }
+    }
+\end{minted}
+
+这段代码利用了很多类型必须放在偶数的内存地址处：因为一个偶数地址的最低有效位总是0，因此我们可以在这里存储一些东西，然后只要把它置0就能还原原来的地址。并不是所有类型都能这么做；例如，类型\texttt{u8}和\texttt{(bool, [i8; 2])}可以被放在任何地址处。但我们可以在初始化时检查类型的对齐然后拒绝不适用的类型。
+
+我们可以像这样使用\texttt{RefWithFlag}：
+\begin{minted}{Rust}
+    use ref_with_flag::RefWithFlag;
+
+    let vec = vec![10, 20, 30];
+    let flagged = RefWithFlag::new(&vec, true);
+    assert_eq!(flagged.get_ref()[1], 20);
+    assert_eq!(flagged.get_flag(), true);
+\end{minted}
+
+\texttt{RefWithFlag::new}接收一个引用和一个\texttt{bool}值，之后断言引用的类型是合适的，然后把引用转换为一个原始指针，再转换成\texttt{usize}。不管我们在什么处理器上编译，\texttt{usize}类型都足够存储任何指针，因此把一个原始指针转换成\texttt{usize}再转换回来是良定义的。一旦我们有了一个\texttt{usize}，我们知道它肯定是偶数，因此我们可以使用\texttt{|}位或运算符把它和\texttt{bool}值结合在一起，当然要先把\texttt{bool}值转换成0或者1。
+
+\texttt{get\_flag}方法从一个\texttt{RefWithFlag}中提取出\texttt{bool}的部分。这很简单，只要看看最低位是否非零。
+
+\texttt{get\_ref}方法从一个\texttt{RefWithFlag}中提取出引用部分。首先，它把\texttt{usize}的最低位置0后转换为原始指针。\texttt{as}运算符不能把原始指针转换成引用，但我们可以解引用原始指针（当然是在\texttt{unsafe}块中）然后借用引用。借用原始指针指向对象的引用会产生一个没有生命周期约束的引用：如果可行的话，Rust会给任何引用赋予一个生命周期，用于检查代码。然而，通常有一些生命周期会更加准确，因此也能检查出更多的错误。在这种情况下，因为\texttt{get\_ref}的返回类型是\texttt{\&'a T}，Rust会看到引用的生命周期和\texttt{RefWithFlag}的生命周期参数\texttt{'a}相同，这正是我们想要的：这正是一开始的那个引用的生命周期。
+
+在内存中，一个\texttt{RefWithFlag}看起来就像一个\texttt{usize}：因为\texttt{PhantomData}是一个0字节类型，\texttt{behaves\_like}字段不会占用任何空间。但为了让Rust知道如何处理使用了\texttt{RefWithFlag}的代码的生命周期，\texttt{PhantomData}是必须的。想象一下如果没有\texttt{behaves\_like}字段，这个类型的定义会变成什么样：
+\begin{minted}{Rust}
+    // 不能通过编译。
+    pub struct RefWithFlag<'a, T: 'a> {
+        ptr_and_bit: usize
+    }
+\end{minted}
+
+在\autoref{ch05}中，我们指出过任何包含引用的结构体必须不能比它们借用的值生存的更久，否则引用会变成悬垂指针。结构体必须在它的字段上遵守这个限制。这当然也适用于\texttt{RefWithFlag}：在我们刚才看过的示例代码中，\texttt{flagged}必须不能比\texttt{vec}生存的更久，因为\texttt{flagged.get\_ref()}返回一个它的引用。但我们的缩减版的\texttt{RefWithFlag}类型根本不包含任何引用，甚至都没用到生命周期参数\texttt{'a}，它只是一个\texttt{usize}。Rust应该如何知道该对\texttt{flagged}的生命周期进行什么限制？包含一个\texttt{PhantomData<\&'a T>}字段可以告诉Rust处理\texttt{RefWithFlag<'a, T>}时，\emph{就好像}它还含有一个\texttt{\&'a T}一样，这并不会影响结构体在内存中的表示。
+
+尽管Rust并不真的知道发生了什么，它也会尽力帮你实现这些。如果你省略了\texttt{behaves\_like}字段，Rust将会报错说生命周期\texttt{'a}和\texttt{T}都没有用到，然后建议使用\texttt{PhantomData}。
+
+\texttt{RefWithFlag}和我们之前展示过的\texttt{Ascii}类型使用了相同的策略来避免未定义行为。这个类型本身是\texttt{pub}的，但它的字段不是，这意味着只有在\texttt{ref\_with\_flag}模块内的代码可以创建或访问\texttt{RefWithFlag}值。你不需要检查太多代码就能确信\texttt{ptr\_and\_bit}字段始终是正确构造的。
+
+\subsection{可空的指针}
+
+
