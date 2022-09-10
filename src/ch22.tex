@@ -301,7 +301,7 @@ To such a life glory belongs.}
 
 在C和C++中，即使你的程序没有报错成功通过了编译也意义不大；正如我们在这本书的引言中解释的，即使是用那些保持高标准代码的广受欢迎的库编写的最好的C和C++程序在实践中也会出现未定义行为。
 
-\section{unsafe trait}
+\section{unsafe trait}\label{UnsafeTrait}
 \emph{\texttt{unsafe} trait}是一种特殊的trait，它们有一个Rust无法检查或者强制实现必须遵守的规则，实现必须遵守这些规则才能避免未定义行为。为了实现一个unsafe trait，你必须将实现标记为unsafe的。理解trait的合约并确保你的实现满足合约是你的责任。
 
 一个用unsafe trait来约束类型变量的函数通常自身也会使用unsafe特性，并且它们只依赖这些unsafe trait的合约来满足自己的合约。一个错误的trait实现可能会导致这样的函数出现未定义行为。
@@ -359,8 +359,86 @@ To such a life glory belongs.}
 
 Rust不知道\texttt{Zeroable}表示什么，所以它不能分辨出哪些类型的实现是不恰当的。和其他的unsafe特性一样，理解并遵守unsafe trait的合约是你的责任。
 
-注意unsafe代码绝对不能依赖正确实现的普通的safe trait。例如，假设有一个\texttt{std::hash::Hasher} trait的实现简单地返回一个随机的哈希值，这个值和被哈希的值没有一点关系。这个trait要求同样的值两次被哈希时必须产生相同的哈希值，但这个现实并不满足这个要求；它很显然是错误的。但因为\texttt{Hasher}并不是unsafe的trait，unsafe代码在使用这个哈稀器的时候不应该出现未定义行为。\texttt{std::collections::HashMap}类型是被精心编写的，它遵守所有用到的unsafe特性的合约，不管哈稀器的行为是什么样的。具体的来说，即使哈希表不能正确地工作：查找可能失败，表项可能随机出现或者消，但整个表也不会出现未定义行为。
+注意unsafe代码绝对不能依赖正确实现的普通的safe trait。例如，假设有一个\texttt{std::hash::Hasher} trait的实现简单地返回一个随机的哈希值，这个值和被哈希的值没有一点关系。这个trait要求同样的值两次被哈希时必须产生相同的哈希值，但这个现实并不满足这个要求；它很显然是错误的。但因为\texttt{Hasher}并不是unsafe的trait，unsafe代码在使用这个哈稀器的时候不应该出现未定义行为。\texttt{std::collections::HashMap}类型是被精心编写的，它遵守所有用到的unsafe特性的合约，不管哈稀器的行为是什么样的。具体的来说，即使哈希表不能正确地工作：查找可能失败，表项可能随机出现或者消，整个表也不会出现未定义行为。
 
 \section{原始指针}\label{rawp}
+Rust中\emph{原始指针}指的是没有约束的指针。你可以使用原始指针来组织Rust的普通指针类型无法做到的数据结构，例如双向链表或者任意的图对象。但因为原始指针太过灵活，Rust无法分辨出你是否正在安全地使用它们，因此你只能在\texttt{unsafe}块中解引用它们。
+
+原始指针基本等价于C或C++中的指针，因此在和这些语言编写的代码交互时原始指针非常有用。
+
+有两种原始指针：
+\begin{enumerate}
+    \item \texttt{*mut T}是可以修改引用对象的指针。
+    \item \texttt{*const T}是只能读取引用对象的指针。
+\end{enumerate}
+（没有\texttt{*T}类型，你必须指定\texttt{const}或者\texttt{mut}。）
+
+你可以通过转换引用来创建原始指针，并使用\texttt{*}操作符来解引用它：
+\begin{minted}{Rust}
+    let mut x = 10;
+    let ptr_x = &mut x as *mut i32;
+
+    let y = Box::new(20);
+    let ptr_y = &*y as *const i32;
+
+    unsafe {
+        *ptr_x += *ptr_y;
+    }
+    assert_eq!(x, 30);
+\end{minted}
+
+和box指针以及引用不同，原始指针可以为null，类似C中的\texttt{NULL}和C++中的\texttt{nullptr}：
+\begin{minted}{Rust}
+    fn option_to_raw<T>(opt: Option<&T>) -> *const T {
+        match opt {
+            None => std::ptr::null(),
+            Some(r) => r as *const T
+        }
+    }
+
+    assert!(!option_to_raw(Some(&("pea", "pod"))).is_null());
+    assert_eq!(option_to_raw::<i32>(None), std::ptr::null());
+\end{minted}
+
+这个例子中没有\texttt{unsafe}块：创建、传递、比较原始指针都是safe的。只有解引用原始指针才是unsafe的。
+
+unsized类型的原始指针是胖指针，就像相应的引用或\texttt{Box}指针一样。一个\texttt{*const [u8]}的指针除了地址之外还包括长度，一个trait对象的原始指针例如\texttt{*mut dyn std::io::Write}指针还附带一个虚表。
+
+尽管Rust在很多场景可以隐式解引用safe的指针类型，但原始指针的解引用必须是显式的：
+\begin{enumerate}
+    \item \texttt{.}运算符不会隐式解引用原始指针，你必须用\texttt{(*raw).field}或者\texttt{(*raw).method(...)}。
+    \item 原始指针并没有实现\texttt{Deref}，因此强制解引用并不适用于它们。
+    \item \texttt{==}和\texttt{<}之类的运算符以地址比较原始指针：只有两个原始指针指向同一个内存位置它们才是相等的。类似，哈希一个原始指针会对它指向的地址进行哈希，而不是对它指向的对象的值进行哈希。
+    \item 格式化trait例如\texttt{std::fmt::Dispaly}会自动解引用，但无法处理原始指针。例外的是\texttt{std::fmt::Debug}和\texttt{std::fmt::Pointer}，它们会以16进制地址的形式显示原始指针，不会解引用它们。
+\end{enumerate}
+
+和C/C++中的\texttt{+}运算符不同，Rust的\texttt{+}运算符不能用于原始指针，但你可以使用原始指针的\texttt{offset}、\texttt{wrapping\_offset}或者更方便的\texttt{add}、\texttt{sub}、\texttt{wrapping\_add}、\texttt{wrapping\_sub}方法对它们进行算数操作。\texttt{offset\_from}方法可以给出两个指针之间的距离，不过我们必须确保起点和终点在相同的内存区域（例如在同一个\texttt{Vec}）里：
+\begin{minted}{Rust}
+    let trucks = vec!["grabage truck", "dump truck", "moonstruck"];
+    let first: *const &str = &trucks[0];
+    let last: *const &str = &trucks[2];
+    assert_eq!(unsafe { last.offset_from(first) }, 2);
+    assert_eq!(unsafe { first.offset_from(last) }, -2);
+\end{minted}
+
+\texttt{first}和\texttt{last}不需要隐式转换，只要指明类型就够了。Rust隐式地把引用强制转换为原始指针（当然反过来不行）。
+
+\texttt{as}运算符允许几乎把任何引用转换成原始指针或者转换两个原始指针类型。然而，你必须把一个复杂的转换拆分成一系列简单的转换。例如：
+\begin{minted}{Rust}
+    &vec![42_u8] as *const String;  // 错误：无效转换
+    &vec![42_u8] as *const Vec<u8> as *const String;    // 允许
+\end{minted}
+
+注意\texttt{as}不能把原始指针转换为引用。这样的转换是unsafe的，而\texttt{as}应该保证是safe的操作。要想做到这一点，你必须解引用原始指针（在一个\texttt{unsafe}块中）然后借用得到的值的引用。
+
+这么做的时候一定要小心：这种方式产生的引用将会有无限的生命周期：它的生存时间没有任何限制，因为原始指针并没有给Rust提供推断这一点的信息。在后面的\nameref{SafeInter}一节中，我们将展示几个例子来演示如何正确地约束生命周期。
+
+很多类型都有\texttt{as\_ptr}和\texttt{as\_mut\_ptr}方法可以返回它们的内容的原始指针。例如，数组的切片和字符串会返回它们的第一个元素的指针，一些迭代器会返回它们要产生的下一个元素的指针。拥有所有权的指针类型例如\texttt{Box}、\texttt{Rc}和\texttt{Arc}有\texttt{into\_raw}和\texttt{from\_raw}函数可以转换成或转换自原始指针。其中一些方法的合约有一些令人惊讶的要求，因此在使用之前要仔细阅读它们的文档。
+
+你也可以把整数转换成原始指针，尽管你唯一可以信任的整数是从之前的指针得到整数。\nameref{RefWithFlag}以这种方式使用了原始指针。
+
+和引用不同，原始指针既没有实现\texttt{Send}也没有实现\texttt{Sync}。因此，任何包含原始指针的类型默认都没有实现这两个trait。在线程间发送或者共享原始指针本质上并没有什么不安全的，毕竟，不管它们去了哪，在解引用它们的时候仍然需要一个\texttt{unsafe}块。但考虑到原始指针通常扮演的角色，语言的设计者认为默认是这样会更有帮助。我们已经在\nameref{UnsafeTrait}中讨论过如何自己实现\texttt{Send}和\texttt{Sync}了。
 
 \subsection{安全地解引用原始指针}\label{DerefRawP}
+
+\subsection{示例：\texttt{RefWithFlag}}\label{RefWithFlag}
