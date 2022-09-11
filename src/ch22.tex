@@ -603,4 +603,115 @@ Rust把数组、切片或者vector布局为单个连续的内存块，如\autore
 
 如果你的确需要把指针偏移到超出指向的数组，你可以使用安全的\texttt{wrapping\_offset}方法。它等价于\texttt{offset}，但Rust对\texttt{ptr.wrapping\_offset(i)}和\texttt{ptr}的相对大小不做任何假设。当然，除非最后的结果还落在数组里，不然你仍然不能解引用它。
 
-\subsection{}
+\subsection{移进和移出内存}
+如果你在实现一个管理它自己的内存的类型，你将需要追踪内存里哪些部分存储了还在生命周期内的值，以及哪些部分是未初始化的，就像Rust处理局部变量一样。考虑这段代码：
+\begin{minted}{Rust}
+    let pot = "pasta".to_string();
+    let plate = pot;
+\end{minted}
+
+当这段代码运行之后，内存布局看起来如\autoref{f22-2}所示。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f22-2.png}
+    \caption{把一个字符串从一个局部变量移动到另一个局部变量}
+    \label{f22-2}
+\end{figure}
+
+在赋值之后，\texttt{pot}是未初始化的，\texttt{plate}拥有了字符串的所有权。
+
+在机器语言的层面，一个move操作对应什么并不确定，但在实践中它通常什么也不做。这次赋值可能导致\texttt{pot}仍然持有字符串的指针、容量和长度。当然，如果还把它视为一个在生命周期内的值会带来灾难性的后果，Rust确保你不会这样做。
+
+同样的考虑也适用于那些管理自己内存的数据结构。假设你运行了这段代码：
+\begin{minted}{Rust}
+    let mut noodles = vec!["udon".to_string()];
+    let soba = "soba".to_string();
+    let last;
+\end{minted}
+
+在内存中的状态可能如\autoref{f22-3}所示：
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f22-3.png}
+    \caption{一个有未初始化的空闲空间的vector}
+    \label{f22-3}
+\end{figure}
+
+vector还有空闲的空间来存储另一个元素，但这块空间现在的值是无效的，可能是任何之前存在这里的值。假设再运行下面的代码：
+\begin{minted}{Rust}
+    noodles.push(soba);
+\end{minted}
+
+把字符串push进vector会把未初始化的内存转换为一个新的元素，如\autoref{f22-4}所示：
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f22-4.png}
+    \caption{把\texttt{soba}的值push进vector之后}
+    \label{f22-4}
+\end{figure}
+
+vector初始化了空的空间，并且增大了长度来表示这是一个新的、还活着的元素。这个字符串的所有者现在变成了这个vector；你可以通过vector的第二个元素引用这个字符串，并且drop这个vector会释放这两个字符串。并且\texttt{soba}现在变为未初始化。
+
+最后，如果从vector中弹出一个值：
+\begin{minted}{Rust}
+    last = noodles.pop().unwrap();
+\end{minted}
+
+在内存中，看起来像\autoref{f22-5}。
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f22-5.png}
+    \caption{从vector中弹出一个元素到\texttt{last}之后}
+    \label{f22-5}
+\end{figure}
+
+变量\texttt{last}获得了字符串的所有权。vector减小了长度来表示用来存储字符串的空间现在变为未初始化。
+
+和之前的\texttt{pot}和\texttt{pasta}一样，这里\texttt{soba}、\texttt{last}和vector的空闲空间可能有完全相同的比特位。但只有\texttt{last}被认为拥有这个值，认为另外两个位置有活着的值显然是错误的。
+
+初始化过的值的真正定义是\emph{被认为是活着(treated as live)}的值。写入一个值的字节通常是初始化必要的步骤之一，但这只是因为这样做才能让值准备好被认为是活着的。move和copy在内存总的效果是一样的，区别在于move之后，源对象不再被认为是活着的，而copy之后，源对象和目标对象都是活着的。
+
+Rust会在编译期追踪哪个局部变量是活着的，并阻止你使用那些值被移动走的变量。像\texttt{Vec}、\texttt{HashMap}、\texttt{Box}等类型都会动态追踪它们的缓冲区。如果你实现了一个自己管理内存的类，你需要做同样的事。
+
+Rust为实现这样的类型提供了两个基本的操作：
+
+\codeentry{std::ptr::read(src)}
+\hangparagraph{从\texttt{src}指向的位置移出一个值，并把它的所有权交给调用者。\texttt{src}参数应该是一个\texttt{*const T}原始指针，其中\texttt{T}是一个sized类型。在调用这个函数之后，\texttt{*src}的内容不受影响，但除非\texttt{T}实现了\texttt{Copy}，否则你必须保证你的程序不再把它们视为活着的值。}
+
+\hangparagraph{这是\texttt{Vec::pop}背后的操作。pop一个值会调用\texttt{read}来把这个值移出缓冲区，然后减小长度来把这个空间标记为未初始化的。}
+
+\codeentry{std::ptr::write(dest, value)}
+\hangparagraph{把\texttt{value}移动到\texttt{dest}指向的位置，在调用之前\texttt{dest}指向的必须是未初始化的内存。引用物现在拥有这个值。\texttt{dest}必须是一个\texttt{*mut T}原始指针，\texttt{value}必须是一个\texttt{T}值，\texttt{T}是一个sized类型。}
+
+\hangparagraph{这是\texttt{Vec::push}背后的操作。push一个值会调用\texttt{write}把值移动到下一个可用的位置，然后增大长度来表示这个位置现在是一个有效的元素。}
+
+它们都是自由函数，不是原始指针类型的方法。
+
+注意你不能对Rust的safe指针类型做这些操作，它们在任何时候都要求引用对象的时初始化过得，因此把一块未初始化的内存变为一个值，或者反过来，都超出了它们的能力。只有原始指针才符合要求。
+
+标准库还提供了几个函数用来从一个内存块中把数组的值移动到另一个内存块中：
+
+\codeentry{std::ptr::copy(src, dst, count)}
+\hangparagraph{把内存中\texttt{src}位置开始的\texttt{count}个值移动到\texttt{dst}处，就好像你写了一个\texttt{read}和\texttt{write}调用的循环来一次一个地移动这些元素一样。目的位置在调用之前必须是未初始化的，调用之后源位置将是未初始化的。\texttt{src}和\texttt{dest}参数必须是\texttt{*const T}和\texttt{*mut T}原始指针，\texttt{count}必须是\texttt{usize}。}
+
+\codeentry{ptr.copy\_to(dst, count)}
+\hangparagraph{\texttt{copy}的一个更便利的版本，将从\texttt{ptr}开始处的\texttt{count}个值移动到\texttt{dst}位置处，不需要起始点作为参数。}
+
+\codeentry{std::ptr::copy\_nonoverlapping(src, dst, count)}
+\hangparagraph{类似于\texttt{copy}，除了它的合约进一步要求源地址块和目的地址块不能重叠之外。它可能比\texttt{copy}快一点。}
+
+\codeentry{ptr.copy\_to\_nonoverlapping(dst, count)}
+\hangparagraph{\texttt{copy\_nonoverlapping}的一个更便利的版本，类似于\texttt{copy\_to}。}
+
+\texttt{read}和\texttt{write}函数还有另外两个家族，也在\texttt{std::ptr}模块里：
+
+\codeentry{read\_unaligned, write\_unaligned}
+\hangparagraph{这两个函数类似于\texttt{read}和\texttt{write}，除了不像通常的引用类型一样要求指针是对齐。这两个函数可能比普通的\texttt{read}和\texttt{write}函数。}
+
+\codeentry{read\_volatile, write\_volatile}
+\hangparagraph{这两个函数等价于C和C++中的volatile read和wirte。}
+
+\subsection{示例：\texttt{GapBuffer}}
+
