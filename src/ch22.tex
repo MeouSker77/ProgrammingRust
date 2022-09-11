@@ -563,3 +563,44 @@ Rust中的空原始指针和C/C++中一样，都是0地址。对任何类型\tex
 \end{minted}
 
 \subsection{指针算术}
+
+Rust把数组、切片或者vector布局为单个连续的内存块，如\autoref{f22-1}所示。元素都被按规律放置，这样如果每个元素占用\texttt{size}个字节，那么第\texttt{i}个元素从\texttt{i * size}处开始。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f22-1.png}
+    \caption{内存中的数组}
+    \label{f22-1}
+\end{figure}
+
+这样做的一个好处如果你有两个指向同一个数组中元素的原始指针，比较这两个指针和比较两个元素的索引的结果是一样的：如果\texttt{i < j}，那么指向第\texttt{i}个元素的原始指针小于指向第\texttt{j}个元素的原始指针。这让原始指针作为数组遍历的边界时很有用。事实上，标准库中最简单的迭代切片的迭代器就是这样定义的：
+\begin{minted}{Rust}
+    struct Iter<'a, T> {
+        ptr: *const T,
+        end: *const T,
+        ...
+    }
+\end{minted}
+
+\texttt{ptr}字段指向下一个要产生的元素，\texttt{end}字段作为边界：当\texttt{ptr == end}时，说明迭代结束了。
+
+数组布局的另一个好处是：如果\texttt{element\_ptr}是一个指向第\texttt{i}个元素的\texttt{*const T}或\texttt{*mut T}原始指针，那么\texttt{element\_ptr.offset(o)}就是指向第\texttt{i + o}个元素的原始指针。它的定义等价于这样：
+\begin{minted}{Rust}
+    fn offset<T>(ptr: *const T, count: isize) -> *const T
+        where T: Sized
+    {
+        let bytes_per_element = std::mem::size_of::<T>() as isize;
+        let byte_offset = count * bytes_per_element;
+        (ptr as isize).checked_add(byte_offset).unwrap() as *const T
+    }
+\end{minted}
+
+\texttt{std::mem::size\_of::<T>}函数返回\texttt{T}类型的字节数。因为\texttt{isize}足够存储一个地址，因此可以把指针转换为\texttt{isize}，然后对这个值进行算术运算，最后把结果转换为指针。
+
+创建一个指向数组尾部之后第一个字节的指针是可以的。你不能解引用这样的指针，但它可以用于表示循环的结束或者边界检查。
+
+然而，使用\texttt{offset}创建一个指向数组尾部之后或者头部之前的指针是未定义行为，即使你甚至没有解引用它。为了优化，Rust会假设当\texttt{i}是正数时\texttt{ptr.offset(i) > ptr}，当\texttt{i}是负数时\texttt{ptr.offset(i) < ptr}。这个假设看起来是安全的，但如果\texttt{offset}中的算术运算溢出了\texttt{isize}值的范围它可能是不成立的。如果\texttt{i}被约束为保证最后的结果仍然和\texttt{ptr}指向同一个数组，那就不可能会溢出：数组自身不可能溢出地址空间的边界。（为了保证指向尾部后第一个字节的指针是安全的，Rust绝不会把值放置在地址空间的最顶端。）
+
+如果你的确需要把指针偏移到超出指向的数组，你可以使用安全的\texttt{wrapping\_offset}方法。它等价于\texttt{offset}，但Rust对\texttt{ptr.wrapping\_offset(i)}和\texttt{ptr}的相对大小不做任何假设。当然，除非最后的结果还落在数组里，不然你仍然不能解引用它。
+
+\subsection{}
