@@ -714,4 +714,268 @@ Rust为实现这样的类型提供了两个基本的操作：
 \hangparagraph{这两个函数等价于C和C++中的volatile read和wirte。}
 
 \subsection{示例：\texttt{GapBuffer}}
+这里有一个简单的例子用到了刚才介绍的函数。
 
+假设你正在编写一个文本编辑器，并且正在寻找一个类型来表示文本。你可以选择\texttt{String}并使用\texttt{insert}和\texttt{remove}方法来在用户打字时插入或删除字符。但如果他们正在编辑一个大文件的起始位置，这些方法的开销就会很大：插入一个字符需要在内存中向右移动右侧所有的字符，删除一个字符需要向左移动右侧的所有字符。你可能希望这样常用的操作开销能更小。
+
+Emacs文本编辑器使用了一种叫做\emph{gap buffer}的简单数据结构，它可以在常量时间内插入和删除字符。\texttt{String}保持所有空闲空间都在文本的尾部，这样可以让\texttt{push}和\texttt{pop}操作的开销很小，而gap bufer把空闲空间保持在文本的中间，即正在编辑的地方。这样的空闲空间称为\emph{gap}。在gap处插入或删除元素的开销很小：只需要简单地缩写或者扩大gap。你只需要把gap一侧的文本移动到另一侧就可以把gap移动到任何位置。当gap为空时，可以迁移到一个更大的缓冲区。
+
+尽管在gap buffer中插入和删除操作速度都很快，但改变正在编辑的位置需要把gap移动到一个新的位置。移动元素所需的时间和要移动的距离成正比。幸运的是，典型的编辑活动包括在缓冲区的某一区域进行大量的修改，然后再去其他位置操作文本。
+
+在这一节中我们将用Rust实现一个gap buffer。为了避免被UTF-8干扰，我们用缓冲区直接存储\texttt{char}值，但即使以其他格式存储文本，操作的基本原则都是相同的。
+
+首先，我们将用实践来展示一个gap buffer。这段代码创建了一个\texttt{GapBuffer}，在其中插入了一些文本，然后把插入位置移动到最后一个单词之前：
+\begin{minted}{Rust}
+    let mut buf = GapBuffer::new();
+    buf.insert_iter("Lord of the Rings".chars());
+    buf.set_position(12);
+\end{minted}
+
+在运行过这段代码之后，缓冲区如\autoref{f22-6}所示。
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f22-6.png}
+    \caption{一个包含一些文本的gap buffer}
+    \label{f22-6}
+\end{figure}
+
+插入操作会用新的文本填充gap。这行代码添加了一个单词，破坏了现在的布局：
+\begin{minted}{Rust}
+    buf.insert_iter("Onion ".chars());
+\end{minted}
+
+结果如\autoref{f22-7}所示。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../img/f22-7.png}
+    \caption{一个包含更多文本的gap buffer}
+    \label{f22-7}
+\end{figure}
+
+这里是我们的\texttt{GapBuffer}类型：
+\begin{minted}{Rust}
+    use std;
+    use std::ops::Range;
+
+    pub struct GapBuffer<T> {
+        // 存储元素。它提供我们需要的容量，但它的长度总是0。
+        // GapBuffer把它的元素和gap放在`Vec`“未使用”的空间里。
+        storage: Vec<T>,
+
+        // `storage`中间未初始化的元素的范围。
+        // 这个范围前面和后面的元素总是初始化过的。
+        gap: Range<usize>
+    }
+\end{minted}
+
+\texttt{GapBuffer}以一种奇怪的方式使用它的\texttt{storage}字段\footnote{还有一种方法可以更好地实现这些功能，这种方法需要使用编译器内部的\texttt{alloc} crate里的\texttt{RawVec}类型，不过这个crate仍然是unstable的。}。它永远不会真的在vector中存储任何元素。它只是简单的调用\texttt{Vec::with\_capacity(n)}来获得一个可以存储\texttt{n}个元素的足够大的内存块，通过vector的\texttt{as\_ptr}和\texttt{as\_mut\_ptr}方法获得指向内存块的原始指针，然后直接以它自己的方式来使用这块内存作为缓冲区。vector的长度将始终保持0.当\texttt{Vec}被drop时，\texttt{Vec}不会尝试释放它的元素，因为它不知道它持有任何元素，但它确实会释放这个内存块。这正是\texttt{GapBuffer}想要的；它有它自己的\texttt{Drop}实现，这个实现知道有效的元素在哪里并可以正确地drop它们。
+
+\texttt{GapBuffer}的最简单的方法如你所料：
+\begin{minted}{Rust}
+    impl<T> GapBuffer<T> {
+        pub fn new() -> GapBuffer<T> {
+            GapBuffer { storage: Vec::new(), gap: 0..0 }
+        }
+
+        /// 返回这个GapBuffer在不重新分配的情况下可以存储的元素数量
+        pub fn capacity(&self) -> usize {
+            self.storage.capacity()
+        }
+
+        /// 返回这个GapBuffer当前持有的元素数量
+        pub fn len(&self) -> usize {
+            self.capacity() - self.gap.len()
+        }
+
+        /// 返回当前的插入位置
+        pub fn position(&self) -> usize {
+            self.gap.start
+        }
+        ...
+    }
+\end{minted}
+
+它用了很多之前介绍的函数来实现一个方法，这个方法返回指向给定索引位置的元素的原始指针。在Rust里，我们需要一个\texttt{mut}指针的方法和一个\texttt{const}指针的方法。和上面的方法不同，它们并不是public的。继续这个\texttt{impl}块：
+\begin{minted}{Rust}
+    /// 返回一个指向底层存储中第`index`个元素的指针。不考虑gap。
+    ///
+    /// 安全性：`index`必须是`self.storage`中有效的索引
+    unsafe fn space(&self, index: usize) -> *const T {
+        self.storage.as_ptr().offset(index as isize)
+    
+    }
+
+    /// 返回一个指向底层存储中第`index`个元素的可变指针。不考虑gap。
+    ///
+    /// 安全性：`index`必须是`self.storage`中有效的索引
+    unsafe fn space_mut(&mut self, index: usize) -> *mut T {
+        self.storage.as_mut_ptr().offset(index as isize)
+    }
+\end{minted}
+
+为了查找给定索引处的元素，你必须考虑这个索引是落在gap之前还是之后，然后进行调整：
+\begin{minted}{Rust}
+    /// 返回第`index`个元素的偏移量，考虑gap。
+    /// 这个函数并不检查index是否在范围内，
+    /// 但它永远不会返回一个在gap中的位置
+    fn index_to_raw(&self, index: usize) -> usize {
+        if index.self.gap.start {
+            index
+        } else {
+            index + self.gap.len()
+        }
+    }
+
+    /// 返回第`index`个元素的引用，
+    /// `index`超出范围时返回`None`
+    pub fn get(&self, index: usize) -> Option<&T> {
+        let raw = self.index_to_raw(index);
+        if raw < self.capacity() {
+            unsafe {
+                // 我们已经检查过`raw`和`self.capacity()`的大小关系了，
+                // 并且index_to_raw会跳过gap，因此这是安全的。
+                Some(&*self.space(raw))
+            }
+        } else {
+            None
+        }
+    }
+\end{minted}
+
+当我们开始在缓冲区中另一个位置开始插入或删除时，我们需要把gap移动到这个新位置。向右移动gap需要把元素向左移，反之亦然，就像水平仪中的液体流向一个方向时，气泡会向另一个方向移动：
+\begin{minted}{Rust}
+    /// 把当前的插入位置设置为`pos`。
+    /// 如果`pos`越界就panic。
+    pub fn set_position(&mut self, pos: usize) {
+        if pos > self.len() {
+            panic!("index {} out of range for GapBuffer", pos);
+        }
+
+        unsafe {
+            let gap = self.gap.clone();
+            if pos > gap.start {
+                // `pos`落在了gap之后。通过把gap右侧的元素移动到`pos`之前
+                // 来向右移动gap。
+                let distance = pos - gap.start;
+                std::ptr::copy(self.space(gap.end),
+                               self.space_mut(gap.start),
+                               distance);
+            } else if pos < gap.start {
+                // `pos`落在了gap之前。通过把gap左侧的元素移动到`pos`之后
+                // 来向左移动gap。
+                let distance = gap.start - pos;
+                std::ptr::copy(self.space(pos),
+                               self.space_mut(gap.end - distance),
+                               distance);
+            }
+
+            self.gap = pos .. pos + gap.len();
+        }
+    }
+\end{minted}
+
+这个函数使用了\texttt{std::ptr::copy}方法来移动元素；\texttt{copy}要求目的位置必须是未初始化的，并且把源位置置为未初始化。源位置和目的位置可以重叠，\texttt{copy}会正确地处理这种情况。因为gap在这个调用之前是未初始化的内存，并且这个函数会调整gap的位置来覆盖那些copy移动走的元素，因此\texttt{copy}函数的合约得到了满足。
+
+元素的插入和删除相对简单。插入操作从gap中拿出一个元素的空间来存储新元素，而删除操作把值移出并增大gap来覆盖空出来的空间：
+\begin{minted}{Rust}
+    /// 在当前的插入位置插入`elt`，
+    /// 并把新的插入位置设置为`elt`之后。
+    pub fn insert(&mut self, elt: T) {
+        if self.gap.len() == 0 {
+            self.enlarge_gap();
+        }
+
+        unsafe {
+            let index = self.gap.start;
+            std::ptr::write(self.space_mut(index), elt);
+        }
+        self.gap.start += 1;
+    }
+
+
+    /// 在当前的插入位置插入`iter`产生的元素，
+    /// 并把新的插入位置设置为这些元素之后。
+    pub fn insert_iter<I>(&mut self, iterable: I)
+        where I: IntoIterator<Item=T>
+    {
+        for item in iterable {
+            self.insert(item)
+        }
+    }
+
+    /// 移除插入位置后的第一个元素并返回它，
+    /// 如果插入位置是在GapBuffer的末尾则返回`None`
+    pub fn remove(&mut self) -> Option<T> {
+        if self.gap.end == self.capacity() {
+            return None;
+        }
+
+        let element = unsafe {
+            std::ptr::read(self.space(self.gap.end))
+        };
+        self.gap.end += 1;
+        Some(element)
+    }
+\end{minted}
+
+类似于\texttt{Vec}使用\texttt{std::ptr::write}来实现push、使用\texttt{std::ptr::read}来实现pop一样，\texttt{GapBuffer}使用\texttt{write}来实现\texttt{insert}、使用\texttt{read}来实现\texttt{remove}。并且就像\texttt{Vec}必须调整长度来维护已初始化元素和空闲空间的边界一样，\texttt{GapBuffer}也会调整它的gap。
+
+当gap被填满时，\texttt{insert}方法必须增大缓冲区来获取更多的空闲空间。\texttt{enlarge\_gap}方法（\texttt{impl}块中的最后一个方法）用来实现这一点：
+\begin{minted}{Rust}
+    /// 把`self.storage`的容量翻倍
+    fn enlarge_gap(&mut self) {
+        let mut new_capacity = self.capacity() * 2;
+        if new_capacity == 0 {
+            // 如果现有的vector是空的，就选择一个合适的起始容量。
+            new_capacity = 4;
+        }
+
+        // 我们不知道resize一个Vec会对它“未使用的空间进行什么操作。
+        // 因此简单地创建一个新的vector并把元素移动过去。
+        let mut new = Vec::with_capacity(new_capacity);
+        let after_gap = self.capacity() - self.gap.end;
+        let new_gap = self.gap.start .. new.capacity() - after_gap;
+
+        unsafe {
+            // 移动落在gap之前的元素。
+            std::ptr::copy_nonoverlapping(self.space(0),
+                                          new.as_mut_ptr(),
+                                          self.gap.start);
+            // 移动落在gap之后的元素。
+            let new_gap_end = new.as_mut_ptr().offset(new_gap.end as isize);
+            std::ptr::copy_nonoverlapping(self.space(self.gap.end),
+                                          new_gap_end,
+                                          after_gap);
+        }
+
+        // 这会释放旧的Vec，但不会drop任何元素，
+        // 因为Vec的长度是0。
+        self.storage = new;
+        self.gap = new_gap;
+    }
+\end{minted}
+
+和\texttt{set\_position}必须使用\texttt{copy}来移动元素不同，\texttt{enlarge\_gap}可以使用\texttt{copy\_nonoverlapping}，因为它是把元素移动到一个完全全新的缓冲区。
+
+把新的vector赋值给\texttt{self.storage}会drop旧的vector。但因为旧vector的长度是0，所以它会相信它没有要drop的元素，然后简单地释放缓冲区。\texttt{copy\_nonoverlapping}会让源地址变为未初始化的，所以旧vector的假设确实是正确的：现在所有的元素的所有权都在新vector里。
+
+最后，我们需要确保drop一个\texttt{GapBuffer}会释放所有元素：
+\begin{minted}{Rust}
+    impl<T> Drop for GapBuffer<T> {
+        fn drop(&mut self) {
+            unsafe {
+                for i in 0 .. self.gap.start {
+                    std::ptr::drop_in_place(self.space_mut(i));
+                }
+                for i in self.gap.end .. self.capacity() {
+                    std::ptr:;drop_in_place(self.space_mut(i));
+                }
+            }
+        }
+    }
+\end{minted}
+
+元素分布在gap之前和之后，因此我们迭代这两个区域并使用\texttt{std::ptr::drop\_in\_place}函数来drop每个元素。\texttt{drop\_in\_place}函数是一个工具函数，行为类似于\texttt{drop(std::ptr::read(ptr))}，但不需要把值move给调用者（因此也可以用于unsized类型）。在\texttt{enlarge\_gap}中，当vector \texttt{self.storage}被drop时，它的缓冲区实际是未初始化的。
+
+类似我们在本章中展示过的其他类型一样，\texttt{GapBuffer}确保它自己的不变量足够充分，以此来确保它用到的每个unsafe特性的合约都被遵守，因此它的所有public方法都不需要标记为unsafe。\texttt{GapBuffer}为一个在safe代码中不可能高效实现的特性实现了一个safe的接口。
