@@ -1076,5 +1076,28 @@ Rust提供了很多有用的抽象，但你编写的代码最终都是在操作�
 
 因为union不能识别如何drop它们的内容，因此它们的所有字段都必须是\texttt{Copy}。然而，如果你必须在union中存储一个\texttt{String}，还是有一个解决方法：可以参考标准库中\texttt{std::mem::ManuallyDrop}的文档。
 
+\subsection{match union}
+match一个Rust的union类似于match一个struct，除了每个模式都只能制定一个字段之外：
+\begin{minted}{Rust}
+    unsafe {
+        match u {
+            SmallOrLarge { s: true } => { println!("boolean true"); }
+            SmallOrLarge { l: 2 } => { println!("integer 2"); }
+            _ => { println!("something else"); }
+        }
+    }
+\end{minted}
 
+指定一个union字段但不指定值的\texttt{match}分支总是能成功匹配。如果\texttt{u}最后一个被写入的字段是\texttt{u.i}，下面的代码将会导致未定义行为：
+\begin{minted}{Rust}
+    // 未定义行为！
+    unsafe {
+        match u {
+            FloatOrInt { f } => { println!("float {}", f) },
+            // 警告：不可能到达的模式
+            FloatOrInt { i } => { println!("int {}", i) }
+        }
+    }
+\end{minted}
 
+\texttt{借用union的引用}
