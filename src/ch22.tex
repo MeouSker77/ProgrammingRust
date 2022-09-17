@@ -1007,4 +1007,74 @@ Emacs文本编辑器使用了一种叫做\emph{gap buffer}的简单数据结构�
 
 当使用unsafe特性时，你必须特别注意那些临时打破不变量的区域，并保证它们不会在这些地方panic。
 
+\section{使用Union重新解释内存}
+
+Rust提供了很多有用的抽象，但你编写的代码最终都是在操作字节。Union是rust最强大的特性之一，它可以操作字节并选择如何解释它们。例如，所有32位——4个字节的类型都可以被解释为一个整数或者一个浮点数。每一种解释都是有效的，尽管这种解释的结果可能是无意义的。
+
+一个union代表一些字节的集合，如果像下面这么写，就意味着这些字节可以被解释为一个整数或者一个浮点数：
+\begin{minted}{Rust}
+    union FloatOrInt {
+        f: f32,
+        i: i32,
+    }
+\end{minted}
+
+这一个有两个字段\texttt{f}和\texttt{i}的union。它们可以像struct一样给字段赋值，但和struct不同的是当构建一个union时，你只能选择其中一个字段初始化。struct的每个字段指向不同的内存位置，但union的不同字段是对同一块字节序列的不同解释。给一个不同的字段赋值意味着覆盖部分或全部的字节。这里，\texttt{one}指向一个32位的内存区域，这块区域首先存储了整数\texttt{1}，然后存储了IEEE 754浮点数\texttt{1.0}。给\texttt{f}赋值后，之前给\texttt{FloatOrInt}赋的值立刻被覆盖：
+\begin{minted}{Rust}
+    let mut one = FloatOrInt{ i: 1};
+    assert_eq!(unsafe { one.i }, 0x00_00_00_01);
+    one.f = 1.0;
+    assert_eq!(unsafe { one.1 }, 0x3F_80_00_00);
+\end{minted}
+
+出于同样的原因，unoin所占的字节数取决于最大的字段。例如，这个union占用64个比特位，尽管\texttt{SmallOrLarge::s}只是一个\texttt{bool}：
+\begin{minted}{Rust}
+    union SmallOrLarge {
+        s: bool,
+        l: u64
+    }
+\end{minted}
+
+尽管构建一个union和向它的字段赋值完全是safe的，但读取它的任何字段都是unsafe的：
+\begin{minted}{Rust}
+    let u = SmallOrLarge { l: 1337 };
+    println!("{}", unsafe {u.l});   // 打印出1337
+\end{minted}
+
+这是因为和enum不同，union并没有标记。编译器并没有添加额外的位来记录当前的状态。没有办法在运行期判断一个\texttt{SmallOrLarge}应该被解释为\texttt{u64}还是\texttt{bool}，除非程序有一些额外的上下文。
+
+一个指定字段的位模式是否有效也没有任何内建的保证。例如，写入\texttt{SmallOrLarge}的\texttt{l}字段会覆盖它的\texttt{s}字段，这时候的位模式可能并不是有效的\texttt{bool}值。因此，尽管写入union的字段是safe的，每一次读取都需要\texttt{unsafe}。只有当\texttt{s}字段的位能构成一个有效的\texttt{bool}时才允许读取\texttt{u.s}，否则就是未定义行为。
+
+在遵守这些限制的前提下，union可以作为一种有效的方式来临时解释一些数据，尤其是要对值的位表示进行操作而不是对值本身进行操作的时候。例如，之前提到的\texttt{FloatOrInt}类型可以用于简单地打印出一个浮点数的每一位，即使\texttt{f32}并没有实现\texttt{Binary}格式化器：
+\begin{minted}{Rust}
+    let float = FloatOrInt { f: 31337.0 };
+    // 打印出1000110111101001101001000000000
+    println!("{:b}", unsafe { float.i });
+\end{minted}
+
+尽管这些简单的例子应该在任何版本的编译器上如预期工作，但不能保证每个字段都从同一个地址开始，除非在\texttt{union}的定义处添加一个属性告诉编译器如何在内存中摆放数据。添加属性\texttt{\#[repr(C)]}可以保证所有字段都从0偏移处开始，而不是让编译器决定。有了这个保证，覆盖值的行为可以用来提取某些位，例如一个整数的符号位：
+\begin{minted}{Rust}
+    #[repr(C)]
+    union SignExtractor {
+        value: i64,
+        bytes: [u8; 8]
+    }
+
+    fn sign(int: i64) -> bool {
+        let se = SignExtractor { value: int };
+        println!("{:b} ({:?})", unsafe { se.value }, unsafe { se.bytes });
+        unsafe { se.bytes[7] >= 0b10000000 }
+    }
+
+    assert_eq!(sign(-1), true);
+    assert_eq!(sign(1), false);
+    assert_eq!(sign(i64::MAX), false);
+    assert_eq!(sign(i64::MIN), true);
+\end{minted}
+
+这里，符号位是最高有效字节的最高有效位。因为x64处理器是小端序，因此这些字节的顺序是反的；最高有效字节不是\texttt{bytes[0]}，而是\texttt{bytes[7]}。通常情况下，Rust代码不需要考虑这些，但因为这段代码直接操做\texttt{i64}的内存表示，所以这些底层的细节就变得很重要了。
+
+因为union不能识别如何drop它们的内容，因此它们的所有字段都必须是\texttt{Copy}。然而，如果你必须在union中存储一个\texttt{String}，还是有一个解决方法：可以参考标准库中\texttt{std::mem::ManuallyDrop}的文档。
+
+
 
