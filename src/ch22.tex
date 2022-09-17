@@ -25,8 +25,8 @@ To such a life glory belongs.}
 \section{unsafe从何而来？}
 在本书的开头处，我们曾经展示过一个C程序，它以一种非常令人惊讶的方式崩溃。这是因为它违背了C标准的一个规则。你可以在Rust中实现相同的效果：
 
-\begin{minted}{bash}
-    $cat crash.rs
+\begin{minted}{text}
+    $ cat crash.rs
     fn main() {
         let mut a: usize = 0;
         let ptr = &mut a as *mut usize;
@@ -66,7 +66,8 @@ To such a life glory belongs.}
 
 如果没有块前面的\texttt{unsafe}关键字，Rust将会禁止使用\texttt{from\_utf8\_unchecked}，因为它是一个\texttt{unsafe}的函数。在\texttt{unsafe}块中，你可以随意使用它。
 
-和普通的Rust块一样，\texttt{unsafe}块的值也是最后一条表达式的值，或者是\texttt{()}。这个例子中\texttt{String::from\_utf8\_unchecked}的调用提供了块的值。
+和普通的Rust块一样，\texttt{unsafe}块的值也是最后一条表达式的值，或者是\texttt{()}。这个例子中\\
+\texttt{String::from\_utf8\_unchecked}的调用提供了块的值。
 
 一个\texttt{unsafe}块为你解锁了5个额外的功能：
 \begin{enumerate}
@@ -178,9 +179,11 @@ To such a life glory belongs.}
     }
 \end{minted}
 
-如果调用\texttt{Ascii::from\_bytes\_unchecked}的代码总是知道vector中只包含有效的ASCII字符，那么\texttt{Ascii::from\_bytes}里的检查就只是在浪费时间，并且调用者还必须处理永远不会出现的\texttt{Err}结果。\texttt{Ascii::from\_bytes}可以简化这种情况下的调用和错误处理。
+如果调用\texttt{Ascii::from\_bytes\_unchecked}的代码总是知道vector中只包含有效的ASCII字符，那么\texttt{Ascii::\\
+from\_bytes}里的检查就只是在浪费时间，并且调用者还必须处理永远不会出现的\texttt{Err}结果。\texttt{Ascii::from\_bytes}可以简化这种情况下的调用和错误处理。
 
-但之前我们曾经强调过\texttt{Ascii}的public构造器和方法保证\texttt{Ascii}的值是有效的的重要性。\texttt{from\_bytes\_unchecked}是不是没有遵守这个规则？
+但之前我们曾经强调过\texttt{Ascii}的public构造器和方法保证\texttt{Ascii}的值是有效的的重要性。\\
+\texttt{from\_bytes\_unchecked}是不是没有遵守这个规则？
 
 不完全是：\texttt{from\_bytes\_unchecked}把它的责任通过它的合约交给了调用者。这个合约的存在正是它应该被标记为\texttt{unsafe}的原因：虽然这个函数本身没有进行unsafe的操作，但它的调用者必须遵守一些Rust不能强制的规则才能避免未定义行为。
 
@@ -409,7 +412,8 @@ unsized类型的原始指针是胖指针，就像相应的引用或\texttt{Box}�
     \item \texttt{.}运算符不会隐式解引用原始指针，你必须用\texttt{(*raw).field}或者\texttt{(*raw).method(...)}。
     \item 原始指针并没有实现\texttt{Deref}，因此强制解引用并不适用于它们。
     \item \texttt{==}和\texttt{<}之类的运算符以地址比较原始指针：只有两个原始指针指向同一个内存位置它们才是相等的。类似，哈希一个原始指针会对它指向的地址进行哈希，而不是对它指向的对象的值进行哈希。
-    \item 格式化trait例如\texttt{std::fmt::Dispaly}会自动解引用，但无法处理原始指针。例外的是\texttt{std::fmt::Debug}和\texttt{std::fmt::Pointer}，它们会以16进制地址的形式显示原始指针，不会解引用它们。
+    \item 格式化trait例如\texttt{std::fmt::Dispaly}会自动解引用，但无法处理原始指针。例外的是\texttt{std::fmt::Debug}和\\
+    \texttt{std::fmt::Pointer}，它们会以16进制地址的形式显示原始指针，不会解引用它们。
 \end{enumerate}
 
 和C/C++中的\texttt{+}运算符不同，Rust的\texttt{+}运算符不能用于原始指针，但你可以使用原始指针的\texttt{offset}、\texttt{wrapping\_offset}或者更方便的\texttt{add}、\texttt{sub}、\texttt{wrapping\_add}、\texttt{wrapping\_sub}方法对它们进行算数操作。\texttt{offset\_from}方法可以给出两个指针之间的距离，不过我们必须确保起点和终点在相同的内存区域（例如在同一个\texttt{Vec}）里：
@@ -542,7 +546,8 @@ Rust中的空原始指针和C/C++中一样，都是0地址。对任何类型\tex
 
 一个类型的大小通常向上取它的对齐的倍数，即使从技术上讲它用不了那么多空间。例如，虽然元组\texttt{(f32, u8)}只需要5个字节，但\texttt{size\_of::<(f32, u8)>()}是8，因为\texttt{align\_of<(f32, u8)>()}是4。这确保了如果有一个数组，那么元素大小的大小总是等于一个元素到下一个元素的距离。
 
-对于unsized的类型，大小和对齐取决于具体的值。给第一个unsized值的引用，\texttt{std::mem::size\_of\_val}和\texttt{std::mem::align\_of\_val}函数返回这个值的大小和对齐。这些函数可以同时用于\texttt{Sized}和unsized类型：
+对于unsized的类型，大小和对齐取决于具体的值。给第一个unsized值的引用，\texttt{std::mem::size\_of\_val}和\\
+\texttt{std::mem::align\_of\_val}函数返回这个值的大小和对齐。这些函数可以同时用于\texttt{Sized}和unsized类型：
 \begin{minted}{Rust}
     // 切片的胖指针会携带长度。
     let slice: &[i32] = &[1, 3, 9, 27, 81];
@@ -769,7 +774,8 @@ Emacs文本编辑器使用了一种叫做\emph{gap buffer}的简单数据结构�
     }
 \end{minted}
 
-\texttt{GapBuffer}以一种奇怪的方式使用它的\texttt{storage}字段\footnote{还有一种方法可以更好地实现这些功能，这种方法需要使用编译器内部的\texttt{alloc} crate里的\texttt{RawVec}类型，不过这个crate仍然是unstable的。}。它永远不会真的在vector中存储任何元素。它只是简单的调用\texttt{Vec::with\_capacity(n)}来获得一个可以存储\texttt{n}个元素的足够大的内存块，通过vector的\texttt{as\_ptr}和\texttt{as\_mut\_ptr}方法获得指向内存块的原始指针，然后直接以它自己的方式来使用这块内存作为缓冲区。vector的长度将始终保持0.当\texttt{Vec}被drop时，\texttt{Vec}不会尝试释放它的元素，因为它不知道它持有任何元素，但它确实会释放这个内存块。这正是\texttt{GapBuffer}想要的；它有它自己的\texttt{Drop}实现，这个实现知道有效的元素在哪里并可以正确地drop它们。
+\texttt{GapBuffer}以一种奇怪的方式使用它的\texttt{storage}字段\footnote{还有一种方法可以更好地实现这些功能，这种方法需要使用编译器内部的\texttt{alloc} crate里的\texttt{RawVec}类型，不过这个crate仍然是unstable的。}。它永远不会真的在vector中存储任何元素。它只是简单的调用\texttt{Vec::with\_capacity(n)}来获得一个可以存储\texttt{n}个元素的足够大的内存块，通过vector的\texttt{as\_ptr}和\\
+\texttt{as\_mut\_ptr}方法获得指向内存块的原始指针，然后直接以它自己的方式来使用这块内存作为缓冲区。vector的长度将始终保持0.当\texttt{Vec}被drop时，\texttt{Vec}不会尝试释放它的元素，因为它不知道它持有任何元素，但它确实会释放这个内存块。这正是\texttt{GapBuffer}想要的；它有它自己的\texttt{Drop}实现，这个实现知道有效的元素在哪里并可以正确地drop它们。
 
 \texttt{GapBuffer}的最简单的方法如你所料：
 \begin{minted}{Rust}
@@ -1007,7 +1013,7 @@ Emacs文本编辑器使用了一种叫做\emph{gap buffer}的简单数据结构�
 
 当使用unsafe特性时，你必须特别注意那些临时打破不变量的区域，并保证它们不会在这些地方panic。
 
-\section{使用Union重新解释内存}
+\section{使用\texttt{union}重新解释内存}
 
 Rust提供了很多有用的抽象，但你编写的代码最终都是在操作字节。Union是rust最强大的特性之一，它可以操作字节并选择如何解释它们。例如，所有32位——4个字节的类型都可以被解释为一个整数或者一个浮点数。每一种解释都是有效的，尽管这种解释的结果可能是无意义的。
 
@@ -1100,4 +1106,7 @@ match一个Rust的union类似于match一个struct，除了每个模式都只能�
     }
 \end{minted}
 
-\texttt{借用union的引用}
+\section{借用\texttt{union}的引用}
+借用union的一个字段的引用会借用整个union。这意味着根据通常的借用规则，以可变的方式借用一个字段会禁止对其他任何字段的借用，以共享的方式借用一个字段导致不能再以可变的方式借用其他字段的引用。
+
+正如我们将在下章介绍的，除了你自己的unsafe代码之外，Rust还能帮助其他语言编写的代码构建safe的接口。unsafe正如这个名字隐含的一样令人烦恼，但如果小心使用它，它可以帮助你构建高性能的代码，并同时保留Rust程序员喜欢的安全性保证。
