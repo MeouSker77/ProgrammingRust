@@ -14,8 +14,163 @@
 确实有Rust crate用于和很多其他语言例如Python、JavaScript、Lua和Java交互。我们没有足够的篇幅来介绍它们，但所有这些接口最终都是使用C外部函数接口实现的，因此无论你想和什么语言交互，这一章都能给你一个开头。
 
 \section{寻找公共的数据表示}\label{repr}
+Rust和C的公共基础是机器语言，因此为了预测Rust的值在C代码中看起来是什么样的，或者反过来，你需要考虑它们的机器级表示。在整本书中，我们一直着重展示一个值在内存中的实际表示，因此你可能已经注意到了C和Rust的数据世界有很多共通之处：例如一个Rust的\texttt{usize}和C的\texttt{size\_t}是相同的，两门语言中的结构体也基本相同。为了建立起Rust和C中相应类型的关系，我们将从基本类型开始，并逐渐扩展到更复杂的类型。
 
+鉴于C主要用作系统编程，C中类型的表示总是令人惊讶的宽松：例如一个\texttt{int}通常是32位，但可能会更长，或者短到16位；一个C的\texttt{char}可能是有符号的也可能是无符号的。为了应对这种可变性，Rust的\texttt{std::os::raw}模块定义了一些Rust的类型，这些类型保证和相应的C类型有完全相同的表示（\autoref{t23-1}）。其中包括基本的整数和字符类型。
 
-\section{}
+\begin{table}[htbp]
+    \centering
+    \caption{\texttt{std::os::raw}中的Rust类型}
+    \label{t23-1}
+    \begin{tabular}{ll}
+        \textbf{C类型}  &   \textbf{相应的\texttt{std::os::raw}类型}    \\
+        \hline
+        \texttt{short}          &   \texttt{c\_short}   \\
+        \rowcolor{tablecolor}
+        \texttt{int}            &   \texttt{c\_int}     \\
+        \texttt{long}           &   \texttt{c\_long}    \\
+        \rowcolor{tablecolor}
+        \texttt{long long}      &   \texttt{c\_longlong}    \\
+        \texttt{unsigned short} &   \texttt{c\_ushort}  \\
+        \rowcolor{tablecolor}
+        \texttt{unsigned, unsigned int} &   \texttt{c\_uint}    \\
+        \texttt{unsigned long}  &   \texttt{c\_ulong}   \\
+        \rowcolor{tablecolor}
+        \texttt{unsigned long long}     &   \texttt{c\_ulonglong}   \\
+        \texttt{char}           &   \texttt{c\_char}    \\
+        \rowcolor{tablecolor}
+        \texttt{signed char}    &   \texttt{c\_schar}   \\
+        \texttt{unsigned char}  &   \texttt{c\_uchar}   \\
+        \rowcolor{tablecolor}
+        \texttt{float}           &   \texttt{c\_float}    \\
+        \texttt{double}         &   \texttt{c\_double}  \\
+        \rowcolor{tablecolor}
+        \texttt{void *, const void *}   &   \texttt{*mut c\_void, *const c\_void}   \\
+    \end{tabular}
+\end{table}
+
+有关\autoref{t23-1}的注意事项：
+\begin{enumerate}
+    \item 除了\texttt{c\_void}之外，这里所有的Rust类型都是某些基本Rust类型的别名：例如\texttt{c\_char}是\texttt{i8}或者\texttt{u8}。
+    \item Rust的\texttt{bool}等价于C或C++的\texttt{bool}。
+    \item Rust的32位\texttt{char}类型并不等同于\texttt{wchar\_t}，后者的宽度和编码取决于具体实现。C的\texttt{char32\_t}倒是更接近一点，但它的编码仍然并不保证是Unicode。
+    \item Rust的基础\texttt{usize}和\texttt{isize}类型和C的\texttt{size\_t}和\texttt{ptrdiff\_t}有相同的表示。
+    \item C/C++指针和C++的引用对应Rust的原始指针类型\texttt{*mut T}和\texttt{*const T}。
+    \item 从技术上讲，C标准允许实现使用一些Rust中没有相应类型的表示：36位整数、用符号+数字来表示有符号值等等。在实践中，在Rust被移植到的每个平台上，每个基本的C整数类型在Rust中都有对应的类型。
+\end{enumerate}
+
+为了定义兼容C结构体的Rust结构体类型，你可以使用\texttt{\#[repr(C)]}属性。在结构体的定义上面放上\texttt{\#[repr(C)]}可以要求Rust按照C编译器的方式放置结构体中的字段。例如，\texttt{libgit2}的\emph{git2/errors.h}头文件定义了下面的C结构体来提供一个错误的详情：
+\begin{minted}{C}
+    typedef struct {
+        char *message;
+        int klass;
+    } git_error;
+\end{minted}
+
+你可以按照下面这样定义一个内存表示完全相同的Rust类型：
+\begin{minted}{Rust}
+    use std::os::raw::{c_char, c_int};
+
+    #[repr(C)]
+    pub struct git_error {
+        pub message: *const c_char,
+        pub klass: c_int
+    }
+\end{minted}
+
+\texttt{\#[repr(C)]}属性只影响struct自身的布局，不会影响单个字段的表示，因此为了和C struct匹配，每一个字段也都要使用C风格的类型：例如用\texttt{*const c\_char}替换\texttt{char *}，用\texttt{c\_int}替换\texttt{int}。
+
+在这个特定的例子中，\texttt{\#[repr(C)]}属性可能并不会改变\texttt{git\_error}的布局。因为实际上没有那么多放置一个指针和一个整数的方法。但C和C++都保证一个结构体的成员按照声明的顺序依次在内存中排布，而Rust会按照总结构体大小最小的方式来组织字段，并且0大小的类型不占用空间。\texttt{\#[repr(C)]}属性告诉Rust按照C的规则来布局。
+
+你也可以使用\texttt{\#[repr(C)]}来控制C风格的enum的表示：
+\begin{minted}{Rust}
+    #[repr(C)]
+    #[allow(non_camel_case_types)]
+    enum git_error_code {
+        GIT_OK          = 0,
+        GIT_ERROR       = -1,
+        GIT_ENOTFOUND   = -3,
+        GIT_EEXISTS     = -4,
+        ...
+    }
+\end{minted}
+
+通常情况下，Rust在选择如何表示enum时会使用各种技巧。例如，我们提到过Rust在一个单字中存储\texttt{Option<\&T>}（如果\texttt{T}是sized）。如果没有\texttt{\#[repr(C)]}，Rust会使用单个字节来表示\texttt{git\_error\_code} enum；有了\texttt{\#[repr(C)]}之后，Rust会和C一样用一个C \texttt{int}一样大的值来存储。
+
+你可以要求Rust使用和某些整数相同的表示来存储enum。上面的定义如果以\texttt{\#[repr(i16)]}开头，将会得到一个和下面C++ enum相同的16位的表示：
+\begin{minted}{C++}
+    #include <stdint.h>
+
+    enum git_error_code: int16_t {
+        GIT_OK          = 0,
+        GIT_ERROR       = -1,
+        GIT_ENOTFOUND   = -3,
+        GIT_EEXISTS     = -4,
+        ...
+    };
+\end{minted}
+
+正如之前提到的，\texttt{\#[repr(C)]}还可以用于union。\texttt{\#[repr(C)]} union的字段总是从union的内存的第一个位（0偏移处）开始。
+
+假设你有一个C struct使用一个union来存储一些数据，再用一个tag值来指示应该使用union的哪个值，类似于Rust的enum一样：
+\begin{minted}{C}
+    enum tag {
+        FLOAT = 0,
+        INT   = 1,
+    };
+
+    union number {
+        float f;
+        short i;
+    };
+
+    struct tagged_number {
+        tag t;
+        number n;
+    };
+\end{minted}
+
+Rust可以通过对enum、struct和union类型都应用\texttt{\#[repr(C)]}来实现一个这样的结构体，然后使用\texttt{match}语句基于tag来选择一个struct中的union的字段：
+\begin{minted}{Rust}
+    #[repr(C)]
+    enum Tag {
+        Float = 0,m
+        Int   = 1
+    }
+
+    #[repr(C)]
+    union FloatOrInt {
+        f: f32,
+        i: i32,
+    }
+
+    #[repr(C)]
+    struct Value {
+        tag: Tag,
+        union: FloatOrInt
+    }
+
+    fn is_zero(v: Value) -> bool {
+        use self::Tag::*;
+        unsafe {
+            match v {
+                Value { tag: Int, union: FloatOrInt { i: 0 } } => true,
+                Value { tag: Float, union: FloatOrInt { f: num } } => (num == 0.0),
+                _ => false
+            }
+        }
+    }
+\end{minted}
+
+使用这种技术，即使是复杂的结构体也可以很容易地跨FFI边界使用。
+
+在Rust和C之间传递字符串要稍微更难一点。C使用一个空结尾的字符数组的指针来表示字符串。另一边Rust显式地存储字符串的长度，要么是\texttt{String}的一个字段，要么是一个胖引用\texttt{\&str}的第二个字。Rust的字符串不是空字符结尾的；事实上，它们的内容里可能包含空字符，这些空字符和其他字符一样，没有区别。
+
+这意味着你不能借用一个Rust字符串来当做C字符串：如果你传给C代码一个Rust字符串的指针，它可能错误地把内容中一个空字符当做字符串的结尾，或者越界去查找一个不存在的结尾空字符。从另一个方向考虑，你也许可以借用一个C字符串作为一个Rust的\texttt{\&str}，只要它的内容是有效的UTF-8。
+
+这种情况强迫Rust必须把C的字符串看做和\texttt{String}、\texttt{\&str}完全不同的类型。在\texttt{std::ffi}模块中，\texttt{CString}和\\
+\texttt{CStr}类型表示拥有所有权的和借用的空字符结尾的字节数组。和\texttt{String}、\texttt{str}比起来，\texttt{CString}和\texttt{CStr}的方法非常有限，基本只有构建自身和转换成其他类型的方法。我们将在下一节中用实例展示这些类型。
+
+\section{声明外部函数和变量}
 
 \section{一个libgit2的安全接口}\label{SafeInter}
