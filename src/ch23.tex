@@ -1,6 +1,20 @@
 \chapter{外部函数}\label{ch23}
+\emph{Cyberspace. Unthinkable complexity. Lines of lightranged in the non-space of the mind, clusters andconstellations of data. Like city lights, receding . . .}
+
+\begin{flushright}
+    ——William Gibson, \emph{Neuromancer}
+\end{flushright}
+
+不幸的是，不是世界上每个程序都是用Rust编写的。我们可能想在我们的Rust程序中使用很多用其他语言实现的优秀的库和接口。Rust的\emph{外部语言接口（foreign function interface(FFI)）}让Rust代码能调用C编写的函数，和一部分C++编写的函数。因为大多数操作系统提供C接口，Rust的外部函数接口允许直接访问任何类型的底层设施。
+
+在本章中，我们将编写一个链接到\texttt{libgit2}的程序，它是一个用于Git版本控制系统的C库。首先，我们将展示怎么直接在Rust中使用C函数，就使用我们上一章中介绍的unsafe特性。然后，我们将展示如何构建\texttt{liggit2}的safe接口，借助开源的\texttt{git2-rs} crate的灵感，这个crate正好实现了这一点。
+
+我们将假设你熟悉C语言和编译链接C程序的机制。处理C++也相差不多。我们还假设你熟悉Git版本控制系统。
+
+确实有Rust crate用于和很多其他语言例如Python、JavaScript、Lua和Java交互。我们没有足够的篇幅来介绍它们，但所有这些接口最终都是使用C外部函数接口实现的，因此无论你想和什么语言交互，这一章都能给你一个开头。
 
 \section{寻找公共的数据表示}\label{repr}
+
 
 \section{}
 
