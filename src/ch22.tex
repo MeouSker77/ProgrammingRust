@@ -979,3 +979,32 @@ Emacs文本编辑器使用了一种叫做\emph{gap buffer}的简单数据结构�
 元素分布在gap之前和之后，因此我们迭代这两个区域并使用\texttt{std::ptr::drop\_in\_place}函数来drop每个元素。\texttt{drop\_in\_place}函数是一个工具函数，行为类似于\texttt{drop(std::ptr::read(ptr))}，但不需要把值move给调用者（因此也可以用于unsized类型）。在\texttt{enlarge\_gap}中，当vector \texttt{self.storage}被drop时，它的缓冲区实际是未初始化的。
 
 类似我们在本章中展示过的其他类型一样，\texttt{GapBuffer}确保它自己的不变量足够充分，以此来确保它用到的每个unsafe特性的合约都被遵守，因此它的所有public方法都不需要标记为unsafe。\texttt{GapBuffer}为一个在safe代码中不可能高效实现的特性实现了一个safe的接口。
+
+\subsection{unsafe代码中的panic安全性}
+在Rust中，panic通常不会导致未定义行为；\texttt{panic!}宏并不是一个unsafe特性。但当你决定在unsafe代码中使用它时，你就需要考虑panic安全性了。
+
+考虑上一节定义的\texttt{GapBuffer::remove}方法：
+\begin{minted}{Rust}
+    pub fn remove(&mut self) -> Opton<T> {
+        if self.gap.end == self.capacity() {
+            return None;
+        }
+        let element = unsafe {
+            std::ptr::read(self.space(self.gap.end))
+        };
+        self.gap.end += 1;
+        Some(element)
+    }
+\end{minted}
+
+\texttt{read}的调用会把元素立刻移出gap并留下未初始化的空间。这时\texttt{GapBuffer}处于一种不一致的状态：我们打破了所有gap之外的元素都必须是初始化过的这一不变量。幸运的是，下一条语句增大了gap让它覆盖了未初始化的空间，因此在我们返回时，不变量仍然成立。
+
+但考虑如果在调用\texttt{read}之后、给\texttt{self.gap.end}赋值之前尝试使用一些可能panic的特性（例如索引元素）会发生什么。在这两个动作之间中断这个方法将会导致\texttt{GapBuffer}有一个未初始化的元素处于gap之外。下一次调用\texttt{remove}时将会再次尝试\texttt{read}这个元素；即使简单地drop \texttt{GapBuffer}也会尝试再次drop这个元素。这两种情况都是未定义行为，因为它们访问了未初始化的内存。
+
+如果一个类型在方法里临时打破这个类型的不变量，然后再在返回之前恢复不变量，那么这个问题是不可避免的。在方法中途panic可能会缩短清理过程，让类型处于不一致的状态。
+
+如果这个类型只使用safe代码，那么这种不一致可能会导致类型的行为出错，但不会导致未定义行为。但是用了unsafe特性的代码通常依赖它的不变量来满足那些特性的合约。被破坏的不变量会破坏合约，进而导致未定义行为。
+
+当使用unsafe特性时，你必须特别注意那些临时打破不变量的区域，并保证它们不会在这些地方panic。
+
+
