@@ -231,7 +231,123 @@ Rust假设在\texttt{extern}块中声明的函数使用C语言的惯例来传递
 在确保了\texttt{environ}有第一个元素之后，代码调用了\texttt{CStr::from\_ptr}来构建一个借用它的\texttt{CStr}。\texttt{to\_string\_lossy}方法返回一个\texttt{Cow<str>}：如果C字符串包含有效的UTF-8，\texttt{Cow}会以\texttt{\&str}的形式借用它的内容，不包括结尾的空字符。否则，\texttt{to\_string\_lossy}在堆上构造一份文本的拷贝，把其中非UTF-8的字符序列替换为官方的Unicode替换字符\symbol{65533}，并构造出一个拥有它所有权的\texttt{Cow}。无论是哪种情况，结果都实现了\texttt{Display}，因此你可以使用\texttt{\{\}}格式化参数打印出它。
 
 \section{使用库里的函数}
+为了使用一个特定的库提供的函数，你可以在\texttt{extern}块上方加上\texttt{\#[link]}属性来指定Rust应该链接的库的名称。例如，这里有一个程序调用\texttt{libgit2}的初始化和结束函数，但不做任何其他事：
+\begin{minted}{Rust}
+    use std::os::raw::c_int;
 
+    #[link(name = "git2")]
+    extern {
+        pub fn git_liggit2_init() -> c_int;
+        pub fn git_liggit2_shutdown() -> c_int;
+    }
+
+    fn main() {
+        unsafe {
+            git_libgit2_init();
+            git_libgit2_shutdown();
+        }
+    }
+\end{minted}
+
+\texttt{extern}和之前一样声明了外部函数。\texttt{\#[link(name = "git2")]}属性会要求当Rust创建最终的可执行文件或者共享库时，它应该链接到\texttt{git2}库。Rust使用系统的链接器来构建可执行文件：在Unix上，它会向链接器的命令行传递\texttt{-lgit2}参数；在Windows上，他会传递\texttt{git2.LIB}参数。
+
+\texttt{\#[link]}属性在库crate中也可以工作。当你构建一个依赖其他crate的程序时，Cargo会从整个依赖图中抓取所有链接项并在最后的链接中全部加进去。
+
+如果你想要在你自己的机器上继续这个例子，你需要自己构建\texttt{libgit2}。我们使用\href{https://libgit2.org/}{libgit2} 0.25.1版本。为了编译\texttt{libgit2}，你需要安装CMake构建工具和Python；我们使用了\href{https://cmake.org/}{CMake} 3.8.0版本和\href{https://www.python.org/}{Python} 2.7.13版本。
+
+构建\texttt{libgit2}的完整文档可以在网站上找到，但因为非常简单所以我们将在这里展示基本的一些步骤。在Linux上，假设你已经把库的源码解压到了目录\emph{/home/jimb/libgit2-0.25.1}：
+\begin{minted}{bash}
+    $ cd /home/jimb/libgit2-0.25.1
+    $ mkdir build
+    $ cd build
+    $ cmake ..
+    $ cmake --build .
+\end{minted}
+
+在Linux上，这会生成一个共享库\emph{/home/jimb/libgit2-0.25.1/build/libgit2.so.0.25.1}，还有一些指向它的符号链接，包括有一个叫\emph{libgit2.so}的。在macOS上，结果与此类似，但库的名字叫\emph{libgit2.dylib}。
+
+在Windows上也非常简单。假设你把源码解压到了目录\emph{C:\textbackslash{}Users\textbackslash{}JimB\textbackslash{}libgit2-0.25.1}。在一个Visual Studio的命令提示符中：
+\begin{minted}{PowerShell}
+    > cd C:\Users\JimB\libgit2-0.25.1
+    > mkdir build
+    > cd build
+    > cmake -A x64 ..
+    > cmake --build .
+\end{minted}
+
+这些命令和在Linux上用的命令几乎一样，除了在第一次运行CMake的时候必须指定64位的构建来匹配你的Rust编译器。（如果你安装了32位的Rust工具链，那么你应该省略第一条\texttt{cmake}命令的\texttt{-A x64}标记。）这会产生一个导入库\emph{git2.LIB}和一个动态链接库\emph{git2.DLL}，都在目录\emph{C:\textbackslash{}Users\textbackslash{}JimB\textbackslash{}libgit2-0.25.1\textbackslash{}build\textbackslash{}Debug}。（之后的命令都是以Unix为例，如果Windows上的命令大不相同的话会再加上Windows上的命令。）
+
+在一个单独的目录里创建Rust程序：
+\begin{minted}{bash}
+    $ cd /home/jimb
+    $ cargo new --bin git-toy
+         Created binary (application) `git-toy` package
+\end{minted}
+
+复制我们之前展示的代码并粘贴到\emph{src/main.rs}里。当然，如果你尝试构建，Rust会不知道在哪查找你构建的\texttt{libgit2}库：
+\begin{minted}{bash}
+    $ cd git-toy
+    $ cargo run
+       Compiling git-toy v0.1.0 (/home/jimb/git-toy)
+    error: linking with `cc` failed: exit code: 1
+       |
+       = note: /usr/bin/ld: error: cannot find -lgit2
+               src/main.rs:11: error: undefined reference to 'git_libgit2_init'
+               src/main.rs:12: error: undefined reference to 'git_libgit2_shutdown'
+               collect2: error: ld returned 1 exit status
+    
+    error: aborting due to previous error
+    error: could not complie `git-toy`
+    To learn more, run the command again with --verbose.
+\end{minted}
+
+你可以通过编写一个\emph{构建脚本}来告诉Rust在哪搜索这个库，构建脚本是Cargo会在编译期编译并运行的Rust代码。构建脚本可以做很多事：动态生成代码，编译要被包含在crate中的C代码等等。在这个例子中，你需要做的只是向可执行文件的链接命令中添加一个库的搜索路径。当Cargo运行构建脚本时，它会解析构建脚本的输出来获取这类信息，因此构建脚本只需要把正确的信息打印到标准输出就可以了。
+
+为了创建你自己的构建脚本，在\emph{Cargo.toml}所在的目录下添加一个叫\emph{build.rs}的文件，内容如下：
+\begin{minted}{Rust}
+    fn main() {
+        println!(r"cargo:rustc-link-search=native=/home/jimb/libgit2-0.25.1/build");
+    }
+\end{minted}
+
+这是Linux上的正确路径；在Windows上，你应该把\texttt{native=}之后的路径替换为\texttt{C:\textbackslash{}Users\textbackslash{}JimB\textbackslash{}liggit2-0.25.1\textbackslash{}build\textbackslash{}Debug}。（我们忽略了一些细节来保证这个例子的简洁；在一个真实的应用中，你应该避免在构建脚本中使用绝对路径。我们在本节结尾给出了如何正确实现这一点的文档。）
+
+现在你基本上可以运行这个程序了。在macOS上它可能可以立即工作；但在Linux系统上你可能会看到类似这样的输出：
+\begin{minted}{bash}
+    $ cargo run
+       Compiling git-toy v0.1.0 (/tmp/rustbook-transcript-tests/git-toy)
+        Finished dev [unoptimized + debuginfo] target(s)
+         Running `target/debug/git-toy`
+    target/debug/git-toy: error while loading shared libraries: libgit2.so.25: cannot open shared object file:
+    no such file or directory
+\end{minted}
+
+意思是说，尽管Cargo成功地把可执行文件链接到了库，但它不知道怎么在运行时找到共享库。在Windows上通过弹出一个对话框来报告这个错误。在Linux上，你必须设置\texttt{LD\_LIBRARY\_PATH}环境变量：
+\begin{minted}{bash}
+    $ export LD_LIBRARY_PATH=/home/jimb/libgit2-0.25.1/build:$LD_LIBRARY_PATH
+    $ cargo run
+        Finished dev [unoptimized + debuginfo] target(s) in 0.0 secs
+         Running `target/debug/git-toy`
+\end{minted}
+
+在macOS上，你可能需要设置\texttt{DYLD\_LIBRARY\_PATH}。
+
+在Windows上，你必须设置\texttt{PATH}环境变量：
+\begin{minted}{PowerShell}
+    > set PATH=C:\Users\JimB\libgit2-0.25.1\build\Debug;%PATH%
+    > cargo run
+        Finished dev [unoptimized + debuginfo] target(s) in 0.0 secs
+         Running `target/debug/git-toy`
+    >
+\end{minted}
+
+当然，在一个要部署的应用中你可能想避免只为了寻找你的库而修改环境变量。一种替代方案是把C库静态链接到你的crate里。这会把库的目标文件拷贝到crate的\emph{.rlib}文件里，和这个crate中的Rust代码生成的目标文件和元数据放在一起。然后这整个集合会参与最终的链接。
+
+Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}，其中\texttt{LIB}是C库的名称。一个\texttt{-sys} crate应该只包含静态链接的库和包含\texttt{extern}块和类型定义的Rust模块。更高层的接口应该应该在依赖\texttt{-sys} crate的crate中实现。这允许多个上游的crate依赖同一个\texttt{-sys} crate，假设有一个版本的\texttt{-sys} crate可以满足每个上游的需要。
+
+有关Cargo的构建脚本和与系统库的链接的完整文档见\href{https://doc.rust-lang.org/cargo/reference/build-scripts.html}{在线Cargo文档}。它展示了如何在构建脚本中避免绝对路径、控制编译选项、使用例如\texttt{pkg-config}的工具，等等。\texttt{git2-rs} crate也提供了模仿的好例子：它的构建脚本处理了一些很复杂的情况。
+
+\section{一个libgit2的原始接口}
 
 
 \section{一个libgit2的安全接口}\label{SafeInter}
