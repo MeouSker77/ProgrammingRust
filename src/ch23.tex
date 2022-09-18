@@ -348,6 +348,253 @@ Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}�
 有关Cargo的构建脚本和与系统库的链接的完整文档见\href{https://doc.rust-lang.org/cargo/reference/build-scripts.html}{在线Cargo文档}。它展示了如何在构建脚本中避免绝对路径、控制编译选项、使用例如\texttt{pkg-config}的工具，等等。\texttt{git2-rs} crate也提供了模仿的好例子：它的构建脚本处理了一些很复杂的情况。
 
 \section{一个libgit2的原始接口}
+如何正确地使用\texttt{libgit2}可以分解为两个问题：
+\begin{enumerate}
+    \item 如何在Rust中使用\texttt{libgit2}的函数？
+    \item 如何通过它们构建一个safe Rust的接口？
+\end{enumerate}
 
+我们将逐一解决这两个问题。在本节中，我们将编写一个程序，它基本上是一个巨大的\texttt{unsafe}块，充满了不规范的Rust代码，它反映了类型系统和惯例的冲突，这也是混合语言编程所固有的特点。我们称其为\emph{原始（raw）}接口。它的代码可能有些凌乱，但它能展出出Rust代码使用\texttt{libgit2}时必须的所有步骤。
+
+然后，在下一节中，我们将构建一个\texttt{libgit2}的safe接口，它使用Rust的类型来强迫\emph{libgit2}对使用者隐含的要求。幸运的是，\texttt{libgit2}是一个设计的非常好的C库，因此Rust的安全性要求的问题都有很好的答案，并且我们可以构建出没有\texttt{unsafe}函数的规范的Rust接口。
+
+我们要写的程序非常简单：它以命令行参数的形式接受一个路径，打开那里的Git仓库，然后打印出head commit的信息。但这足以用来展示构建safe和规范的Rust接口的关键策略。
+
+对于原始接口，程序需要很多\texttt{libgit2}中的函数和类型，因此把\texttt{extern}块移动到它自己的模块是有意义的。我们将在\emph{git-toy/src}中创建一个叫\emph{raw.rs}的文件，内容如下：
+\begin{minted}{Rust}
+    #![allow(non_camel_case_types)]
+
+    use std::os::raw::{c_int, c_char, c_uchar};
+
+    #[link(name = "git2")]
+    extern {
+        pub fn git_libgit2_init() -> c_int;
+        pub fn git_libgit2_shutdown() -> c_int;
+        pub fn giterr_last() -> *const git_error;
+
+        pub fn git_repository_open(out: *mut *mut git_repository,
+                                   path: *const c_char) -> c_int;
+        
+        pub fn git_repository_free(repo: *mut git_repository);
+        
+        pub fn git_reference_name_to_id(out: *mut git_oid,
+                                        repo: *mut git_repository,
+                                        reference: *const c_char) -> c_int;
+        
+        pub fn git_commit_lookup(out: *mut *mut git_commit,
+                                 repo: *mut git_repository,
+                                 id: *const git_oid) -> c_int;
+
+        pub fn git_commit_author(commit: *const git_commit) -> *const git_signature;
+        pub fn git_commit_message(commit: *const git_commit) -> *cosnt c_char;
+        pub fn git_commit_free(commit: *mut git_commit);
+    }
+
+    #[repr(C)] pub struct git_repository { _private: [u8; 0] }
+    #[repr(C)] pub struct git_commit { _private: [u8; 0] }
+
+    #[repr(C)]
+    pub struct git_error {
+        pub message: *const c_char,
+        pub klass: c_int
+    }
+
+    pub const GIT_OID_RAWSZ: usize = 20;
+
+    #[repr(C)]
+    pub struct git_oid {
+        pub id: [c_uchar; GIT_OID_RAWSZ]
+    }
+
+    pub type git_time_t = i64;
+
+    #[repr(C)]
+    pub struct git_time {
+        pub time: git_time_t,
+        pub offset: c_int
+    }
+
+    #[repr(C)]
+    pub struct git_signature {
+        pub name: *const c_char,
+        pub email: *const c_char,
+        pub when: git_time
+    }
+\end{minted}
+
+其中每一项都是根据\texttt{libgit2}的头文件来声明的。例如\emph{libgit2-0.25.1/include/git2/repository.h}包含这个声明：
+\begin{minted}{C}
+    extern int git_repository_open(git_repository **out, const char *path);
+\end{minted}
+
+这个函数尝试打开\texttt{path}处的Git仓库。如果一切顺利，它会创建一个\texttt{git\_repository}对象并把该对象的指针存储在\texttt{out}指向的位置。等价的Rust声明如下：
+\begin{minted}{Rust}
+    pub fn git_repository_open(out: *mut *mut git_repository,
+                               path: *const c_char) -> c_int;
+\end{minted}
+
+\texttt{libgit2} public的头文件使用typedef定义了一个不完全的\texttt{git\_repository}类型：
+\begin{minted}{C}
+    typedef struct git_repository git_repository;
+\end{minted}
+
+因为这个类型的详情是private的，因此public的头文件中并没有定义\texttt{struct git\_repository}，以确保库的使用者永远不能自己构造这个类型的实例。在Rust中一种可行的定义不完全的struct类型的方法是：
+\begin{minted}{Rust}
+    #[repr(C)] pub struct git_repository { _private: [u8; 0] }
+\end{minted}
+
+这个struct类型包含一个没有元素的数组。因为\texttt{\_private}字段不是\texttt{pub}的，所以不能在这个模块之外构造这个类型的值，正好对应了\texttt{libgit2}中不应该手动构造的类型。这种类型只能通过原始指针来进行操作。
+
+手动编写一个巨大的\texttt{extern}块可能会很繁琐。如果你正在编写一个复杂的C库的Rust接口，你可能会想尝试\texttt{bindgen} crate，它包含一些可以在构建脚本中使用的函数，这些函数可以解析C头文件并自动生成相应的Rust声明。这里我们没有篇幅去介绍\texttt{bindgen}，但\href{https://crates.io/crates/bindgen}{crates.io上的\texttt{bindgen}的页面}包含了它的文档的链接。
+
+接下来我们将完全重写\emph{main.rs}。首先，我们需要声明\texttt{raw}模块：
+\begin{minted}{Rust}
+    mod raw;
+\end{minted}
+
+根据\texttt{libgit2}的惯例，可能失败的函数返回一个整数码，成功时整数码为正数或者0，失败时整数码为负数。如果有错误发生，\texttt{giterr\_last}函数将会返回一个\texttt{git\_error}结构体的指针，这个结构体会提供更多有关错误的细节。\texttt{libgit2}持有这个结构体，所以我们不需要自己free它，但它可能被后续的调用覆盖。一个恰当的Rust接口应该使用\texttt{Result}，但是在原始的版本中，我们将按照\texttt{libgit2}的方式使用它的函数，因此我们将编写我们自己的函数来处理错误：
+\begin{minted}{Rust}
+    use std::ffi::CStr;
+    use std::os::raw::c_int;
+
+    fn check(activity: &'static str, status: c_int) -> c_int {
+        if status < 0 {
+            unsafe {
+                let error = &*raw::giterr_last();
+                println!("error while {}: {} ({})", activity,
+                         CStr::from_ptr(error.message).to_string_lossy(),
+                         error.klass);
+                std::process::exit(1);
+            }
+        }
+        status
+    }
+\end{minted}
+
+我们将使用这个函数检查\texttt{libgit2}调用的结果：
+\begin{minted}{Rust}
+    check("initializing library", raw::git_libgit2_init());
+\end{minted}
+
+这里使用了之前用过的\texttt{CStr}的方法：使用\texttt{from\_ptr}来从C字符串构造一个\texttt{CStr}，使用\texttt{to\_string\_lossy}来把它转换成Rust可以打印的类型。
+
+接下来，我们需要一个函数来打印出一次commit：
+\begin{minted}{Rust}
+    unsafe fn show_commit(commit: *const raw::git_commit) {
+        let author = raw::git_commit_author(commit);
+
+        let name = CStr::from_ptr((*author).name).to_string_lossy();
+        let email = CStr::from_ptr((*author).email).to_string_lossy();
+        println!("{} <{}>\n", name, email);
+
+        let message = raw::git_commit_message(commit);
+        println!("{}", CStr::from_ptr(message).to_string_lossy());
+    }
+\end{minted}
+
+给定一个\texttt{git\_commit}的指针，\texttt{show\_commit}会调用\texttt{git\_commit\_author}和\texttt{git\_commit\_message}来获取它需要的信息。这两个函数遵循了\texttt{libgit2}在文档中解释了的一个惯例：
+
+\emph{如果一个函数返回一个对象作为返回值，那个这个函数是一个getter，并且对象的生命周期被绑定到父对象上。}
+
+用Rust的术语来说就是，\texttt{author}和\texttt{message}是从\texttt{commit}的借用，所以\texttt{show\_commit}不需要自己释放它们，但它绝对不能在\texttt{commit}被释放之后仍然持有它们。因为这个API使用了原始指针，所以Rust不会为我们检查它们的生命周期：如果我们意外地创建了悬垂指针，可能直到程序崩溃时我们才会发现。
+
+上面的代码假设这些字段都持有UTF-8文本，但这个假设并不总是正确的。Git也允许其他的编码。正确地解析这些字符串可能需要使用\texttt{encoding} crate。为了保持简洁，我们在这里忽略这些问题。
+
+我们程序的\texttt{main}函数如下：
+\begin{minted}{Rust}
+    use std::ffi::CString;
+    use std::mem;
+    use std::ptr;
+    use std::os::raw::c_char;
+
+    fn main() {
+        let path = std::env::args().skip(1).next()
+            .expect("usage: git-toy PATH");
+        let path = CString::new(path)
+            .expect("path contains null characters");
+
+        unsafe {
+            check("initializing library", raw::git_libgit2_init());
+
+            let mut repo = ptr::null_mut();
+            check("opening repository",
+                  raw::git_repository_open(&mut repo, path.as_ptr()));
+                
+            let c_name = b"HEAD\0".as_ptr() as *const c_char;
+            let oid = {
+                let mut oid = mem::MaybeUninit::uninit();
+                check("looking up HEAD",
+                      raw::git_reference_name_to_id(oid.as_mut_ptr(), repo, c_name));
+                oid.assume_init()
+            };
+
+            let mut commit = ptr::null_mut();
+            check("looking up commit",
+                  raw::git_commit_lookup(&mut commit, repo, &oid));
+            
+            show_commit(commit);
+
+            raw::git_commit_free(commit);
+
+            raw::git_repository_free(repo);
+
+            check("shutting down library", raw::git_libgit2_shutdown);
+        }
+    }
+\end{minted}
+
+这段代码首先处理path参数并初始化库，都是我们之前见过的内容。第一行有趣的代码是：
+\begin{minted}{Rust}
+    let mut repo = ptr::null_mut();
+    check("opening repository",
+          raw::git_repository_open(&mut repo, path.as_ptr()));
+\end{minted}
+
+对\texttt{git\_repository\_open}的调用会尝试在打开指定路径的Git仓库。如果它成功了，它会分配一个新的\texttt{git\_repository}对象并设置\texttt{repo}指向它。Rust隐式把引用转换成原始指针，因此这里传递的\texttt{\&mut repo}提供了调用所需的\texttt{*mut *mut git_repository}参数。
+
+这里展示了另一个\texttt{libgit2}在使用中的惯例（摘自\texttt{libgit2}的文档）：
+
+\emph{以指针的指针形式的第一个参数返回的对象由调用者持有，调用者负责释放它们。}
+
+用Rust的术语来说就是，像\texttt{git\_repository\_open}这样的函数会把新值传递给调用者。
+
+接下来，考虑查找仓库当前head commit的对象哈希值的代码：
+\begin{minted}{Rust}
+    let oid = {
+        let mut oid = mem::MaybeUninit::uninit();
+        check("looking up HEAD",
+              raw::git_reference_name_to_id(oid.as_mut_ptr(), repo, c_name));
+        oid.assume_init()
+    };
+\end{minted}
+
+\texttt{git\_oid}类型存储了一个对象的标识符——Git内部使用的一个160位的哈希值，Git使用它来识别commit、文件的不同版本，等等。对\texttt{git\_reference\_name\_to\_id}的调用会查找当前\texttt{"HEAD"} commit的对象标识符。
+
+在C语言中向函数传递一个指针，然后在函数里填充指针指向对象的值是一种非常常用的初始化变量的方法，\texttt{git\_reference\_name\_to\_id}的第一个参数也是这样的。但是Rust不允许我们借用一个未初始化变量的引用。我们可以用0值初始化\texttt{oid}，但这是一种浪费：因为之后存储在这里的值都会被覆盖。
+
+要求Rust给我们未初始化的内存是可行的，但因为在任何时刻读取未初始化的内存都是未定义行为，因此Rust提供了一个抽象\texttt{MaybeUninit}来方便使用。\texttt{MaybeUninit<T>}告诉编译器为你的类型\texttt{T}分配足够的内存空间，但并不能访问这块空间，直到你声明现在已经可以安全地访问了。当这块内存的所有权属于\texttt{MaybeUninit}时，编译器也可以避免一些可能会导致未定义行为的特殊优化，否则即使你没有在代码中显式地访问未初始化的内存，这些优化也可能导致未定义行为。
+
+\texttt{MaybeUninit}提供了一个方法\texttt{as\_mut\_ptr()}，它产生一个指向它持有的未初始化内存的\texttt{*mut T}指针。把这个指针传给用于初始化内存的外部函数，然后调用\texttt{MaybeUninit}的unsafe的\texttt{assume\_init}方法来产生一个完全初始化过的\texttt{T}。这样既不会有先初始化后立刻重新初始化的开销，也可以避免未定义行为。\texttt{assume\_init}是unsafe的，因为如果在并没有正确初始化的内存上调用它会立刻导致未定义行为。
+
+在这个例子中是安全的，因为\texttt{git\_reference\_name\_to\_id}会初始化\texttt{MaybeUninit}拥有的内存。我们也可以将\texttt{MaybeUninit}用于\texttt{repo}和\texttt{commit}变量，但因为它们只是单个字，所以我们只是直接将它们初始化为空：
+\begin{minted}{Rust}
+    let mut commit = ptr::null_mut();
+    check("looking up commit",
+          raw::git_commit_lookup(&mut commit, repo, &oid));
+\end{minted}
+
+这里接受commit的对象标识符然后查找commit，成功时把一个\texttt{git\_commit}对象的指针存储在\texttt{commit}中。
+
+\texttt{main}函数的其他部分应该是不言自明的。它调用了之前定义的\texttt{show\_commit}函数，然后释放了commit和repository对象，最后关闭了库。
+
+现在我们可以在任何Git仓库上尝试我们的程序：
+\begin{minted}{bash}
+    $ cargo run /home/jimb/rbattle
+        Finished dev [unoptimized + debuginfo] target(s) in 0.0 secs
+         Running `target/debug/git-toy /home/jimb/rbattle`
+    Jim Blandy <jimb@red-bean.com>
+
+    Animate goop a bit.
+\end{minted}
 
 \section{一个libgit2的安全接口}\label{SafeInter}
