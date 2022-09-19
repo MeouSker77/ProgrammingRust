@@ -630,10 +630,10 @@ Rust有三种表示一系列值的类型：
 \begin{itemize}
     \item 类型\texttt{[T; N]}表示一个有\texttt{N}个值的数组，每个元素的类型都是\texttt{T}。每个数组的长度必须在编译期已知，并且是类型的一部分。你不能添加新元素或者缩减元素。
     \item 类型\texttt{Vec<T>}，是类型\texttt{T}的向量。它是动态分配、可增长的类型\texttt{T}的值的序列。vector的元素存储在堆中，所以你可以按需更改vector的大小：可以添加新的元素、附加其它vector、删除元素等。
-    \item 类型\texttt{\&[T]}和\texttt{\&mut [T]}分别是类型\texttt{T}的共享切片和可变切片，它们是数组或vector等其它值中的一部分元素的引用。你可以把切片可做一个指向第一个元素的指针再加上一个可以访问的元素的数量。一个可变的切片\texttt{\&mut [T]}让你可以读取并修改元素，但不能被共享；共享的切片\texttt{\&[T]}允许你在多个读者间共享数据，但不能修改元素。
+    \item 类型\texttt{\&[T]}和\texttt{\&mut [T]}分别是类型\texttt{T}的共享切片和可变切片，它们是数组或vector等其它值中的一部分元素的引用。你可以把切片当做一个指向第一个元素的指针再加上一个可访问的元素数量。一个可变的切片\texttt{\&mut [T]}让你可以读取并修改元素，但不能被共享；共享的切片\texttt{\&[T]}允许你在多个读者间共享数据，但不能修改元素。
 \end{itemize}
 
-如果\texttt{v}是这三种类型中的任意一种，那么表达式\texttt{v.len()}返回\texttt{v}中元素的数量，\texttt{v[i]}返回\texttt{v}中的第\texttt{i+1}个元素。第一个元素是\texttt{v[0]}，最后一个元素是\texttt{v[v.len() - 1]}。Rust会检查\texttt{i}是否在范围内，如果超过了长度范围，表达式会panic。\texttt{v}的长度可能是0，这时任何索引操作都会panic。\texttt{i}必须是\texttt{usize}类型的值，你不能使用任何其他整数类型当作索引。
+如果\texttt{v}是这三种类型中的任意一种，那么表达式\texttt{v.len()}返回\texttt{v}中元素的数量，\texttt{v[i]}返回\texttt{v}中的第\texttt{i+1}个元素。第一个元素是\texttt{v[0]}，最后一个元素是\texttt{v[v.len() - 1]}。Rust会检查\texttt{i}是否在范围内，如果超过了长度范围，表达式会panic。\texttt{v}的长度可能是0，这时任何索引操作都会panic。\texttt{i}必须是\texttt{usize}类型的值，你不能使用任何其它整数类型当作索引。
 
 \subsection{数组}
 创建一个数组有几种方式。最简单的方式是用方括号括起来的一系列值：
