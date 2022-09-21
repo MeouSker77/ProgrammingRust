@@ -76,15 +76,19 @@
     #1
 }
 
+% Document
 \begin{document}
     \frontmatter
+    \setcounter{secnumdepth}{0}
     \pagestyle{front}
+    \phantomsection
     \pdfbookmark[0]{目录}{\indexname}
     \tableofcontents
     \include{preface}
     \include{translator}
 
     \mainmatter
+    \setcounter{secnumdepth}{2}
     \pagestyle{main}
     \include{ch01}
     \include{ch02}
@@ -109,4 +113,5 @@
     \include{ch21}
     \include{ch22}
     \include{ch23}
+    \backmatter
 \end{document}
