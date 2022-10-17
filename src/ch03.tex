@@ -496,7 +496,7 @@ Rust使用\texttt{char}表示单个字符，但使用UTF-8编码字符串和文�
 
 一个\texttt{char}总是存储一个在0x0000到0xD7FF或0xE000到0x10FFFF之间的Unicode码点。一个\texttt{char}绝不会在两个范围之间（即0xD800到0xDFFF），也不会超出Unicode的编码空间（即大于0x10FFFF）。Rust使用类型系统和动态检查来确保\texttt{char}值总是在允许的范围内。
 
-Rust永远不会进行\texttt{char}和其他任何类型之间的隐式转换。你可以使用\texttt{as}转换运算符来把\texttt{char}转换为整数类型，对于小于32位的类型，字符值的高位会被截断：\footnote{译者注：这个例子中也省略了卡纳达语字符相关的内容}
+Rust永远不会进行\texttt{char}和其他任何类型之间的隐式转换。你可以使用\texttt{as}转换运算符来把\texttt{char}转换为整数类型，对于小于32位的类型，字符值的高位会被截断：\footnote{译者注：这个例子中也省略了卡纳达语字符相关的内容。}
 \begin{minted}{Rust}
     assert_eq!('*' as i32, 42);
 \end{minted}
@@ -589,23 +589,12 @@ Rust里则不同。Rust被设计为尽量减少内存分配。默认情况下Rus
 然而和C指针不同的是，Rust的引用永远不为空：在safe Rust中没有任何办法产生一个空引用。而且和C指针不同，Rust通过追踪值的所有权和生命周期，在编译期就可以杜绝悬垂指针、double free和指针失效的情况。
 
 Rust的指针有以下两种类型：
-\begin{flushleft}
-    \emph{\texttt{\&T}}
-\end{flushleft}
 
-\hangafter 0
-\hangindent 2em
-\noindent
-一个不可变的共享引用。你可以同时拥有同一个值的多个共享的引用，但它们都是只读的：修改它们指向的值是禁止的，就像C中的\texttt{const T*}一样。
+\codeentry{\&T}
+\hangparagraph{一个不可变的共享引用。你可以同时拥有同一个值的多个共享的引用，但它们都是只读的：修改它们指向的值是禁止的，就像C中的\texttt{const T*}一样。}
 
-\begin{flushleft}
-    \emph{\texttt{\&mut T}}
-\end{flushleft}
-
-\hangafter 0
-\hangindent 2em
-\noindent
-一个可变的、独占的应用。你可以读写它指向的值，类似于C中的\texttt{T*}。但只要这个引用存在，你不能再持有任何这个值的其他任何类型的引用。事实上，这时候你唯一可以访问这个值的方法就是通过这个可变引用。
+\codeentry{\&mut T}
+\hangparagraph{一个可变的、独占的应用。你可以读写它指向的值，类似于C中的\texttt{T*}。但只要这个引用存在，你不能再持有任何这个值的其他任何类型的引用。事实上，这时候你唯一可以访问这个值的方法就是通过这个可变引用。}
 
 Rust使用这种方式来区分共享和可变的引用，以此来强制执行“单个写者或多个读者”规则：要么你可以读写值，要么它只能被任何数量的读者共享。这种分隔由编译器检查来强制执行，它是Rust安全保证的核心。\hyperref[ch05]{第5章}解释了Rust中使用安全引用的规则。
 
