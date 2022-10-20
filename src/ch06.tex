@@ -6,9 +6,9 @@
     ——Alan Perlis, epigram \#55
 \end{flushright}
 
-在这一章中，我们将介绍Rust的\emph{表达式}，它是构成Rust函数体和大部分Rust代码的构建块。Rust中大部分都是表达式。在这一章中，我们将探索表达式的力量以及如何克服它的局限。我们还将介绍控制流，它在Rust中完全是以表达式为基础的，最后还要介绍Rust中的基本运算符如何单独和组合工作。
+在本章中，我们将介绍Rust的\emph{表达式}，它是构成Rust函数体和大部分Rust代码的构建块。本章将探索表达式的力量以及如何克服它的局限。我们还将介绍控制流，它在Rust中完全是以表达式为基础的，最后还要介绍Rust中的基本运算符如何单独和组合工作。
 
-还有一些从技术角度应该划入这一类的概念，例如闭包和迭代器，因为足够重要因此我们之后会用单独的章节介绍它们。现在，我们希望能用尽可能少的页数介绍尽可能多的语法。
+还有一些从技术角度应该划入这一类的概念，例如闭包和迭代器。但它们太过重要因此我们之后会用单独的章节介绍它们。现在，我们希望能用尽可能少的页数介绍尽可能多的语法。
 
 \section{表达式语言}
 
@@ -25,7 +25,7 @@ Rust表面上看上去像C家族的语言，但这其实是一个误解。在C�
 \end{minted}
 表达式有值，但语句没有。
 
-Rust是一种\emph{表达式语言}。这意味着它遵循了起源于Lisp的传统，也就是表达式负责完成所有工作。
+Rust是一种\emph{表达式语言}。这意味着它遵循了起源于Lisp的传统，即表达式负责完成所有工作。
 
 在C中，\texttt{if}和\texttt{switch}是语句。它们并不产生值，也不能被用在表达式中间。在Rust中，\texttt{if}和\texttt{match}\emph{可以}产生值。我们已经在\hyperref[ch02]{第2章}中看到过一个产生数字值的\texttt{match}表达式：
 \begin{minted}{Rust}
@@ -46,7 +46,7 @@ Rust是一种\emph{表达式语言}。这意味着它遵循了起源于Lisp的�
         };
 \end{minted}
 
-一个\texttt{match}表达式可以被用作函数参数或宏的参数：
+一个\texttt{match}表达式可以被用作函数或宏的参数：
 \begin{minted}{Rust}
     println!("Inside the vat, you see {}.",
         match vat.contents {
@@ -55,11 +55,11 @@ Rust是一种\emph{表达式语言}。这意味着它遵循了起源于Lisp的�
         });
 \end{minted}
 
-这解释了Rust为什么没有C的三元运算符\texttt{(expr1 ? expr2 : expr3))}。在C中，它是一种类似\texttt{if}语句的表达式。在Rust中这种写法是多余的，因为\texttt{if}表达式可以同时实现这两种功能。
+这解释了Rust为什么没有C的三元运算符\texttt{(expr1 ? expr2 : expr3)}。在C中，它是一种类似\texttt{if}语句的表达式。但在Rust中这种写法是多余的，因为\texttt{if}表达式可以同时实现这两种功能。
 
-C中的大部分控制流工具都是语句，在Rust中则全是表达式。
+C中的大部分控制流工具都是语句，而Rust中的控制流则全是表达式。
 
-\section{优先级和结合性}
+\section{优先级与结合性}
 
 \hyperref[t6-1]{表6-1}总结了Rust的表达式语法。我们将在这一章中介绍所有这些表达式。运算符按照优先级从高到低的顺序列出。（类似于大多数编程语言，Rust使用\emph{运算符优先级}来决定当表达式中含有多个运算符时的运算顺序。例如，在表达式\texttt{limit < 2 * broom.size + 1}中，\texttt{.}运算符优先级最高，因此会先访问字段。）
 
@@ -232,7 +232,7 @@ C中的大部分控制流工具都是语句，在Rust中则全是表达式。
 
 局部变量\texttt{name}有两种不同的初始化路径，但两条路径上它都只会被初始化一次，所以\texttt{name}不需要声明为\texttt{mut}。
 
-在变量初始化之前使用它会导致错误（这和使用被移动的值的错误紧密相关，Rust希望你只在变量的值存在时使用它们！）。
+在变量初始化之前使用它会导致错误（这和使用被move的值的错误紧密相关，Rust希望你只在变量的值存在时使用它们！）。
 
 你有时可能会看到代码似乎重新声明一个已经存在的变量，例如：
 \begin{minted}{Rust}
@@ -242,7 +242,8 @@ C中的大部分控制流工具都是语句，在Rust中则全是表达式。
     }
 \end{minted}
 
-\texttt{let}声明创建了一个新的、类型不同的、第二个变量\texttt{line}。第一个\texttt{line}的类型是\texttt{Result<String, io::Error>}，第二个\texttt{line}是一个\texttt{String}。第二个声明在块的剩余部分会取代第一个。这被称为\emph{遮蔽(shadowing)}，在Rust程序中非常常见。上面的代码等价于：
+\texttt{let}声明创建了一个新的、类型不同的、第二个变量\texttt{line}。第一个\texttt{line}的类型是\\
+\texttt{Result<String, io::Error>}，第二个\texttt{line}是一个\texttt{String}。第二个声明在块的剩余部分会取代第一个。这被称为\emph{遮蔽(shadowing)}，在Rust程序中非常常见。上面的代码等价于：
 \begin{minted}{Rust}
     for line_result in file.lines() {
         let line = line_result?;
@@ -250,7 +251,7 @@ C中的大部分控制流工具都是语句，在Rust中则全是表达式。
     }
 \end{minted}
 
-在这本书中，我们将坚持在这种场景中使用\texttt{\_result}后缀，来保证变量的名字不同。
+在本书中，我们将坚持在这种场景中使用\texttt{\_result}后缀，来保证变量的名字不同。
 
 一个块还可以包含\emph{item declarations}。一个item是一个可以出现在全局或模块中的声明，例如\texttt{fn}、\texttt{struct}、\texttt{use}。
 
@@ -292,7 +293,7 @@ C中的大部分控制流工具都是语句，在Rust中则全是表达式。
 
 每一个\texttt{condition}都必须是\texttt{bool}类型的表达式，Rust不会隐式地将数字或者指针类型转换为布尔值。
 
-和C不同的是条件表达式不需要括号，事实上如果有不必要的括号的话，\texttt{rustc}会发出警告。然而，花括号是必须的。
+和C不同的是条件表达式不需要括号，事实上如果有不必要的括号的话，\texttt{rustc}会发出警告。不过花括号是必须的。
 
 \texttt{else if}块，和最后的\texttt{else}都是可选的。一个没有\texttt{else}块的\texttt{if}表达式类似于一个\texttt{else}块为空的\texttt{if}表达式。
 
@@ -307,7 +308,8 @@ C中的大部分控制流工具都是语句，在Rust中则全是表达式。
 \end{minted}
 这类似于一个\texttt{switch}语句，\texttt{match}表达式的四条分支里只有一条会执行，取决于\texttt{code}的值。通配符模式\texttt{\_}可以匹配任何情况，类似于\texttt{switch}语句中的\texttt{default:}标签，不过它会覆盖之后的所有模式，它之后的模式将永远不会匹配到任何东西（出现这种情况时编译器也会警告你）。
 
-编译器可以使用跳转表来优化这种\texttt{match}表达式，类似于C++中的\texttt{switch}语句。当\texttt{match}的每个分支都返回常量值时还会有一个类似的优化，这种情况下，编译器会用那些值构建一个数组，然后\texttt{match}会被编译为一次数组访问，这种情况下除了边界检查之外，编译出的代码将不会有任何条件分支。
+编译器可以使用跳转表来优化这种\texttt{match}表达式，类似于C++中的\texttt{switch}语句。当\texttt{match}\\
+的每个分支都返回常量值时还会有一个类似的优化，这种情况下，编译器会用那些值构建一个数组，然后\texttt{match}会被编译为一次数组访问，这种情况下除了边界检查之外，编译出的代码将不会有任何条件分支。
 
 每个分支中\texttt{=>}左侧支持多种\emph{模式}，这是\texttt{match}功能强大的根源。上边的例子中，每种模式都只是一个简单的整数。我们还展示过区分\texttt{Option}的两种值的\texttt{match}表达式：
 \begin{minted}{Rust}
@@ -427,6 +429,7 @@ Rust会从第一个分支开始，逐个检查\texttt{value}和给定的模式�
         printf("%d\n", i);
     }
 \end{minted}
+
 用Rust来写的话就是：
 \begin{minted}{Rust}
     for i in 0..20 {
@@ -435,7 +438,7 @@ Rust会从第一个分支开始，逐个检查\texttt{value}和给定的模式�
 \end{minted}
 和C语言一样，最后一个打印出的数字是\texttt{19}。
 
-\texttt{..}运算符会产生一个\emph{范围}，它是一个只有两个字段\texttt{start}和\texttt{end}的简单结构体。\texttt{0..20}等价于\texttt{std::ops::Range { start: 0, end: 20 }}。范围可以用于\texttt{for}循环，因为\texttt{Range}是可以迭代的类型，它实现了\texttt{std::iter::IntoIterator} trait，我们将在\hyperref[ch15]{第15章}中讨论这些。标准集合都是可迭代的，数组和切片也是。
+\texttt{..}运算符会产生一个\emph{范围}，它是一个只有两个字段\texttt{start}和\texttt{end}的简单结构体。\texttt{0..20}等价于\texttt{std::ops::Range \{ start: 0, end: 20 \}}。范围可以用于\texttt{for}循环，因为\texttt{Range}是可以迭代的类型，它实现了\texttt{std::iter::IntoIterator} trait，我们将在\hyperref[ch15]{第15章}中讨论这些。标准集合都是可迭代的，数组和切片也是。
 
 为了保持Rust中的移动语义，\texttt{for}循环会消耗掉值：
 \begin{minted}{Rust}
@@ -443,7 +446,7 @@ Rust会从第一个分支开始，逐个检查\texttt{value}和给定的模式�
     for s in strings {          // 每一个String被移动进s
         println!("{}", s);
     }                           // 并在这里drop
-    println!("{} error(s)", strings.len()); // error: use of moved value
+    println!("{} error(s)", strings.len()); // 错误：使用了被move的值
 \end{minted}
 
 这样可能会很不方便，一个简单的方法是让循环获取集合的引用。然后循环变量将会变成集合中每一个元素的引用：
@@ -506,7 +509,7 @@ Rust会从第一个分支开始，逐个检查\texttt{value}和给定的模式�
 
 一个循环可以用一个生命周期\emph{标记}。在下面的例子中，\texttt{'search}是一个外层\texttt{for}循环的标签。因此\texttt{break 'search}会退出外层循环，而不是内层循环：
 \begin{minted}{Rust}
-    'search
+    'search:
     for room in apartment {
         for spot in room.hiding_spots() {
             if spot.contains(keys) {
@@ -567,7 +570,7 @@ Rust会从第一个分支开始，逐个检查\texttt{value}和给定的模式�
 
 否则， 我们会匹配到\texttt{Err(err)}，然后触发\texttt{return}表达式。此时我们正在求值一个\texttt{match}表达式，来决定变量\texttt{output}的值。但这都无所谓，我们会放弃所有任务，直接退出函数，并返回我们从\texttt{File::create()}得到的错误。
 
-我们将在“\hyperref[properror]{传播错误}”一节中详细介绍\texttt{?}运算符。
+我们将在\hyperref[properror]{传播错误}一节中详细介绍\texttt{?}运算符。
 
 \section{Rust为什么会有loop循环}
 
@@ -631,14 +634,15 @@ Rust的类型系统也会被控制流影响。之前我们说过\texttt{if}表�
 
 在第二个例子中，\texttt{player}是一个编造的\texttt{Player}类型的变量，它有一个\texttt{.location()}方法。（我们将在\hyperref[ch09]{第9章}中讨论自定义类型时展示如何定义自己的方法。）
 
-Rust通常会严格区分引用和它指向的值。如果你向接收\texttt{i32}的函数传递\texttt{\&i32}，将会引发类型错误。不过你会注意到\texttt{.}运算符放宽了这个限制，在方法调用\texttt{player.location()}中，\texttt{player}可以是一个\texttt{Player}、也可以是一个引用类型\texttt{\&Player}、也可以是智能指针类型\texttt{Box<Player>}或者\texttt{Rc<Player>}。\texttt{.location()}方法可能会以值也可能会以引用获取参数，同样的\texttt{.location()}语法可以适用于所有情况，因为Rust的\texttt{.}运算符会根据需要自动解引用\texttt{player}或者获取它的引用。
+Rust通常会严格区分引用和它指向的值。如果你向接收\texttt{i32}的函数传递\texttt{\&i32}，将会引发类型错误。不过你会注意到\texttt{.}运算符放宽了这个限制，在方法调用\texttt{player.location()}中，\texttt{player}可以是一个\texttt{Player}、也可以是一个引用类型\texttt{\&Player}、也可以是智能指针类型\\
+\texttt{Box<Player>}或者\texttt{Rc<Player>}。\texttt{.location()}方法可能会以值也可能会以引用获取参数，同样的\texttt{.location()}语法可以适用于所有情况，因为Rust的\texttt{.}运算符会根据需要自动解引用\texttt{player}或者获取它的引用。
 
 第三种语法用于调用类型关联函数，例如\texttt{Vec::new()}：
 \begin{minted}{Rust}
     let mut numbers = Vec::new();   // 类型关联函数调用
 \end{minted}
 
-这类似于面向对象语言中的静态方法：方法在值上调用（例如\texttt{my\_vec.len()}），而类型关联函数在类型上调用（例如\texttt{Vec::new()}）。
+这类似于面向对象语言中的静态方法，方法在值上调用（例如\texttt{my\_vec.len()}），而类型关联函数在类型上调用（例如\texttt{Vec::new()}）。
 
 当然，方法调用可以被串联起来：
 \begin{minted}{Rust}
@@ -665,9 +669,9 @@ Rust语法中的一个怪异之处是，不能按照泛型类型的通常语法�
 
 另外，通常也可以省略类型参数，让Rust推断它们：
 \begin{minted}{Rust}
-    return Vec::with_capacity(10);  // ok, if the fn return type is Vec<i32>
+    return Vec::with_capacity(10);  // ok, 如果函数的返回类型是Vec<i32>
 
-    let ramp: Vec<i32> = (0 .. n).collect(); // ok, variable's type is given
+    let ramp: Vec<i32> = (0 .. n).collect(); // ok, 指定了变量的类型
 \end{minted}
 
 在可以推断出类型时省略类型是一种好的风格。
@@ -703,7 +707,7 @@ Rust语法中的一个怪异之处是，不能按照泛型类型的通常语法�
     let second_half = &game_moves[midpoint .. end];
 \end{minted}
 
-这里\texttt{game\_moves}可能是一个数组、切片或者是vector，结果将是一个长度为\texttt{end - midpoint}的切片，在\texttt{second\_half}的生命周期内\texttt{game\_moves}将被认为是被借用的。
+这里\texttt{game\_moves}可能是一个数组、切片或者是vector，结果将是一个长度为\texttt{end - midpoint}的切片，在\texttt{second\_half}的生命周期内\texttt{game\_moves}都处于被借用的状态。
 
 \texttt{..}运算符允许任意一边的操作数被省略，根据两边是否有操作数，它可以被划分为四种形式：
 \begin{minted}{Rust}
@@ -725,7 +729,7 @@ Rust语法中的一个怪异之处是，不能按照泛型类型的通常语法�
 
 只有包含start值的范围才可以迭代，因为一个循环必须有开始的地方。但在数组切片中，所有的六种形式都是有用的。如果起始值或终点值被省略了，将默认包含数组从起点开始的元素或者直到终点的元素。
 
-因此快速排序的一个实现，经典的分而治之排序算法，将类似于这样：
+因此快速排序的一个实现，经典的分治排序算法，将类似于这样：
 \begin{minted}{Rust}
     fn quicksort<T: Ord>(slice: &mut [T]) {
         if slice.len() <= 1 {
@@ -832,9 +836,10 @@ Rust允许以下几种转换：
     
     其他方向的转换是不允许的，因为\texttt{bool}、\texttt{char}和\texttt{enum}都对它们的值有严格的要求，必须要进行运行时检查。例如，将一个\texttt{u16}数字转换为\texttt{char}类型是禁止的，因为一些\texttt{u16}值例如\texttt{0xd800}，对应Unicode的代理码点，因此不是有效的\texttt{char}类型值。有一个标准的方法\texttt{std::char::from\_u32()}来进行运行时检查并返回\texttt{Option<char>}。但需要指出的是，这种转换的需求非常少见。我们通常一次转换整个字符串或流，有关Unicode文本的算法通常是非平凡的，最好留给库来实现。
 
-    一个例外是，\texttt{u8}可以转换为\texttt{char}类型，因为0到255之间的所有整数都是有效的Unicode码点。
+    一个例外是，\texttt{u8}可以转换为\texttt{char}类型，因为0到255之间的所有整数都是有效的Unicode\\
+    码点。
 
-    \item 一些涉及unsafe指针类型的转换也是允许的。见“\hyperref[rawp]{原始指针}”一节。
+    \item 一些涉及unsafe指针类型的转换也是允许的。见\hyperref[rawp]{原始指针}一节。
 \end{itemize}
 
 我们说转换\emph{通常}需要显式的转换。但少数涉及引用类型的转换非常直观以至于语言可以自动完成而不需要显式转换。一个小例子是把\texttt{mut}引用转换为non-\texttt{mut}引用。
@@ -848,7 +853,7 @@ Rust允许以下几种转换：
 
 这些被称为\emph{强制解引用(deref coercions)}，因为它们适用于实现了内建的\texttt{Deref} trait的类型。\texttt{Deref}是为了智能指针类型设计的，例如\texttt{Box}，它的行为尽量和和底层的值类型保持一致。得益于\texttt{Deref}，使用\texttt{Box<Chessboard>}非常像在使用一个普通的\texttt{Chessboard}。
 
-用户自定义的类型也可以实现\texttt{Deref} trait。当你需要编写自己的智能指针类型时，见“\hyperref[deref]{Deref和DerefMut}”一节。
+用户自定义的类型也可以实现\texttt{Deref} trait。当你需要编写自己的智能指针类型时，见\hyperref[deref]{Deref和DerefMut}一节。
 
 \section{闭包}
 Rust支持\emph{闭包}：一种轻量的类似函数的值。一个闭包通常由被竖线包围的参数列表和一个表达式组成：
