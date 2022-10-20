@@ -21,7 +21,7 @@ Rust程序由\emph{crates}组成。每一个crate都是一个完整的、一体�
     \label{f8-1}
 \end{figure}
 
-查看crate是什么以及它们是如何工作的最简单方法就是使用带有\texttt{--verbose}参数的\texttt{cargo build}来构建一个有一些依赖的程序。我们用“\hyperref[mandelbrot]{一个并发的曼德勃罗集}”作为示例。结果如下所示：
+查看crate是什么以及它们是如何工作的最简单方法就是使用带有\texttt{--verbose}参数的\texttt{cargo build}来构建一个有一些依赖的程序。我们用\hyperref[mandelbrot]{一个并发的曼德勃罗集}作为示例。结果如下所示：
 \begin{minted}{text}
     $ cd mandelbrot
     $ cargo clean   # delete previously compiled code
@@ -63,7 +63,8 @@ Rust程序由\emph{crates}组成。每一个crate都是一个完整的、一体�
 
 我们重新格式化了\texttt{rustc}的命令行来改善可读性，并且删掉了很多和我们的讨论无关的编译器选项，用省略号(\ldots)代替了它们。
 
-你可能还记得，当我们完成曼德勃罗集程序时，它的\texttt{main.rs}包含几个引入其它crate的\texttt{use}声明：
+你可能还记得，当我们完成曼德勃罗集程序时，它的\emph{main.rs}包含几个引入其它crate的\\
+\texttt{use}声明：
 \begin{minted}{Rust}
     use num::Complex;
     // ...
@@ -71,7 +72,7 @@ Rust程序由\emph{crates}组成。每一个crate都是一个完整的、一体�
     use image::png::PNGEncoder;
 \end{minted}
 
-哦我们还在\texttt{Cargo.toml}中指定了每个crate的版本：
+我们还在\emph{Cargo.toml}中指定了每个crate的版本：
 \begin{minted}{toml}
     [dependencies]
     num = "0.4"
@@ -79,9 +80,9 @@ Rust程序由\emph{crates}组成。每一个crate都是一个完整的、一体�
     crossbeam = "0.8"
 \end{minted}
 
-这里的\emph{依赖}指这个程序使用的其它crate，也就是我们依赖的代码。我们可以在\href{https://crates.io}{crates.io}中找到这些crate，那是Rust社区用于存放开源的crate的网站。例如，我们可以访问crates.io并搜索图片库来找到\texttt{image}库。crates.io上的每个crate的页面上会显示它的\texttt{README.md}文件和到文档和源代码的链接，还有一行配置例如\texttt{image = "0.13"}，你可以复制这一行并添加到你的\texttt{Crago.toml}中。这里显示的版本号直接用了我们在编写这个程序时这三个包的最新版本。
+这里的\emph{依赖}指这个程序使用的其它crate，也就是我们依赖的代码。我们可以在\href{https://crates.io}{crates.io}中找到这些crate，那是Rust社区用于存放开源的crate的网站。例如，我们可以访问crates.io并搜索图片库来找到\texttt{image}库。crates.io上的每个crate的页面上会显示它的\emph{README.md}文件和到文档和源代码的链接，还有一行配置例如\texttt{image = "0.13"}，你可以复制这一行并添加到你的\emph{Crago.toml}中。这里显示的版本号直接用了我们在编写这个程序时这三个包的最新版本。
 
-Cargo的输出说明了这些信息是如何被使用的。当我们运行\texttt{cargo build}时，Cargo会首先从crates.io下载这些crate的指定版本的源码。然后，它读取那些crate的\texttt{Cargo.toml}文件，下载\emph{它们}的依赖，然后递归操作。例如，\texttt{image} crate的0.13.0版本的源代码中包含一个\texttt{Cargo.toml}文件，内容如下：
+Cargo的输出说明了这些信息是如何被使用的。当我们运行\texttt{cargo build}时，Cargo会首先从crates.io下载这些crate的指定版本的源码。然后，它读取那些crate的\emph{Cargo.toml}文件，下载\emph{它们}的依赖，然后递归操作。例如，\texttt{image} crate的0.13.0版本的源代码中包含一个\emph{Cargo.toml}文件，内容如下：
 \begin{minted}{toml}
     [dependencies]
     byteorder = "1.0.0"
@@ -93,13 +94,13 @@ Cargo的输出说明了这些信息是如何被使用的。当我们运行\textt
 
 看到这些内容，Cargo知道在它可以使用\texttt{image}之前，它必须先拉取这些crate。我们称它们为\texttt{mandelbrot}的\emph{间接(transitive)}依赖。所有这些依赖的集合告诉了Cargo需要知道的有关如何构建和构建顺序的一切信息，它被称为crate的\emph{依赖图}。Cargo自动处理依赖图和间接依赖的能力是程序员们付出时间和努力的一大胜利。
 
-当获得了源代码之后，Cargo会编译所有的crate。它会运行Rust的编译器\texttt{rustc}，一次编译依赖图中的一个crate。当编译这些库时，Cargo会使用\texttt{--crate-type lib}选项。这告诉\texttt{rustc}不要寻找\texttt{main()}函数，而是产生一个包含编译过代码的\texttt{.rlib}文件，这个文件可以被用于创建可执行文件和其他\texttt{.rlib}文件。
+当获得了源代码之后，Cargo会编译所有的crate。它会运行Rust的编译器\texttt{rustc}，一次编译依赖图中的一个crate。当编译这些库时，Cargo会使用\texttt{--crate-type lib}选项。这告诉\texttt{rustc}不要寻找\texttt{main()}函数，而是产生一个包含编译过代码的\emph{.rlib}文件，这个文件可以被用于创建可执行文件和其他\emph{.rlib}文件。
 
-当编译程序时，Cargo会使用\texttt{--crate-type bin}，编译的结果将是一个目标平台的二进制可执行文件：例如在Windows上就是\texttt{mandelbrot.exe}。
+当编译程序时，Cargo会使用\texttt{--crate-type bin}，编译的结果将是一个目标平台的二进制可执行文件：例如在Windows上就是\emph{mandelbrot.exe}。
 
-对于每一个\texttt{rustc}命令，Cargo都会传递\texttt{--extern}选项，给出crate用到的每一个库的名称。这样，当\texttt{rustc}看到一行类似于\texttt{use image::png::PNGEncoder}的代码时，它可以分辨出\texttt{image}是另一个crate的名字，而且Cargo传递的选项让它知道该从哪里寻找编译好的crate。Rust的编译器需要访问这些\texttt{.rlib}文件，因为它们包含编译好的库中的代码。Rust将会将代码静态链接到最终的可执行文件中。\texttt{.rlib}还包含类型信息，因此Rust可以通过检查确保我们在代码中使用的库的特性确实存在而且被正确使用。它还包含一份crate的public内联函数、泛型、宏、特性的拷贝，这些东西只有当Rust看到我们如何使用它们时才可以将它们编译为机器代码。
+对于每一个\texttt{rustc}命令，Cargo都会传递\texttt{--extern}选项，给出crate用到的每一个库的名称。这样，当\texttt{rustc}看到一行类似于\texttt{use image::png::PNGEncoder}的代码时，它可以分辨出\texttt{image}是另一个crate的名字，而且Cargo传递的选项让它知道该从哪里寻找编译好的crate。Rust的编译器需要访问这些\emph{.rlib}文件，因为它们包含编译好的库中的代码。Rust将会将代码静态链接到最终的可执行文件中。\emph{.rlib}还包含类型信息，因此Rust可以通过检查确保我们在代码中使用的库的特性确实存在而且被正确使用。它还包含一份crate的public内联函数、泛型、宏、特性的拷贝，这些东西只有当Rust看到我们如何使用它们时才可以将它们编译为机器代码。
 
-\texttt{cargo build}支持各种选项，其中的大部分都超出了本书的范围，不过我们在这里会提到其中一个：\texttt{cargo build --release}会生成优化后的构建。Release构建运行得更快，但需要更长的时间来编译，而且它们不检查整数溢出、跳过\texttt{debug\_assert!()}断言，并且它们在panic生成的堆栈追踪通常不太可靠。
+\texttt{cargo build}支持各种选项，其中的大部分都超出了本书的范围，不过我们在这里会提到其中一个：\texttt{cargo build --release}会生成优化后的构建。Release构建运行得更快，但需要更长的时间来编译，而且它们不检查整数溢出、跳过\texttt{debug\_assert!()}断言，并且它们在panic时生成的堆栈追踪通常不太可靠。
 
 \subsection{版本}
 
@@ -108,23 +109,23 @@ Rust有极强的兼容性保证。任何在Rust 1.0中能编译的代码必须�
 
 但有时社区会遇到一些令人信服的扩展语言的建议，这可能会导致旧代码不能再编译。例如，经过了多次讨论之后，Rust确定了一种支持异步编程的语法，将标识符\texttt{async}和\texttt{await}重新用作关键字（见\hyperref[ch20]{第20章}）。但这项语言的改变可能会导致使用\texttt{async}或者\texttt{await}作为变量名的代码不能再编译。
 
-为了在不破坏这些现有代码的前提下演变，Rust使用了\emph{版本}。Rust的2015版本和Rust 1.0兼容。2018版本将\texttt{async}和\texttt{await}改为关键字、精简了模块系统、还引入了一些和2015版本不兼容的其它语言更改。每个crate在\texttt{Cargo.toml}文件中的\texttt{package}节中用一行类似如下的说明指定Rust的版本：
+为了在不破坏这些现有代码的前提下演变，Rust使用了\emph{版本}。Rust的2015版本和Rust 1.0兼容。2018版本将\texttt{async}和\texttt{await}改为关键字、精简了模块系统、还引入了一些和2015版本不兼容的其它语言更改。每个crate在\emph{Cargo.toml}文件中的\texttt{package}节中用一行类似如下的说明指定Rust的版本：
 \begin{minted}{Rust}
     edition = "2018"
 \end{minted}
 
-如果缺少这个关键字，将会假设使用2015版本，因此旧的crate完全不需要做任何更改。但如果你想使用异步函数或者新的模块系统，你需要确保\texttt{Cargo.toml}中有\texttt{edition = "2018"}（或者可能更新的版本）。
+如果缺少这个关键字，将会假设使用2015版本，因此旧的crate完全不需要做任何更改。但如果你想使用异步函数或者新的模块系统，你需要确保\emph{Cargo.toml}中有\texttt{edition = "2018"}（或者可能更新的版本）。
 
 Rust保证编译器将总是接受语言的所有版本，并且程序可以自由混合使用不同版本编写的crate。即使一个2015版本的crate依赖一个2018版本的crate也没有问题。换句话说，一个crate的版本只影响它的代码是如何被构建的，版本的区别只体现在代码编译的时候。这意味着没有必要更新旧的版本来适配现代Rust的生态。类似的，也没有必要将crate保持在旧版本来避免影响到它的用户。你只需要在想使用新的语言特性时更改自己代码中的版本。
 
 版本并不是每年都会更新，只有当Rust项目觉得有必要出新版本的时候才会更新。例如，没有2020版本。把\texttt{edition}设置为\texttt{"2020"}将会导致错误。\href{https://doc.rust-lang.org/stable/edition-guide}{Rust版本指南}介绍了每一个版本中的变化，并提供了版本系统的背景知识。
 
-使用最新版本几乎总是一个好主意，尤其是新编写代码时。\texttt{cargo new}会默认创建最新版本的项目。这本书中将始终使用2018版本。
+使用最新版本几乎总是一个好主意，尤其是新编写代码时。\texttt{cargo new}会默认创建最新版本的项目。本书中将始终使用2018版本。
 
 如果你有一个用更旧版本的Rust编写的crate，\texttt{cargo fix}命令也许可以帮你自动把代码更新到更新的版本。Rust版本指南详细解释了\texttt{cargo fix}命令。
 
 \subsection{构建配置}
-有几个\texttt{Cargo.toml}中的配置选项可以影响到\texttt{cargo}生成的\texttt{rustc}命令行（\hyperref[t8-1]{表8-1}）。
+有几个\emph{Cargo.toml}中的配置选项可以影响到\texttt{cargo}生成的\texttt{rustc}命令行（\hyperref[t8-1]{表8-1}）。
 
 \begin{table}[htbp]
     \centering
@@ -132,7 +133,7 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
     \label{t8-1}
     \begin{tabular}{ll}
         \hline
-        \textbf{命令行}     & \texttt{使用到的Cargo.toml节}   \\
+        \textbf{命令行}     & \textbf{使用到的Cargo.toml节}   \\
         \hline
         \texttt{cargo build} & \texttt{[profile.dev]}   \\
         \rowcolor{tablecolor}
@@ -141,15 +142,16 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
     \end{tabular}
 \end{table}
 
-通常默认的行为就足够了，但我们会发现一个例外是你想使用一个profiler——一个用于测量程序使用CPU时间情况的工具。为了从profiler获取最准确的数据，你将同时需要优化（通常只在release构建中可用）和调试符号（通常只在debug构建中可用）。为了同时启用两者，在\texttt{Cargo.toml}中添加：
+通常默认的行为就足够了，但我们会发现一个例外是你想使用一个profiler——一个用于测量程序使用CPU时间情况的工具。为了从profiler获取最准确的数据，你将同时需要优化（通常只在release构建中可用）和调试符号（通常只在debug构建中可用）。为了同时启用两者，在\emph{Cargo.toml}中添加：
 \begin{minted}{toml}
     [profile.release]
     debug = true    # 允许在release构建中启用调试符号
 \end{minted}
 
-\texttt{debug}设置控制是否给\texttt{rustc}传递\texttt{-g}选项。有了这个配置，当你输入\texttt{cargo build --release}时，你将会得到一个带有调试符号的二进制文件。优化的设置将不会被影响。
+\texttt{debug}设置控制是否给\texttt{rustc}传递\texttt{-g}选项。有了这个配置，当你输入\\
+\texttt{cargo build --release}时，你将会得到一个带有调试符号的二进制文件。优化的设置将不会被影响。
 
-\href{https://doc.rust-lang.org/cargo/reference/manifest.html}{Cargo文档}中列出了很多其他你可以在\texttt{Cargo.toml}中调整的设置。
+\href{https://doc.rust-lang.org/cargo/reference/manifest.html}{Cargo文档}中列出了很多其他你可以在\emph{Cargo.toml}中调整的设置。
 
 \section{模块}
 
@@ -186,9 +188,9 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
     }
 \end{minted}
 
-一个模块是\emph{item}的集合，\texttt{item}是命名的特性例如例子中的\texttt{Spore}结构体和两个函数。\texttt{pub}关键字将item设为公有的，因此可以从模块外边访问。
+模块是\emph{item}的集合，\texttt{item}是命名的特性，例如本例中的\texttt{Spore}结构体和两个函数。\texttt{pub}关键字将item设为公有的，因此可以从模块外部访问。
 
-一个函数被标记为\texttt{pub(crate)}，意味着它在这个crate中任何地方都可以访问，但不作为外部接口的一部分公开。它不能被其他crate使用，也不会在crate的文档中显示。
+把函数标记为\texttt{pub(crate)}，意味着它在这个crate中任何地方都可以访问，但不作为外部接口的一部分公开。它不能被其他crate使用，也不会在crate的文档中显示。
 
 任何没有被标记为\texttt{pub}的都是私有的，只能在定义它的模块和子模块中使用：
 \begin{minted}{Rust}
@@ -269,7 +271,7 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
     mod spores;
 \end{minted}
 
-之前，我们还在花括号中包含了\texttt{spores}模块的主体。这里，我们通过这种方式告诉Rust编译器\texttt{spores}模块在一个单独的叫\texttt{spores.rs}的文件里：
+之前，我们还在花括号中包含了\texttt{spores}模块的主体。这里，我们通过这种方式告诉Rust编译器\texttt{spores}模块在一个单独的叫\emph{spores.rs}的文件里：
 \begin{minted}{Rust}
     // spores.rs
 
@@ -294,31 +296,31 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
     }
 \end{minted}
 
-\texttt{spores.rs}只包含组成模块的item。它并不需要任何说明来表明它是一个模块。
+\emph{spores.rs}只包含组成模块的item。它并不需要任何说明来表明它是一个模块。
 
 这个\texttt{spores}模块和我们在上一节中展示的版本的\emph{唯一}不同就是代码的位置。有关公有性和私有性的规则和之前完全相同。Rust从来不会单独编译模块，即使它们在单独的文件里。当你构建一个Rust的crate的时候，你总是要重新编译它里面所有的模块。
 
-一个模块也可以有自己的目录。当Rust看到\texttt{mod spores;}时，它会检查\texttt{spores.rs}和\\
-\texttt{spores/mod.rs}，如果这两个文件都不存在或者都存在就会报错。这个例子中我们使用了\texttt{spores.rs}，因为\texttt{spores}模块没有任何子模块。但考虑一下我们之前写的\texttt{plant\_structures}模块。如果我们决定将那个模块和它的三个字模块分割在单独的文件中，最终的项目看起来就是这样：
+一个模块也可以有自己的目录。当Rust看到\texttt{mod spores;}时，它会检查\emph{spores.rs}和\\
+\emph{spores/mod.rs}，如果这两个文件都不存在或者都存在就会报错。本例中因为\texttt{spores}模块没有任何子模块，所以我们使用了\emph{spores.rs}。但考虑一下我们之前写的\texttt{plant\_structures}模块。如果我们决定将那个模块和它的三个子模块分割在单独的文件中，最终的项目看起来就是这样：
 \begin{minted}{text}
     fern_sim/
-    |—— Cargo.toml
-    |—— src/
-        |—— main.rs
-        |—— spores.rs
-        |—— plant_structures/
-            |—— mod.rs
-            |—— leaves.rs
-            |—— roots.rs
-            |—— stems.rs
+    |-- Cargo.toml
+    |-- src/
+        |-- main.rs
+        |-- spores.rs
+        |-- plant_structures/
+            |-- mod.rs
+            |-- leaves.rs
+            |-- roots.rs
+            |-- stems.rs
 \end{minted}
 
-在\texttt{main.rs}中，我们声明了\texttt{plant\_structures}模块：
+在\emph{main.rs}中，我们声明了\texttt{plant\_structures}模块：
 \begin{minted}{Rust}
     pub mod plant_structures;
 \end{minted}
 
-这会导致Rust去加载\texttt{plant\_structures/mod.rs}，这个文件里又声明了三个子模块：
+这会导致Rust去加载\emph{plant\_structures/mod.rs}，这个文件里又声明了三个子模块：
 \begin{minted}{Rust}
     // 在plant_structures/mod.rs中
     pub mod roots;
@@ -326,34 +328,34 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
     pub mod leaves;
 \end{minted}
 
-这三个模块的内容都被存储在单独的文件中，分别命名为\texttt{leaves.rs}、\texttt{roots.rs}、\texttt{stems.rs}，和\texttt{mod.rs}一样在\texttt{plant\_structures}目录下。
+这三个模块的内容都被存储在单独的文件中，分别命名为\emph{leaves.rs}、\emph{roots.rs}、\emph{stems.rs}，和\emph{mod.rs}一样在\texttt{plant\_structures}目录下。
 
-使用同名的文件和目录来组成模块也是有可能的。例如，如果\texttt{stems}需要包含两个分别叫\texttt{xylem}和\texttt{phloem}的模块，我们可以选择将\texttt{stems}保留在\texttt{plant\_structures/stems.rs}中，然后添加一个新的\texttt{stems}目录：
+使用同名的文件和目录来组成模块也是可行的。例如，如果\texttt{stems}需要包含两个分别叫\texttt{xylem}和\texttt{phloem}的模块，我们可以选择将\texttt{stems}保留在\emph{plant\_structures/stems.rs}中，然后添加一个新的\texttt{stems}目录：
 \begin{minted}{text}
     fern_sim/
-    |—— Cargo.toml
-    |—— src/
-        |—— main.rs
-        |—— spores.rs
-        |—— plant_structures/
-            |—— mod.rs
-            |—— leaves.rs
-            |—— roots.rs
-            |—— stems/
-            |   |—— phloem.rs
-            |   |—— xylem.rs
+    |-- Cargo.toml
+    |-- src/
+        |-- main.rs
+        |-- spores.rs
+        |-- plant_structures/
+            |-- mod.rs
+            |-- leaves.rs
+            |-- roots.rs
+            |-- stems/
+            |   |-- phloem.rs
+            |   |-- xylem.rs
             |
-            |—— stems.rs
+            |-- stems.rs
 \end{minted}
 
-然后在\texttt{stems.rs}中声明这两个新的子模块：
+然后在\emph{stems.rs}中声明这两个新的子模块：
 \begin{minted}{Rust}
     // 在plant_structures/stems.rs中
     pub mod xylem;
     pub mod phloem;
 \end{minted}
 
-这三种方式——模块在自己单独的文件中、模块在自己同名的目录中的\texttt{mod.rs}中，模块在自己单独的文件中并有一个同名的目录包含子模块——给了模块系统足够的灵活性来支撑你需要的任何程序结构。
+这三种方式——模块在自己单独的文件中、模块在自己同名的目录中的\emph{mod.rs}中，模块在自己单独的文件中并有一个同名的目录包含子模块——给了模块系统足够的灵活性来支撑你需要的任何程序结构。
 
 \subsection{路径和导入}
 \texttt{::}运算符用于访问模块中的特性。你的项目中任何地方的代码都可以通过路径来引用任何标准库的特性：
@@ -363,11 +365,10 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
     }
 \end{minted}
 
-\texttt{std}是标准库的名称。路径\texttt{std}指向标准库的顶级模块。\texttt{std::mem}是在标准库中的一个子模块，\\
-\texttt{std::mem::swap}是\texttt{std::mem}模块中的一个public函数。
+\texttt{std}是标准库的名称。路径\texttt{std}指向标准库的顶层模块。\texttt{std::mem}是在标准库中的一个子模块，\texttt{std::mem::swap}是\texttt{std::mem}模块中的一个public函数。
 
-你可以始终用这方式编写所有的代码，每当你需要圆或字典时都写出\texttt{std::f64::consts::PI}和\\
-\texttt{std::collections::HashMap::new}，但这样太过繁琐，而且难以阅读。替代方案是把一些特性\emph{导入}用到它们的模块：
+你可以始终用这种方式编写所有的代码，每当你需要圆或字典时都写出\\
+\texttt{std::f64::consts::PI}和\texttt{std::collections::HashMap::new}，但这样太过繁琐，而且难以阅读。替代方案是把一些特性\emph{导入}用到它们的模块：
 \begin{minted}{Rust}
     use std::mem;
 
@@ -378,9 +379,9 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
 
 \texttt{use}声明会导致\texttt{mem}变为\texttt{std::mem}在整个块或模块中的一个局部别名。
 
-你也可以编写\texttt{std::mem::swap}来导入\texttt{swap}函数本身，而不是\texttt{mem}模块。然而，我们之前的方式被认为是最佳的风格：引入类型、trait和模块（例如\texttt{std::mem}）然后使用相对路径访问函数、常量和其他成员。
+你也可以写\texttt{std::mem::swap}来导入\texttt{swap}函数本身，而不是\texttt{mem}模块。然而，我们之前的方式被认为是最佳的风格：引入类型、trait和模块（例如\texttt{std::mem}）然后使用相对路径访问函数、常量和其他成员。
 
-可以依次导入若干个名字：
+可以一次导入若干个名字：
 \begin{minted}{Rust}
     use std::collections::{HashMap, HashSet};   // 导入两个
     
@@ -389,7 +390,7 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
     use std::io::prelude::*;    // 导入所有内容
 \end{minted}
 
-这是写出所有单独导入的方式的缩写：
+也可以写出所有的单独导入：
 \begin{minted}{Rust}
     use std::collections::HashMap;
     use std::collections::HashSet;
@@ -413,14 +414,14 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
     ...
 \end{minted}
 
-模块并不会\emph{自动}从父模块中继承名称。例如，假设我们的\texttt{proteins/mod.rs}有如下内容：
+模块并不会\emph{自动}从父模块中继承名称。例如，假设我们的\emph{proteins/mod.rs}有如下内容：
 \begin{minted}{Rust}
     // proteins/mod.rs
     pub enum AminoAcid { ... }
     pub mod synthesis;
 \end{minted}
 
-那么\texttt{synthesis.rs}里的代码并不会自动导入类型\texttt{AminoAcid}：
+那么\emph{synthesis.rs}里的代码并不会自动导入类型\texttt{AminoAcid}：
 \begin{minted}{Rust}
     // proteins/synthesis.rs
     pub fn synthesis(seq: &[AminoAcid]) // 错误：找不到类型`AminoAcid`
@@ -463,7 +464,7 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
 
 路径中的\texttt{super}和\texttt{crate}关键字有特殊的含义：\texttt{super}指代父模块，\texttt{crate}指代包含当前模块的crate。
 
-使用相对于crate根的路径而不是相对于当前模块的路径可以使在项目中移动代码变得更容易，因为这样的话计算当前模块的路径变了，导入也不会出错。例如，我们可以使用\texttt{crate}来写\texttt{synthesis.rs}：
+使用相对于crate根的路径而不是相对于当前模块的路径可以使在项目中移动代码变得更容易，因为这样的话就算当前模块的路径变了，导入也不会出错。例如，我们可以使用\texttt{crate}来写\emph{synthesis.rs}：
 \begin{minted}{Rust}
     // proteins/synthesis.rs
     use crate::proteins::AminoAcid; // 显式的相对于crate根的导入
@@ -474,7 +475,7 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
 
 子模块可以通过\texttt{use super::*}访问父模块中的私有item。
 
-如果你有一个模块和当前正在使用的某一个模块同名，那么引用它们的时候就要小心了。例如，如果你的程序在\texttt{Cargo.toml}列出了\texttt{image} crate依赖，同时还有一个模块叫\texttt{image}，那么以\texttt{image}开头的路径将会导致歧义：
+如果你有一个模块和当前正在使用的某一个模块同名，那么引用它们的时候就要小心了。例如，如果你的程序在\emph{Cargo.toml}列出了\texttt{image} crate依赖，同时还有一个模块叫\texttt{image}，那么以\texttt{image}开头的路径将会导致歧义：
 \begin{minted}{Rust}
     mod image {
         pub struct Sampler {
@@ -503,14 +504,15 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
 \subsection{标准prelude}
 我们之前说每个模块都以“空白的状态”开始，但事实上并不是\emph{完全}空白的状态。
 
-其中一点是，标准库\texttt{std}被自动链接到每个项目。这意味着你总是可以使用\texttt{std::whatever}这种方式来引用\texttt{std}里的item，例如\texttt{std::mem::swap()}。还有，一些特殊的常见名称，例如\texttt{Vec}和\texttt{Result}也被包含在\emph{标准prelude}中并且被自动导入。具体的行为就好像是包括跟模块在内的每个模块都以如下导入开始：
+其中一点是，标准库\texttt{std}被自动链接到每个项目。这意味着你总是可以使用\texttt{std::whatever}\\
+这种方式来引用\texttt{std}里的item，例如\texttt{std::mem::swap()}。另外，一些特殊的常见名称，例如\texttt{Vec}和\texttt{Result}也被包含在\emph{标准prelude}中并且被自动导入。具体的行为就好像是包括根模块在内的每个模块都以如下导入开始：
 \begin{minted}{Rust}
     use std::prelude::v1::*;
 \end{minted}
 
 标注的prelude包含一些通用的trait和类型。
 
-在\hyperref[ch02]{第2章}中时，我们提到了库有时会提供叫\texttt{prelude}的模块。但\texttt{std::prelude::v1}是唯一一个自动导入的。将一个模块命名为\texttt{prelude}只会一个约定，告诉用户他应该导入\texttt{*}。
+在\hyperref[ch02]{第2章}中时，我们提到了库有时会提供叫\texttt{prelude}的模块。但\texttt{std::prelude::v1}是唯一一个自动导入的。将一个模块命名为\texttt{prelude}只是一个惯例，告诉用户他应该导入\texttt{*}。
 
 \subsection{pub use声明}
 即使\texttt{use}声明只是别名，它们也可以是公有的：
@@ -527,7 +529,7 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
 标准的prelude就是以一系列\texttt{pub}导入的方式实现的。
 
 \subsection{pub结构体字段}
-一个模块可以包含用户用\texttt{struct}关键字定义的自定义结构体类型。我们将在\hyperref[ch09]{第9章}中介绍细节，但这是一个了解模块如何和结构体字段的可见性交互的好时机。
+模块可以包含用户用\texttt{struct}关键字定义的自定义结构体类型。我们将在\hyperref[ch09]{第9章}中介绍细节，但这是一个了解模块如何和结构体字段的可见性交互的好时机。
 
 一个简单的结构体类似这样：
 \begin{minted}{Rust}
@@ -539,7 +541,8 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
 
 一个结构体的所有字段，包括私有字段，都可以在定义结构体的整个模块及其子模块中访问，在模块之外，只有公有的字段才可以被访问。
 
-事实证明通过模块来实现访问控制，而不是像Java和C++那样通过类来实现，对于程序设计将是很大的帮助。不仅能减少重复“getter”和“setter”方法，还能消除类似C++中\texttt{friend}声明的需求。一个模块可以定义几个紧密结合的类型，例如\texttt{frond::LeafMap}和\texttt{frond::LeafMapIter}，让它们能按需互相访问彼此的私有字段，同时对程序中的其他部分隐藏实现的细节。
+事实证明通过模块来实现访问控制，而不是像Java和C++那样通过类来实现，对于程序设计将是很大的帮助。不仅能减少重复“getter”和“setter”方法，还能消除类似C++中\texttt{friend}声明的需求。一个模块中可以定义几个紧密结合的类型，例如\texttt{frond::LeafMap}和\\
+\texttt{frond::LeafMapIter}，让它们能按需互相访问彼此的私有字段，同时对程序中的其他部分隐藏实现的细节。
 
 \subsection{静态量和常量}\label{static}
 
@@ -557,18 +560,18 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
 
 常量有些类似于C++中的\texttt{\#define}，值被编译进代码中每一个使用它的地方。一个静态量就是一个在程序开始之前就初始化并持续到程序退出的变量。在代码中使用常量表示幻数和字符串。使用静态量表示更大规模的数据，或者用于需要借用全局常量的引用时。
 
-没有\texttt{mut}常量。静态量可以被标记为\texttt{mut}，但就像我们在\hyperref[ch05]{第5章}中讨论的一样，Rust没有任何方法强制实现\texttt{mut}静态量的独占访问。因此，这种变量天生的线程不安全，safe代码完全不能使用它们：
+没有\texttt{mut}常量。静态量可以被标记为\texttt{mut}，但就像我们在\hyperref[ch05]{第5章}中讨论的一样，Rust没有任何方法强制实现\texttt{mut}静态量的独占访问。因此，这种变量天生线程不安全，safe代码完全不能使用它们：
 \begin{minted}{Rust}
     static mut PACKETS_SERVED: usize = 0;
 
     println!("{} served", PACKETS_SERVED);  // 错误：使用了可变的静态量
 \end{minted}
 
-Rust不鼓励全局可变的状态。关于替代方案的讨论，见“\nameref{globalvar}”一节。
+Rust不鼓励全局可变的状态。关于替代方案的讨论，见\nameref{globalvar}一节。
 
 \section{将程序变为库}
 
-当你的蕨类模拟器完成之后，你决定你需要不止一个程序。假设你还有一个命令行程序运行这个模拟器并把结果保存到文件中。现在，你想要编写其他程序来对保存的结果进行科学分析、实时渲染成长中的植物、渲染逼真的植物等等。所有这些程序都要共享基本的蕨类模拟器的代码。你需要创建一个库。
+当你的蕨类模拟器完成之后，你发现你需要不止一个程序。假设你还有一个命令行程序运行这个模拟器并把结果保存到文件中。现在，你想要编写其他程序来对保存的结果进行科学分析、实时渲染成长中的植物、渲染逼真的植物等等。所有这些程序都要共享基本的蕨类模拟器的代码。你需要创建一个库。
 
 第一步是将你现有的项目分解为两部分：一个库crate和一个可执行文件。前者包含所有的共享代码，后者包含只有命令行程序才需要的代码。
 
@@ -603,7 +606,7 @@ Rust不鼓励全局可变的状态。关于替代方案的讨论，见“\namere
     }
 \end{minted}
 
-我们假设这个程序有一个普通的\texttt{Cargo.toml}文件：
+我们假设这个程序有一个普通的\emph{Cargo.toml}文件：
 \begin{minted}{toml}
     [package]
     name = "fern_sim"
@@ -614,12 +617,12 @@ Rust不鼓励全局可变的状态。关于替代方案的讨论，见“\namere
 
 将这个程序变为库是很简单的。只需要如下步骤：
 \begin{enumerate}
-    \item 将文件\texttt{src/main.rs}重命名为\texttt{src/lib.rs}
-    \item 给\texttt{src/lib.rs}里将作为库的公开特性的item添加\texttt{pub}关键字
+    \item 将文件\emph{src/main.rs}重命名为\emph{src/lib.rs}
+    \item 给\emph{src/lib.rs}里将作为库的公开特性的item添加\texttt{pub}关键字
     \item 暂时把\texttt{main}函数移动到一个别的临时文件中。我们将很快回来处理它。
 \end{enumerate}
 
-最后的\texttt{src/lib.rs}文件看起来像这样：
+最后的\emph{src/lib.rs}文件看起来像这样：
 \begin{minted}{Rust}
     pub struct Fern {
         pub size: f64,
@@ -641,9 +644,9 @@ Rust不鼓励全局可变的状态。关于替代方案的讨论，见“\namere
     }
 \end{minted}
 
-注意我们不需要更改\texttt{Cargo.toml}中的任何内容。这是因为我们最简的\texttt{Cargo.toml}会保持Cargo的默认行为。默认情况下，\texttt{cargo build}会查看源代码目录下的文件然后判断要构建什么。当它看到\texttt{src/lib.rs}文件，它就知道要构建一个库。
+注意我们不需要更改\emph{Cargo.toml}中的任何内容。因为我们的最精简的\emph{Cargo.toml}会保持Cargo的默认行为。默认情况下，\texttt{cargo build}会查看源代码目录下的文件然后判断要构建什么。当它看到\emph{src/lib.rs}文件，它就知道要构建一个库。
 
-\texttt{src/lib.rs}里的代码组成了库的\emph{根模块}。其他使用我们库的crate可以访问跟模块里的公有item。
+\emph{src/lib.rs}里的代码组成了库的\emph{根模块}。其他使用我们库的crate可以访问根模块里的公有item。
 
 \section{src/bin目录}\label{src/bin}
 
@@ -651,7 +654,7 @@ Rust不鼓励全局可变的状态。关于替代方案的讨论，见“\namere
 
 事实上，Cargo自身就是用这种方式编写的。它的大部分代码都在一个Rust库里。我们在本书中至今为止用过的\texttt{cargo}命令行程序只是一个简单的包装程序，它会调用库来完成真正的工作。库和命令行程序\href{https://github.com/rust-lang/cargo}{在同一个源代码仓库中}。
 
-我们也可以把程序和库放在同一个crate中。将这些代码放入一个叫做\texttt{src/bin/efern.rs}的文件中：
+我们也可以把程序和库放在同一个crate中。将以下代码放入\emph{src/bin/efern.rs}的文件中：
 \begin{minted}{Rust}
     use fern_sim::{Fern, run_simulation};
 
@@ -667,7 +670,7 @@ Rust不鼓励全局可变的状态。关于替代方案的讨论，见“\namere
 
 这个\texttt{main}函数就是我们之前放在一边的那个。我们添加了\texttt{use}声明来使用\texttt{fern\_sim} crate里的一些item：\texttt{Fern}和\texttt{run\_simulation}。也就是说，我们像使用库一样使用了那个crate。
 
-因为我们把这个文件放在了\texttt{src/bin}里，所以下次运行\texttt{cargo build}时，Cargo将会同时编译\texttt{fren\_sim}库和这个程序。我们可以使用\texttt{cargo run --bin efern}来运行\texttt{efern}程序。可以通过使用\texttt{--verbose}参数来查看Cargo运行的命令，大概是这样：
+因为我们把这个文件放在了\emph{src/bin}里，所以下次运行\texttt{cargo build}时，Cargo将会同时编译\texttt{fren\_sim}库和这个程序。我们可以使用\texttt{cargo run --bin efern}来运行\texttt{efern}程序。可以通过使用\texttt{--verbose}参数来查看Cargo运行的命令，大概是这样：
 \begin{minted}{text}
     $ cargo build --verbose
        Compiling fern_sim v0.1.0 (file:///.../fern_sim)
@@ -679,29 +682,30 @@ Rust不鼓励全局可变的状态。关于替代方案的讨论，见“\namere
     final fern size: 2.7169239322355985
 \end{minted}
 
-我们仍然不需要修改\texttt{Cargo.toml}中的任何内容，Cargo的默认行为是查看源文件然后进行判断。它会自动把\texttt{src/bin}里的\texttt{.rs}文件当作额外的程序来构建。
+我们仍然不需要修改\emph{Cargo.toml}中的任何内容，Cargo的默认行为是查看源文件然后进行判断。它会自动把\emph{src/bin}里的\emph{.rs}文件当作额外的程序来构建。
 
-我们也可以在\texttt{src/bin}目录下通过子目录来构建更大的程序。假设我们想要提供另一个程序在屏幕上绘制蕨类植物，但绘制代码比较多而且是模块化的，因此它应该有自己的文件。我们可以将第二个程序放在单独的子目录中：
+我们也可以在\emph{src/bin}目录下通过子目录来构建更大的程序。假设我们想要提供另一个程序在屏幕上绘制蕨类植物，但绘制代码比较多而且是模块化的，因此它应该有自己的文件。我们可以将第二个程序放在单独的子目录中：
 \begin{minted}{text}
     fern_sim/
-    |—— Cargo.toml
-    |—— src/
-        |—— bin/
-            |—— efern.rs
-            |—— draw_fern/
-                |—— main.rs
-                |—— draw.rs
+    |-- Cargo.toml
+    |-- src/
+        |-- bin/
+            |-- efern.rs
+            |-- draw_fern/
+                |-- main.rs
+                |-- draw.rs
 \end{minted}
 
 把更大的可执行程序存放在自己的目录中的优势是不会打乱库代码和\texttt{src/bin}目录。
 
-当然，既然现在\texttt{fern\_sim}是一个库，那么我们还有另一种选择。我们可以把这个程序放入单独的项目中，在一个完全独立的目录中，在它的\texttt{Cargo.toml}中列出\texttt{fern\_sim}作为依赖：
+当然，既然现在\texttt{fern\_sim}是一个库，那么我们还有另一种选择。我们可以把这个程序放入单独的项目中，在一个完全独立的目录中，在它的\emph{Cargo.toml}中列出\texttt{fern\_sim}作为依赖：
 \begin{minted}{toml}
     [dependencies]
     fern_sim = { path = "../fern_sim" }
 \end{minted}
 
-可能这正是你之后编写其他蕨类模拟程序时采用的方法。\texttt{src/bin}目录只适合像\texttt{efern}和\texttt{draw\_fern}这样的简单程序。
+可能这正是你之后编写其他蕨类模拟程序时采用的方法。\emph{src/bin}目录只适合像\texttt{efern}和\\
+\texttt{draw\_fern}这样的简单程序。
 
 \section{属性}\label{attribute}
 
@@ -747,7 +751,7 @@ Rust程序中的任何item都可以用\emph{属性}修饰。属性是Rust中向�
         \texttt{target\_arch = "x86\_64"} & x86-64架构特定。其他值：\texttt{"x86", "arm", "aarch64", "powerpc", "powerpc64", "mips"} \\
         \texttt{target\_os = "macos"} & macOS特定。其他值：\texttt{"windows", "ios", "android", "linux", "freebsd", "openbsd", "netbsd", "dragonfly"} \\
         \rowcolor{tablecolor}
-        \texttt{feature = "robots"} & 启用用户自定义特性\texttt{"robots"}时（用\texttt{cargo build --feature robots}或者\texttt{rustc --cfg feature='"robots"'}）。特性在\href{https://doc.rust-lang.org/cargo/reference/manifest.html}{\texttt{Cargo.toml的\texttt{[features]}节中声明}}。 \\
+        \texttt{feature = "robots"} & 启用用户自定义特性\texttt{"robots"}时（用\texttt{cargo build --feature robots}或者\texttt{rustc --cfg feature='"robots"'}）。特性在\href{https://doc.rust-lang.org/cargo/reference/manifest.html}{\emph{Cargo.toml}的\texttt{[features]}节中声明}。 \\
         \texttt{not}(\emph(A)) & \emph{A}不满足时。为了让一个函数有两种不同的实现，可以将其中一个标记为\texttt{\#[cfg(X)]}，另一个表记为\texttt{\#[cfg(not(X))]}。 \\
         \rowcolor{tablecolor}
         \texttt{all}(\emph{A}, \emph{B}) & 当\emph{A}和\emph{B}都满足时（等价于\texttt{\&\&}）。 \\
@@ -770,7 +774,7 @@ Rust程序中的任何item都可以用\emph{属性}修饰。属性是Rust中向�
 
 有一些属性，例如\texttt{\#[cfg]}和\texttt{\#[allow]}，可以被用于整个模块，然后作用于模块里的所有东西。而另一些，例如\texttt{\#[test]}和\texttt{\#[inline]}只能用于单独的item。正如你可能期待的一样，每个属性都是定制的，并且有自己的一组受支持的参数。Rust的参考手册详细列出了\href{https://doc.rust-lang.org/reference/attributes.html}{所有支持的属性}。
 
-为了将一个属性用于整个crate，可以在\texttt{main.rs}或者\texttt{lib.rs}文件的最前边添加属性，并用\texttt{\#!}来代替\texttt{\#}，像这样：
+为了将一个属性用于整个crate，可以在\emph{main.rs}或者\emph{lib.rs}文件的最前边添加属性，并用\texttt{\#!}来代替\texttt{\#}，像这样：
 \begin{minted}{Rust}
     // libgit2_sys/lib.rs
     #![allow(non_camel_case_types)]
@@ -804,7 +808,7 @@ Rust程序中的任何item都可以用\emph{属性}修饰。属性是Rust中向�
 
 \section{测试和文档}
 
-正如我们在“\nameref{test}”一节中看到的一样，Rust中内建了一个简单的单元测试框架。测试是用\texttt{\#[test]}属性标记的普通函数：
+正如我们在\nameref{test}一节中看到的一样，Rust中内建了一个简单的单元测试框架。测试是用\texttt{\#[test]}属性标记的普通函数：
 \begin{minted}{Rust}
     #[test]
     fn math_works() {
@@ -829,9 +833,9 @@ Rust程序中的任何item都可以用\emph{属性}修饰。属性是Rust中向�
 
 测试的行为和你的crate是可执行程序还是库没有关系。你可以通过向Cargo传递参数来运行指定的测试：\texttt{cargo test math}会运行名称中包含\texttt{math}的所有测试。
 
-测试通常使用Rust标准库里的\texttt{assert!}和\texttt{assert\_eq!}宏。如果\texttt{expr}为真，\texttt{assert!(expr)}断言会成功。否则，它会panic，并导致测试失败。\texttt{assert\_eq!(v1, v2)}类似于\texttt{assert!(v1 == v2)}，除了当断言失败时，它会同时打印出两个操作数的值。
+测试通常使用Rust标准库里的\texttt{assert!}和\texttt{assert\_eq!}宏。若\texttt{expr}为真，\texttt{assert!(expr)}断言会成功；否则它会panic，并导致测试失败。\texttt{assert\_eq!(v1, v2)}类似于\texttt{assert!(v1 == v2)}，除了当断言失败时，它会同时打印出两个操作数的值。
 
-你也可以在普通的代码中使用这两个宏，但注意即使是release构建\texttt{assert!}和\texttt{assert\_eq!}也会被包含进去。使用\texttt{debug\_assert!}和\texttt{debug\_assert\_dq!}来编写只在debug构建时才会检查的断言。
+也可以在普通的代码中使用这两个宏，但注意即使是release构建\texttt{assert!}和\texttt{assert\_eq!}也会被包含进去。使用\texttt{debug\_assert!}和\texttt{debug\_assert\_dq!}来编写只在debug构建时才会检查的断言。
 
 为了测试错误的情况，需要向测试添加\texttt{\#[should\_panic]}属性：
 \begin{minted}{Rust}
@@ -845,7 +849,7 @@ Rust程序中的任何item都可以用\emph{属性}修饰。属性是Rust中向�
     }
 \end{minted}
 
-在这个例子中，我们需要添加\texttt{allow}属性来告诉编译器允许我们写一些可以静态证明一定会panic的代码，然后进行除法并丢弃结果值。因为通常情况下，编译器会阻止这种愚蠢的行为。
+在这个例子中，我们需要添加\texttt{allow}属性来告诉编译器允许我们写一些可以静态证明一定会panic的代码，然后进行除法并丢弃结果值。因为通常情况下，编译器会阻止这种愚蠢的代码。
 
 你也可以在测试中返回\texttt{Result<(), E>}。只要错误类型实现了\texttt{Debug} trait（这是通常的情况），你就可以使用\texttt{?}略过\texttt{Ok}的情况返回一个\texttt{Result}：
 \begin{minted}{Rust}
@@ -903,14 +907,14 @@ Rust程序中的任何item都可以用\emph{属性}修饰。属性是Rust中向�
     }
 \end{minted}
 
-Rust的测试工具默认会使用多线程同时运行多个测试，这是你的Rust代码线程安全的一个附带的好处。为了禁用并行测试，运行\texttt{test -- --test-threads 1}。（第一个\texttt{--}确保\texttt{cargo test}会把\texttt{--test-threads}选项传递给测试的可执行程序）如果想运行单个测试，运行\texttt{cargo test testname}。这意味着从技术上讲，我们在\hyperref[ch02]{第2章}中展示的曼德勃罗程序并不是那一章中的第二个多线程程序，而是第三个！“\nameref{test}”一节中运行的\texttt{cargo test}才是第一个。
+Rust的测试工具默认会使用多线程同时运行多个测试，这是你的Rust代码线程安全的一个附带的好处。为了禁用并行测试，运行\texttt{cargo test -- --test-threads 1}。（第一个\texttt{--}确保\texttt{cargo test}会把\texttt{--test-threads}选项传递给测试的可执行程序）如果想运行单个测试，运行\texttt{cargo test testname}。这意味着从技术上讲，我们在\hyperref[ch02]{第2章}中展示的曼德勃罗程序并不是那一章中的第二个多线程程序，而是第三个！\nameref{test}一节中运行的\texttt{cargo test}才是第一个。
 
 通常来说，测试工具只会显示失败的测试的输出。为了显示通过的测试的输出，可以运行\texttt{cargo test -- --no-capture}。
 
 \subsection{集成测试}
-你的蕨类模拟器的规模仍然在增长。你决定将所有主要的代码放进一个库里，这样可以被很多可执行程序使用。模拟最终使用\texttt{fern\_sim.rlib}库的用户使用它的方式对它进行一些测试将是一个好主意。另外，你还有一些首先从二进制文件中加载保存的模拟器的测试，将这些很大的测试文件保存在\texttt{src}目录中是很尴尬的。集成测试可以帮忙解决这两个问题。
+你的蕨类模拟器的规模仍然在增长。你决定将所有主要的代码放进一个库里，这样可以被很多可执行程序使用。模拟最终使用\emph{fern\_sim.rlib}库的用户使用它的方式对它进行一些测试将是一个好主意。另外，你还有一些首先从二进制文件中加载保存的模拟器的测试，将这些很大的测试文件保存在\texttt{src}目录中是很尴尬的。集成测试可以帮忙解决这两个问题。
 
-集成测试是\texttt{src}目录下的\texttt{tests}目录中的\texttt{.rs}文件。当你运行\texttt{cargo test}时，Cargo会将每一个集成测试编译成独立的crate，然后和你的库以及Rust的测试工具链接。这里有一个例子：
+集成测试是\texttt{src}目录下的\emph{tests}目录中的\emph{.rs}文件。当你运行\texttt{cargo test}时，Cargo会将每一个集成测试编译成独立的crate，然后和你的库以及Rust的测试工具链接。这里有一个例子：
 \begin{minted}{Rust}
     // tests/unfurl.rs - Fiddleheads unfurl in sunlight
 
@@ -929,7 +933,7 @@ Rust的测试工具默认会使用多线程同时运行多个测试，这是你�
 
 集成测试之所以有价值，部分原因是它们从crate外部看待你的crate，就像一个用户一样。它们测试crate的public API。
 
-\texttt{cargo test}会同时运行单元测试和集成测试。为了只运行特定文件中的集成测试——例如\texttt{tests/unfurl.rs}——使用命令\texttt{cargo test --test unfurl}。
+\texttt{cargo test}会同时运行单元测试和集成测试。为了只运行特定文件中的集成测试——例如\emph{tests/unfurl.rs}——使用命令\texttt{cargo test --test unfurl}。
 
 \subsection{文档}
 命令\texttt{cargo doc}为你的库生成HTML文档：
@@ -942,8 +946,8 @@ Rust的测试工具默认会使用多线程同时运行多个测试，这是你�
 
 \texttt{--open}选项告诉Cargo稍后在你的浏览器中打开文档。
 
-结果如\hyperref[f8-2]{图8-2}所示。Cargo会把新的文档文件保存在\texttt{target/doc}中，起始页面是\\
-\texttt{target/doc/fern\_sim/index.html}。
+结果如\hyperref[f8-2]{图8-2}所示。Cargo会把新的文档文件保存在\emph{target/doc}中，起始页面是\\
+\emph{target/doc/fern\_sim/index.html}。
 
 \begin{figure}[htbp]
     \centering
@@ -952,7 +956,7 @@ Rust的测试工具默认会使用多线程同时运行多个测试，这是你�
     \label{f8-2}
 \end{figure}
 
-文档从你的库中的\texttt{pub}特性生成，加上你为它们编写的任何\emph{文档注释}。我们在这一章中已经看到过一些文档注释了。它们看起来像注释：
+文档从你的库中的\texttt{pub}特性生成，加上你为它们编写的任何\emph{文档注释}。我们在这一章中已经看到过一些文档注释了。它们看起来像普通的注释：
 \begin{minted}{Rust}
     /// 模拟减数分裂产生孢子的过程。
     pub fn produce_spore(factory: &mut Sporangium) -> Spore {
@@ -969,7 +973,7 @@ Rust的测试工具默认会使用多线程同时运行多个测试，这是你�
 
 当你编译一个库或可执行程序时，这些属性并不会改变任何东西，但当你生成文档时，public特性的文档注释将会被包含在输出中。
 
-同样的，以\texttt{//!}开头的注释被当作\texttt{\#![doc]}属性，这个属性会被附加到作用域中，通常是一个模块或者crate。例如，你的\texttt{fern\_sim/src/lib.rs}文件看起来可能像这样：
+同样的，以\texttt{//!}开头的注释被当作\texttt{\#![doc]}属性，这个属性会被附加到作用域中，通常是一个模块或者crate。例如，你的\emph{fern\_sim/src/lib.rs}文件看起来可能像这样：
 \begin{minted}{Rust}
     //! 从独立的细胞开始，
     //! 模拟蕨类植物的生长。
@@ -996,7 +1000,7 @@ Rust中的文档注释的一个特殊特性是Markdown链接可以使用Rust的i
     }
 \end{minted}
 
-你可以使用`backticks`在文本中中间创建代码片段。输出时，这些片段将会用等宽字体显示。更大的代码示例可以通过缩进四个空格来显示：
+你可以使用\texttt{`backticks`}在文本中间创建代码片段。输出时，这些片段将会用等宽字体显示。更大的代码示例可以通过缩进四个空格来显示：
 \begin{minted}{Rust}
     /// 文档注释中的一个代码块
     ///
@@ -1020,7 +1024,7 @@ Rust中的文档注释的一个特殊特性是Markdown链接可以使用Rust的i
 \subsection{文档测试}
 当你运行Rust库crate中的测试时，Rust会通过检查确保文档中出现的所有代码都能运行并正常工作。它将文档注释中出现的所有代码作为单独的可执行程序crate编译，然后和库链接并运行。
 
-这里有一个文档测试的例子。运行\texttt{cargo new --lib ranges}（\texttt{--lib}参数告诉Cargo我们要创建一个库crate，而不是可执行程序crate）并将下列代码加到\texttt{ranges/src/lib.rs}中：
+这里有一个文档测试的例子。运行\texttt{cargo new --lib ranges}（\texttt{--lib}参数告诉Cargo我们要创建一个库crate，而不是可执行程序crate）并将下列代码加到\emph{ranges/src/lib.rs}中：
 \begin{minted}{Rust}
     use std::ops::Range;
 
@@ -1136,10 +1140,10 @@ Rust中的文档注释的一个特殊特性是Markdown链接可以使用Rust的i
 
 当你的队伍使用单个版本控制仓库来包含若干个crate甚至整个依赖图的所有crate时，这种方式会很方便。每个crate都可以使用相对路径指定它的依赖。
 
-这种细粒度的依赖控制方式是一种很强大的功能。如果你发现任何开源的crate都不完全符合你的要求，你可以fork它：点击GitHub上的Fork按钮，然后更改\texttt{Cargo.toml}中的一行。这样你的下一次\texttt{cargo build}命令将会使用你fork的版本而不是官方的版本。
+这种细粒度的依赖控制方式是一种很强大的功能。如果你发现任何开源的crate都不完全符合你的要求，你可以fork它：点击GitHub上的Fork按钮，然后更改\emph{Cargo.toml}中的一行。这样你的下一次\texttt{cargo build}命令将会使用你fork的版本而不是官方的版本。
 
 \subsection{版本}
-当你在\texttt{Cargo.toml}中写下类似\texttt{iamge = "0.13.0"}这样的内容时，Cargo会以比较宽松的方式解释它。它会使用和0.13.0版本兼容的最新版本。
+当你在\emph{Cargo.toml}中写下类似\texttt{iamge = "0.13.0"}这样的内容时，Cargo会以比较宽松的方式解释它。它会使用和0.13.0版本兼容的最新版本。
 
 兼容性规则改编自\href{https://semver.org/}{语义版本号}。
 
@@ -1170,14 +1174,14 @@ Rust中的文档注释的一个特殊特性是Markdown链接可以使用Rust的i
     \end{tabular}
 \end{table}
 
-另一种你偶尔可能会见到的版本指定方式是通配符\texttt{*}，它告诉Cargo可以使用任何版本。除非有别的\texttt{Cargo.toml}文件中指定了更加具体的版本约束，否则Cargo将会使用最新的可用版本。\href{https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html}{doc.crates.io上的Cargo文档}更加详细地介绍了版本指定的内容。
+另一种你偶尔可能会见到的版本指定方式是通配符\texttt{*}，它告诉Cargo可以使用任何版本。除非有别的\emph{Cargo.toml}文件中指定了更加具体的版本约束，否则Cargo将会使用最新的可用版本。\href{https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html}{doc.crates.io上的Cargo文档}更加详细地介绍了版本指定的内容。
 
 注意兼容性规则意味着不能纯粹出于营销原因选择版本号。它们必须有真实的含义。这是crate的维护者和用户之间的约定。如果你正在维护一个1.7版本的crate，并且你决定删除一个函数或者做出其他不能完全向后兼容的更改，你必须将版本号提升到2.0。如果你把版本号更新到1.8，那么你就等于是在宣称新版本和1.7版本兼容，你的用户可能会发现他们构建时出现错误。
 
 \subsection{Cargo.lock}
-\texttt{Cargo.toml}中的版本号故意设计的比较灵活，然而我们并不需要每次构建时都让Cargo把库更新到最新版本。想象一下你正在一个紧张的调试会话中，突然\texttt{cargo build}把库更新到了最新的版本。这可能会造成很大的破坏。在调试途中任何的改变都会导致问题。事实上，任何时候更新库都不是一个好时机。
+\emph{Cargo.toml}中的版本号故意设计的比较灵活，然而我们并不需要每次构建时都让Cargo把库更新到最新版本。想象一下你正在一个紧张的调试会话中，突然\texttt{cargo build}把库更新到了最新的版本。这可能会造成很大的破坏。在调试途中任何的改变都会导致问题。事实上，任何时候更新库都不是一个好时机。
 
-Cargo也有一个内建的机制来解决这个问题。当你第一次构建项目时，Cargo会输出一个\texttt{Cargo.lock}文件记录下它使用的每一个crate的精确版本。之后的构建将会查询这个文件并继续使用相同的版本。只有当你告诉Cargo更新版本时它才会这么做，你可以手动更改\texttt{Cargo.toml}文件中的版本号或者运行\texttt{cargo update}：
+Cargo也有一个内建的机制来解决这个问题。当你第一次构建项目时，Cargo会输出一个\emph{Cargo.lock}文件记录下它使用的每一个crate的精确版本。之后的构建将会查询这个文件并继续使用相同的版本。只有当你告诉Cargo更新版本时它才会这么做，你可以手动更改\emph{Cargo.toml}文件中的版本号或者运行\texttt{cargo update}：
 \begin{minted}{text}
     $ cargo update
         Updating registry `https://github.com/rust-lang/crates.io-index`
@@ -1185,20 +1189,20 @@ Cargo也有一个内建的机制来解决这个问题。当你第一次构建项
         Updating png v0.4.2 -> v0.4.3
 \end{minted}
 
-\texttt{cargo update}只会更新到和你在\texttt{Cargo.toml}中指定的版本兼容的最新版本。如够你指定了\texttt{image = "0.6.1"}，然后你想更新到0.10.0，那你必须在\texttt{Cargo.toml}中更改版本号。当你下一次构建时，Cargo会更新到\texttt{image}库的新版本，然后把新的版本号存储在\texttt{Cargo.lock}中。
+\texttt{cargo update}只会更新到和你在\emph{Cargo.toml}中指定的版本兼容的最新版本。如够你指定了\texttt{image = "0.6.1"}，然后你想更新到0.10.0，那你必须在\emph{Cargo.toml}中更改版本号。当你下一次构建时，Cargo会更新到\texttt{image}库的新版本，然后把新的版本号存储在\emph{Cargo.lock}中。
 
-上面的示例展示了Cargo更新了两个crates.io上的crate。存储在Git中的依赖也会发生类似的事情。假设我们的\texttt{Cargo.toml}文件包含如下内容：
+上面的示例展示了Cargo更新了两个crates.io上的crate。存储在Git中的依赖也会发生类似的事情。假设我们的\emph{Cargo.toml}文件包含如下内容：
 \begin{minted}{toml}
     image = { git = "https://github.com/Piston/image.git", branch = "master" }
 \end{minted}
 
-如果已经有了\texttt{Cargo.lock}文件，那么\texttt{cargo build}将不会从Git仓库pull新的更改。它会读取\texttt{Cargo.lock}并且每次都使用和上次相同的版本。但\texttt{cargo update}将会pull最新的master分支，因此我们的下一次更新将会使用最新的版本。
+如果已经有了\emph{Cargo.lock}文件，那么\texttt{cargo build}将不会从Git仓库pull新的更改。它会读取\emph{Cargo.lock}并且每次都使用和上次相同的版本。但\texttt{cargo update}将会pull最新的master分支，因此我们的下一次更新将会使用最新的版本。
 
-\texttt{Cargo.lock}是自动生成的，通常你不需要手动编辑它。尽管如此，如果你的项目是可执行程序，你应该把\texttt{Cargo.lock}提交到版本控制系统。这样，任何构建你的项目的人都会使用完全相同的版本。你的\texttt{Cargo.lock}文件的历史将会记录依赖的更新。
+\emph{Cargo.lock}是自动生成的，通常你不需要手动编辑它。尽管如此，如果你的项目是可执行程序，你应该把\emph{Cargo.lock}提交到版本控制系统。这样，任何构建你的项目的人都会使用完全相同的版本。你的\emph{Cargo.lock}文件的历史将会记录依赖的更新。
 
-如果你的项目是普通的Rust库，不要提交\texttt{Cargo.lock}。你的库的下游用户将会有自己的包含整个依赖图的版本信息的\texttt{Cargo.lock}文件，他们会忽略你的库中的\texttt{Cargo.lock}文件。在少数情况下，你的项目可能是一个共享库（即输出是\texttt{.dll}、\texttt{.dylib}、\texttt{.so}文件），这时将不会有这种下游的游湖，因此你应该提交\texttt{Cargo.lock}。
+如果你的项目是普通的Rust库，不要提交\emph{Cargo.lock}。你的库的下游用户将会有自己的包含整个依赖图的版本信息的\emph{Cargo.lock}文件，他们会忽略你的库中的\emph{Cargo.lock}文件。在少数情况下，你的项目可能是一个共享库（即输出是\emph{.dll}、\emph{.dylib}、\emph{.so}文件），这时将不会有这种下游的游湖，因此你应该提交\emph{Cargo.lock}。
 
-\texttt{Cargo.toml}的弹性版本声明让你可以更容易的在自己的项目中使用Rust库，并能最大化库之间的兼容性。\texttt{Cargo.lock}的记录可以保持一致性，在不同机器之间复现相同的构建。它们通过协作能有效地帮助你避免依赖地狱。
+\emph{Cargo.toml}的弹性版本声明让你可以更容易的在自己的项目中使用Rust库，并能最大化库之间的兼容性。\emph{Cargo.lock}的记录可以保持一致性，在不同机器之间复现相同的构建。它们通过协作能有效地帮助你避免依赖地狱。
 
 \section{把crate发布到crates.io}
 
@@ -1216,9 +1220,9 @@ Cargo也有一个内建的机制来解决这个问题。当你第一次构建项
        Compiling fern_sim v0.1.0 (file:///.../fern_sim/target/package/fern_sim-0.1.0)
 \end{minted}
 
-\texttt{cargo package}命令会产生一个文件（这里是\texttt{target/package/fern\_sim-0.1.0.crate}，这个文件包含你库里的所有源文件，包括\texttt{Cargo.toml}。这是你将要上传到crates.io与全世界分享的文件。（你可以使用\texttt{cargo package --list}来查看包含了哪些文件。）Cargo会进行二次检查，像你的最终用户一样从\texttt{.crate}文件构建你的库，来确保它能正常工作。
+\texttt{cargo package}命令会产生一个文件（这里是\emph{target/package/fern\_sim-0.1.0.crate}，这个文件包含你库里的所有源文件，包括\emph{Cargo.toml}。这是你将要上传到crates.io与全世界分享的文件。（你可以使用\texttt{cargo package --list}来查看包含了哪些文件。）Cargo会进行二次检查，像你的最终用户一样从\emph{.crate}文件构建你的库，来确保它能正常工作。
 
-Cargo警告说\texttt{Cargo.toml}的\texttt{[package]}节缺少了一些对下游用户来说很重要的信息，例如你分发代码所依据的许可证。警告中的URL是非常优秀的资源，因此我们不会在这里详细解释所有的字段。简单来说，你可以通过在\texttt{Cargo.toml}中添加几行内容来修复警告：
+Cargo警告说\emph{Cargo.toml}的\texttt{[package]}节缺少了一些对下游用户来说很重要的信息，例如你分发代码所依据的许可证。警告中的URL是非常优秀的资源，因此我们不会在这里详细解释所有的字段。简单来说，你可以通过在\emph{Cargo.toml}中添加几行内容来修复警告：
 \begin{minted}{toml}
     [package]
     name = "fern_sim"
@@ -1235,10 +1239,10 @@ Cargo警告说\texttt{Cargo.toml}的\texttt{[package]}节缺少了一些对下�
 \end{minted}
 
 \begin{note}
-    一旦你在crates.io上发布了这个crate，任何下载了你的crate的人都可以看到\texttt{Cargo.toml}文件。因此如果\texttt{authors}字段包含了一个你想保持私有的电子邮箱地址，现在是时候修改它了。
+    一旦你在crates.io上发布了这个crate，任何下载了你的crate的人都可以看到\emph{Cargo.toml}文件。因此如果\texttt{authors}字段包含了一个你想保持私有的电子邮箱地址，现在是时候修改它了。
 \end{note}
 
-这个阶段有时会出现的另一个问题是你的\texttt{Cargo.toml}文件中可能通过\texttt{path}指定了别的crate的位置，正如“\nameref{depend}”中展示的一样：
+这个阶段有时会出现的另一个问题是你的\emph{Cargo.toml}文件中可能通过\texttt{path}指定了别的crate的位置，正如“\nameref{depend}”中展示的一样：
 \begin{minted}{toml}
     image = { path = "vendor/image" }
 \end{minted}
@@ -1276,36 +1280,36 @@ Cargo会把key保存在一个配置文件中，API key应该像密码一样保�
 随着你的项目的持续增长，你最终会编写很多crate。它们在一个单独的源代码仓库中逐个排列：
 \begin{minted}{text}
     fernsoft/
-    |—— .git/...
-    |—— fern_sim/
-    |   |—— Cargo.toml
-    |   |—— Cargo.lock
-    |   |—— src/...
-    |   |—— target/...
+    |-- .git/...
+    |-- fern_sim/
+    |   |-- Cargo.toml
+    |   |-- Cargo.lock
+    |   |-- src/...
+    |   |-- target/...
     |
-    |—— fern_img/
-    |   |—— Cargo.toml
-    |   |—— Cargo.lock
-    |   |—— src/...
-    |   |—— target/...
+    |-- fern_img/
+    |   |-- Cargo.toml
+    |   |-- Cargo.lock
+    |   |-- src/...
+    |   |-- target/...
     |
-    |—— fern_video/
-        |—— Cargo.toml
-        |—— Cargo.lock
-        |—— src/...
-        |—— target/...
+    |-- fern_video/
+        |-- Cargo.toml
+        |-- Cargo.lock
+        |-- src/...
+        |-- target/...
 \end{minted}
 
 Cargo工作的方式是每一个crate都有自己的构建目录\texttt{target}，每一个\texttt{target}目录都包含了这个crate的所有依赖的单独的构建。这些构建是完全独立的。即使两个crate有相同的依赖，它们也不会共享任何编译生成的代码。这是一种浪费。
 
-你可以通过使用Cargo\emph{工作空间}来节省编译时间和磁盘空间，一些crate可以共享一个公共的构建目录和\texttt{Cargo.lock}文件。
+你可以通过使用Cargo\emph{工作空间}来节省编译时间和磁盘空间，一些crate可以共享一个公共的构建目录和\emph{Cargo.lock}文件。
 
-你需要做的所有事就是在仓库的根目录创建一个\texttt{Cargo.toml}文件，然后添加几行内容：
+你需要做的所有事就是在仓库的根目录创建一个\emph{Cargo.toml}文件，然后添加几行内容：
 \begin{minted}{toml}
     [workspace]
     members = ["fern_sim", "fern_img", "fern_video"]
 \end{minted}
-这里\texttt{fern\_sim}等是包含你的crate的子目录的名称。然后删除这些子目录里的\texttt{Cargo.lock}文件和\texttt{target}目录。
+这里\texttt{fern\_sim}等是包含你的crate的子目录的名称。然后删除这些子目录里的\emph{Cargo.lock}文件和\texttt{target}目录。
 
 修改完之后，在任何crate中运行\texttt{cargo build}将会自动创建并使用根目录下的共享构建目录（这个例子中是\texttt{fernsoft/target}）。命令\texttt{cargo build --workspace}会构建当前工作空间内的所有crate。\texttt{cargo test}和\texttt{cargo doc}也接受\texttt{--workspace}选项。
 
@@ -1313,14 +1317,14 @@ Cargo工作的方式是每一个crate都有自己的构建目录\texttt{target}�
 
 如果你还不满意，Rus社区还为你准备了更多东西：
 \begin{itemize}
-    \item 当你在\href{https://crates.io}{crates.io}上发布了开源的crate之后，你的文档将会被自动呈现并托管在\texttt{doc.rs}上，这要感谢Onur Aslan。
-    \item 如果你的项目是在GitHub上，Travis CI可以在你每一次提交时构建并测试你的代码。它非常容易部署，详情见\href{https://travis-ci.org}{travis-ci.org}。如果你已经对Travis很熟悉了，这个\texttt{.travis.yml}文件将会帮助你上路：
+    \item 当你在\href{https://crates.io}{crates.io}上发布了开源的crate之后，你的文档将会被自动呈现并托管在\emph{doc.rs}上，这要感谢Onur Aslan。
+    \item 如果你的项目是在GitHub上，Travis CI可以在你每一次提交时构建并测试你的代码。它非常容易部署，详情见\href{https://travis-ci.org}{travis-ci.org}。如果你已经对Travis很熟悉了，这个\emph{.travis.yml}文件将会帮助你上路：
     \begin{minted}{yaml}
     language: rust
     rust:
       - stable
     \end{minted}
-    \item 你可以从你的crate的顶层文档注释生成一个\texttt{README.md}文件。这个特性由Livio Ribeiro以第三方Cargo插件的形式提供。运行\texttt{cargo install cargo-readme}来安装这个插件，运行\texttt{cargo readme --help}来学习如何使用它。
+    \item 你可以从你的crate的顶层文档注释生成一个\emph{README.md}文件。这个特性由Livio Ribeiro以第三方Cargo插件的形式提供。运行\texttt{cargo install cargo-readme}来安装这个插件，运行\texttt{cargo readme --help}来学习如何使用它。
 \end{itemize}
 
 我们可以继续了。
