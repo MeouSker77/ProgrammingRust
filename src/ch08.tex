@@ -1119,26 +1119,26 @@ Rust中的文档注释的一个特殊特性是Markdown链接可以使用Rust的i
 
 \section{指定依赖}\label{depend}
 
-我们已经看到过一种方式来告诉Cargo你的项目依赖的crate：版本号。
+我们已经看到过一种方式来告诉Cargo你的项目依赖的crate和版本号。
 \begin{minted}{toml}
     image = "0.6.1"
 \end{minted}
 
-有几种方式指定依赖，并且你可能想问一些类似使用哪个版本的细节问题，因此值得花几页时间讨论这个问题。
+有若干种方式可以指定依赖，并且你可能想问一些类似使用哪个版本的细节问题，因此值得花几页篇幅讨论这个问题。
 
-首先，假设你想使用不是在crates.io上发布的依赖。一种方式是指明Git仓库的URL和修订号：
+首先，假设你想使用没有在crates.io上发布的依赖。一种方式是指明Git仓库的URL和修订号：
 \begin{minted}{toml}
     image = { git = "https://github.com/Piston/image.git", rev = "528f19c" }
 \end{minted}
 
-这个crate是GitHub上的开源仓库，但你也可以指明一个在你自己公司内网里的私有Git仓库。正如这里展示的一样，你可以指定要使用的特定的\texttt{rev}、\texttt{tag}或者\texttt{branch}。（这是所有告诉Git检查源代码的哪个版本的方式。）
+这个crate是GitHub上的开源仓库，但你也可以指明一个在你自己公司内网里的私有Git仓库。正如这里展示的一样，你可以指定要使用的特定的\texttt{rev}、\texttt{tag}或者\texttt{branch}。（这三种方式都可以告诉Git要checkout到源代码的哪个版本。）
 
 另一种方式是指定一个含有crate源码的目录：
 \begin{minted}{toml}
     image = { path = "vendor/image" }
 \end{minted}
 
-当你的队伍使用单个版本控制仓库来包含若干个crate甚至整个依赖图的所有crate时，这种方式会很方便。每个crate都可以使用相对路径指定它的依赖。
+当你的团队使用单个版本控制仓库来包含若干个甚至整个依赖图的所有crate时，这种方式会很方便。每个crate都可以使用相对路径指定它的依赖。
 
 这种细粒度的依赖控制方式是一种很强大的功能。如果你发现任何开源的crate都不完全符合你的要求，你可以fork它：点击GitHub上的Fork按钮，然后更改\emph{Cargo.toml}中的一行。这样你的下一次\texttt{cargo build}命令将会使用你fork的版本而不是官方的版本。
 
@@ -1150,7 +1150,7 @@ Rust中的文档注释的一个特殊特性是Markdown链接可以使用Rust的i
 \begin{itemize}
     \item 0.0开头的版本号太过原始，因此Cargo假设它和任意版本都不兼容。
     \item 一个以0.\emph{x}开头的版本号，其中\emph{x}是非零数字，将会被认为和其他0.\emph{x}系列的版本兼容。\footnote{译者注：即\emph{0.x.a}和\emph{0.x.b}兼容，但\emph{0.x.a}和\emph{0.y.a}不兼容。}我们指定了\texttt{image}的版本是0.6.1，但Cargo有可能会使用0.6.3的版本。（这并不是语义版本号标准对0.\emph{x}版本号的说明，但这个规则被证明很有用，因此需要保留。）
-    \item 一旦一个项目到达了1.0，只有主版本号会打破兼容性。因此如果你要求2.0.1版本，Cargo可能会使用2.17.99版本，但不会是3.0。
+    \item 一旦一个项目到达了1.0，则只有主版本号会打破兼容性。因此如果你要求2.0.1版本，Cargo可能会使用2.17.99版本，但不会是3.0。
 \end{itemize}
 
 版本号默认是弹性的，因为如果不这样，那么使用哪个版本的问题将会被过度约束。假设库\texttt{libA}使用了\texttt{num = "0.1.31"}，而库\texttt{libB}使用了\texttt{num = "0.1.29"}。如果版本号要求精确匹配，将没有任何项目可以同时使用这两个库。允许Cargo使用任何兼容的版本是更加实用的默认配置。
@@ -1179,7 +1179,7 @@ Rust中的文档注释的一个特殊特性是Markdown链接可以使用Rust的i
 注意兼容性规则意味着不能纯粹出于营销原因选择版本号。它们必须有真实的含义。这是crate的维护者和用户之间的约定。如果你正在维护一个1.7版本的crate，并且你决定删除一个函数或者做出其他不能完全向后兼容的更改，你必须将版本号提升到2.0。如果你把版本号更新到1.8，那么你就等于是在宣称新版本和1.7版本兼容，你的用户可能会发现他们构建时出现错误。
 
 \subsection{Cargo.lock}
-\emph{Cargo.toml}中的版本号故意设计的比较灵活，然而我们并不需要每次构建时都让Cargo把库更新到最新版本。想象一下你正在一个紧张的调试会话中，突然\texttt{cargo build}把库更新到了最新的版本。这可能会造成很大的破坏。在调试途中任何的改变都会导致问题。事实上，任何时候更新库都不是一个好时机。
+\emph{Cargo.toml}中的版本号故意设计的比较灵活，然而我们并不需要每次构建时都让Cargo把库更新到最新版本。想象一下你正在一个紧张的调试会话中，突然一次\texttt{cargo build}把库更新到了最新的版本。这可能会造成很大的破坏，在调试途中任何的改变都会导致问题。事实上，任何时候更新库都不是一个好时机。
 
 Cargo也有一个内建的机制来解决这个问题。当你第一次构建项目时，Cargo会输出一个\emph{Cargo.lock}文件记录下它使用的每一个crate的精确版本。之后的构建将会查询这个文件并继续使用相同的版本。只有当你告诉Cargo更新版本时它才会这么做，你可以手动更改\emph{Cargo.toml}文件中的版本号或者运行\texttt{cargo update}：
 \begin{minted}{text}
@@ -1196,13 +1196,13 @@ Cargo也有一个内建的机制来解决这个问题。当你第一次构建项
     image = { git = "https://github.com/Piston/image.git", branch = "master" }
 \end{minted}
 
-如果已经有了\emph{Cargo.lock}文件，那么\texttt{cargo build}将不会从Git仓库pull新的更改。它会读取\emph{Cargo.lock}并且每次都使用和上次相同的版本。但\texttt{cargo update}将会pull最新的master分支，因此我们的下一次更新将会使用最新的版本。
+如果已经有了\emph{Cargo.lock}文件，那么\texttt{cargo build}将不会从Git仓库pull新的更改。它会读取\emph{Cargo.lock}并且每次都使用和上次相同的版本。但\texttt{cargo update}将会pull最新的\texttt{master}分支，因此下一次构建将会使用最新的版本。
 
 \emph{Cargo.lock}是自动生成的，通常你不需要手动编辑它。尽管如此，如果你的项目是可执行程序，你应该把\emph{Cargo.lock}提交到版本控制系统。这样，任何构建你的项目的人都会使用完全相同的版本。你的\emph{Cargo.lock}文件的历史将会记录依赖的更新。
 
-如果你的项目是普通的Rust库，不要提交\emph{Cargo.lock}。你的库的下游用户将会有自己的包含整个依赖图的版本信息的\emph{Cargo.lock}文件，他们会忽略你的库中的\emph{Cargo.lock}文件。在少数情况下，你的项目可能是一个共享库（即输出是\emph{.dll}、\emph{.dylib}、\emph{.so}文件），这时将不会有这种下游的游湖，因此你应该提交\emph{Cargo.lock}。
+如果你的项目是普通的Rust库，不要提交\emph{Cargo.lock}。你的库的下游用户将会有自己的包含整个依赖图的版本信息的\emph{Cargo.lock}文件，他们会忽略你的库中的\emph{Cargo.lock}文件。在少数情况下，你的项目可能是一个共享库（即输出是\emph{.dll}、\emph{.dylib}、\emph{.so}文件），这时将不会有这种下游的用户，因此你应该提交\emph{Cargo.lock}。
 
-\emph{Cargo.toml}的弹性版本声明让你可以更容易的在自己的项目中使用Rust库，并能最大化库之间的兼容性。\emph{Cargo.lock}的记录可以保持一致性，在不同机器之间复现相同的构建。它们通过协作能有效地帮助你避免依赖地狱。
+\emph{Cargo.toml}的弹性版本声明让你可以更容易地在自己的项目中使用Rust库，并能最大化库之间的兼容性。\emph{Cargo.lock}的记录可以保持一致性，在不同机器之间复现相同的构建。它们通过协作能有效地帮助你避免依赖地狱。
 
 \section{把crate发布到crates.io}
 
@@ -1242,12 +1242,12 @@ Cargo警告说\emph{Cargo.toml}的\texttt{[package]}节缺少了一些对下游�
     一旦你在crates.io上发布了这个crate，任何下载了你的crate的人都可以看到\emph{Cargo.toml}文件。因此如果\texttt{authors}字段包含了一个你想保持私有的电子邮箱地址，现在是时候修改它了。
 \end{note}
 
-这个阶段有时会出现的另一个问题是你的\emph{Cargo.toml}文件中可能通过\texttt{path}指定了别的crate的位置，正如“\nameref{depend}”中展示的一样：
+这个阶段有时会出现的另一个问题是你的\emph{Cargo.toml}文件中可能通过\texttt{path}指定了别的crate的位置，正如\nameref{depend}中展示的一样：
 \begin{minted}{toml}
     image = { path = "vendor/image" }
 \end{minted}
 
-对你和你的队伍来说，这可能能正常工作。但显然当其他人下载了\texttt{fern\_sim}库之后，他们的计算机上不会有和你的计算机上一样的文件和目录。因此Cargo会\emph{忽略}自动下载的库中的\texttt{path}字段，这可能会导致构建错误。然而解决方案也是很直观的：如果你打算在crates.io上发布你的库，那么它的依赖也应该发布在crates.io上。将\texttt{path}替换为版本号来指定依赖：
+对你和你的团队来说，这可能能正常工作。但显然当其他人下载了\texttt{fern\_sim}库之后，他们的计算机上不会有和你的计算机上一样的文件和目录。因此Cargo会\emph{忽略}自动下载的库中的\texttt{path}字段，这可能会导致构建错误。然而解决方案也是很直观的：如果你打算在crates.io上发布你的库，那么它的依赖也应该发布在crates.io上。将\texttt{path}替换为版本号来指定依赖：
 \begin{minted}{toml}
     image = "0.13.0"
 \end{minted}
@@ -1277,7 +1277,7 @@ Cargo会把key保存在一个配置文件中，API key应该像密码一样保�
 
 \section{工作空间}
 
-随着你的项目的持续增长，你最终会编写很多crate。它们在一个单独的源代码仓库中逐个排列：
+随着项目的持续增长，你最终会编写很多crate。它们在一个单独的源代码仓库中逐个排列：
 \begin{minted}{text}
     fernsoft/
     |-- .git/...
@@ -1318,7 +1318,7 @@ Cargo工作的方式是每一个crate都有自己的构建目录\texttt{target}�
 如果你还不满意，Rus社区还为你准备了更多东西：
 \begin{itemize}
     \item 当你在\href{https://crates.io}{crates.io}上发布了开源的crate之后，你的文档将会被自动呈现并托管在\emph{doc.rs}上，这要感谢Onur Aslan。
-    \item 如果你的项目是在GitHub上，Travis CI可以在你每一次提交时构建并测试你的代码。它非常容易部署，详情见\href{https://travis-ci.org}{travis-ci.org}。如果你已经对Travis很熟悉了，这个\emph{.travis.yml}文件将会帮助你上路：
+    \item 如果你的项目是在GitHub上，Travis CI可以在你每一次提交时构建并测试你的代码。它非常容易部署，详情见\href{https://travis-ci.org}{travis-ci.org}。如果你已经对Travis很熟悉了，这个\emph{.travis.yml}文件可以帮助你上手：
     \begin{minted}{yaml}
     language: rust
     rust:
@@ -1329,4 +1329,4 @@ Cargo工作的方式是每一个crate都有自己的构建目录\texttt{target}�
 
 我们可以继续了。
 
-Rust是一门新语言，但它设计的目的之一是支持大型的、复杂的项目。它有强大的工具和活跃的社区。系统级程序员将迎来春天。
+Rust是一门新语言，但它设计的目的之一是支持大型的、复杂的项目。它有强大的工具和活跃的社区。系统程序员将迎来春天。
