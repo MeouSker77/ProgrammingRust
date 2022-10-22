@@ -1,13 +1,13 @@
 \chapter{Rust概览}\label{ch02}
-Rust给像本书一样的书籍的作者提出了一个挑战：赋予这门语言特色的并不是可以在第一页就展示出来的某些惊人的特性，而是如何设计这门语言来让它的各个部分可以无缝的协同工作，最终达到我们在上一章提到的目标：安全、高性能的系统级编程。这门语言的每一部分都在其他所有部分中得到了最好的证明。
+Rust给像本书一样的书籍的作者提出了一个挑战：赋予这门语言特色的并不是可以在第一页就展示出来的某些具体的、惊人的特性，而是如何设计这门语言以使它的各个部分可以无缝的协同工作，最终达到我们在上一章提到的目标：安全、高性能的系统编程。这门语言的每一部分在以其他所有部分为背景的前提下都是最合理的。
 
 因此，相比于一次着眼于一种语言特性，我们选择了几个简单但却完整的程序作为概览，每一个程序都会涉及到一些语言特性：
 
 \begin{itemize}
     \item 作为热身，我们准备了一个简单的计算命令行参数的程序，以及相应的单元测试。这个程序展示了Rust的核心类型，并引入了\emph{trait}。
     \item 接下来，我们构建了一个web服务器。我们将会使用一个第三方库来处理HTTP的细节，并引入字符串处理、闭包、错误处理。
-    \item 我们的第三个程序绘制了一个漂亮的图形，将计算分布到多个线程来提高速度。这一部分包括一个泛型函数的示例，阐明了怎么处理类似于一个像素的概念，并展示了Rust对并发的支持。
-    \item 最后，我们展示了一个使用正则表达式处理文件的健壮的命令行程序。这个程序展示了Rust标准库中处理文件的设施，和最常用的第三方正则表达式库。
+    \item 我们的第三个程序绘制了一个漂亮的图形，将计算分布到多个线程来提高速度。这一部分包括一个泛型函数的示例，阐明了怎么处理一个像素以及类似的概念，并展示了Rust对并发的支持。
+    \item 最后，我们展示了一个使用正则表达式处理文件的健壮的命令行程序。这个程序展示了Rust标准库中处理文件的设施和最常用的第三方正则表达式库。
 \end{itemize}
 
 Rust保证在对代码的性能影响最小的情况下防止未定义行为，这一保证影响了整个Rust中每个部分的设计，从标准的数据结构例如vector和string到Rust程序员使用第三方库的方式都受此影响。这些具体的细节书中都会提到，但是现在，我们想向你展示Rust是一门强大且有趣的语言。
@@ -17,7 +17,7 @@ Rust保证在对代码的性能影响最小的情况下防止未定义行为，�
 \section{rustup和Cargo}
 安装Rust的最佳方式是使用\texttt{rustup}。访问\url{https://rustup.rs}并按照说明进行操作。
 
-或者，你可以访问\href{https://www.rust-lang.org/}{Rust网站}来获取预构建好的Linux、macOS、Windows上的包。一些操作系统发行版里也包含Rust。我们推荐\texttt{rustup}，因为它是专用于管理Rust安装的工具，就像Ruby的RVM和Node的NVM一样。例如，当一个新版本的Rust发布时，你只需要输入\texttt{rustup update}就可以完成更新。
+或者，你可以访问\href{https://www.rust-lang.org/}{Rust网站}来获取预构建好的Linux、macOS、Windows上的包。一些操作系统发行版里也包含Rust。我们推荐使用\texttt{rustup}，因为它是专门用于管理Rust安装的工具，就像Ruby的RVM和Node的NVM一样。例如，当一个新版本的Rust发布时，你只需要输入\texttt{rustup update}就可以完成更新。
 
 无论如何，一旦你完成了安装，你就应该可以通过命令行访问以下三条新命令：
 \begin{minted}{text}
@@ -31,12 +31,12 @@ Rust保证在对代码的性能影响最小的情况下防止未定义行为，�
 
 这里，\texttt{\$}是命令提示符。在Windows上，可能是\texttt{C:\textbackslash>}或者别的类似的。这里我们运行了安装的三条命令，查询它们的版本。接下来让我们依次讲解每一个命令：
 \begin{itemize}
-    \item \texttt{cargo}是rust的编译管理器、包管理器和通用的工具。你可以使用Cargo来新建项目、构建并运行程序、管理所有代码中依赖的外部库。
+    \item \texttt{cargo}是Rust的编译管理器、包管理器和通用的工具。你可以使用Cargo来新建项目、构建并运行程序、管理所有代码中依赖的外部库。
     \item \texttt{rustc}是Rust的编译器。通常我们使用Cargo来调用编译器，但有时也需要直接运行它。
     \item \texttt{rustdoc}是Rust的文档工具。如果你在源代码中按照文档注释的格式写了文档，那么\texttt{rustdoc}可以通过它们构建出漂亮的HTML文档。和\texttt{rustc}一样，我们通常用Cargo来调用\texttt{rustdoc}。
 \end{itemize}
 
-方便起见，Cargo可以为我们创建新的Rust包，并设置好一些标准元数据：
+使用Cargo可以很方便地创建新的Rust包，并设置好一些标准元数据：
 \begin{minted}{text}
     $ cargo new hello
         Created binary (application) `hello` package
@@ -71,7 +71,7 @@ Rust保证在对代码的性能影响最小的情况下防止未定义行为，�
     [dependencies]
 \end{minted}
 
-如果我们的程序中需要依赖第三方库，我们可以在这个文件中添加它们，Cargo将会负责下载、构建和更新这些库。我们将在\hyperref[ch08]{第8章}中详细讲述\texttt{Cargo.toml}文件。
+如果我们的程序中需要使用第三方库，那么可以把它们添加在这个文件里，Cargo将会负责下载、构建和更新这些库。我们将在\hyperref[ch08]{第8章}中详细介绍\texttt{Cargo.toml}文件。
 
 Cargo已经为我们的包初始化好了\texttt{git}版本控制系统，创建了一个\texttt{.git}元数据目录和一个\texttt{.gitignore}文件。你可以通过向\texttt{cargo new}命令传递\texttt{--vcs none}参数来跳过这一步。
 
@@ -83,14 +83,14 @@ Cargo已经为我们的包初始化好了\texttt{git}版本控制系统，创建
     -rw-rw-r--.  1 jimb jimb 45 Sep 22 21:09 main.rs
 \end{minted}
 
-看起来Cargo好像已经替我们写好了程序。\texttt{main.rs}中包含以下文本：
+看起来Cargo好像已经替我们写好了程序。\texttt{main.rs}中包含以下内容：
 \begin{minted}{Rust}
     fn main() {
         println!("Hello, world!");
     }
 \end{minted}
 
-在Rust中，你甚至不需要编写自己的“Hello, World!”程序，这是新的Rust程序的模板：两个文件，总共13行。
+在Rust中，你甚至不需要自己编写“Hello, World!”程序。它是Rust的样板程序：包含两个文件，总共13行。
 
 我们可以从包中的任何目录调用\texttt{cargo run}命令来构建并运行我们的程序：
 \begin{minted}{text}
@@ -141,15 +141,15 @@ Rust的语法借鉴自其他语言。如果你熟悉C、C++、Java或者JavaScri
 
 \texttt{fn}关键字（读作“fun”）创建了一个函数。这里，我们定义了一个叫\texttt{gcd}的函数，它有两个参数\texttt{m}和\texttt{n}，类型都是\texttt{u64}，也就是64位无符号整数。\texttt{->}词元指明了返回值类型：我们的函数返回一个\texttt{u64}类型的值。四个空格缩进是Rust的标准风格。
 
-Rust的整数类型的名字代表了它们的大小和符号性：\texttt{i32}是有符号32位整数；\texttt{u8}是无符号8位整数（用于“字节”值）等等。\texttt{isize}和\texttt{usize}类型分别代表可以存下一个指针的有符号和无符号整数，在32位平台上它们就是32位，在64位平台上就是64位。Rust还有两种浮点数类型：\texttt{f32}和\texttt{f64}，分别是IEEE标准的单精度和双精度浮点数类型，类似于C和C++中的\texttt{float}和\texttt{double}。
+Rust的整数类型的名字代表了它们的大小和符号性：\texttt{i32}是有符号32位整数；\texttt{u8}是无符号8位整数（用于表示“字节”）等。\texttt{isize}和\texttt{usize}类型分别代表可以存下一个指针的有符号和无符号整数，在32位平台上它们就是32位，在64位平台上就是64位。Rust还有两种浮点数类型：\texttt{f32}和\texttt{f64}，分别是IEEE标准的单精度和双精度浮点数类型，类似于C和C++中的\texttt{float}和\texttt{double}。
 
-默认情况下，当变量初始化后，它的值就不能再被改变，但通过在参数\texttt{m}和\texttt{n}前加上\texttt{mut}关键字（读作“mute”，\emph{mutable}的缩写）就可以在函数体中对它们进行赋值。在实践中，大多数变量都不会被重新赋值，在阅读代码时\texttt{mut}关键字将是一个有用的提示。
+默认情况下，当变量初始化后，它的值就不能再被改变。但如果在参数\texttt{m}和\texttt{n}前加上\texttt{mut}关键字（读作“mute”，\emph{mutable}的缩写）就可以在函数体中对它们进行赋值。在实践中，大多数变量都不会被重新赋值，因此在阅读代码时\texttt{mut}关键字将是一个有用的提示。
 
-函数体中首先调用了\texttt{assert!}宏，确保两个参数都不是0。\texttt{!}字符标志着这是宏调用，而不是函数调用。类似于C和C++中的\texttt{assert}宏，Rust中的\texttt{assert!}宏也会检查参数是否为真，如果不为真则中断程序，并输出一条有用的信息，其中包括断言失败的源码位置。这种终止的方式被称为\emph{panic}。和C和C++中断言可以被跳过不同，Rust总是检查断言，不管程序怎么编译。还有一个\texttt{debug\_assert!}宏，当程序被编译为release模式时会被跳过。
+函数体中首先调用了\texttt{assert!}宏来确保两个参数都不是0。\texttt{!}字符表示这是宏调用，而不是函数调用。类似于C和C++中的\texttt{assert}宏，Rust中的\texttt{assert!}宏也会检查参数是否为真，如果不为真则中断程序，并输出一条有用的信息，其中包括断言失败的源码位置。这种终止的方式被称为\emph{panic}。和C和C++中断言可以被跳过不同，Rust总是检查断言，不管程序怎么编译。还有一个\texttt{debug\_assert!}宏，当程序被编译为release模式时会被跳过。
 
 我们函数的主体是一个包含一条\texttt{if}语句和一条赋值语句的\texttt{while}循环。和C和C++不同，Rust的条件表达式不需要括号，但紧随其后的控制流语句需要花括号。
 
-\texttt{let}语句声明了一个局部变量，比如函数中的\texttt{t}。我们不需要写出\texttt{t}的类型，因为Rust可以通过使用这个值的方式来推断它的类型。在我们的函数中，\texttt{t}只有和\texttt{m}、\texttt{n}相匹配，是\texttt{u64}类型时才可以正常运行。Rust只在函数体内推断类型：你必须写出函数参数和返回值的类型，就像我们所做的那样。如果你想指明\texttt{t}的类型，你可以写：
+\texttt{let}语句声明了一个局部变量，例如函数中的\texttt{t}。我们不需要写出\texttt{t}的类型，因为Rust可以通过使用这个值的方式来推断它的类型。在我们的函数中，\texttt{t}只有和\texttt{m}、\texttt{n}相匹配，即是\texttt{u64}类型时函数才可以正常运行。Rust只在函数体内推断类型：你必须写出函数参数和返回值的类型，就像我们所做的那样。如果你想指明\texttt{t}的类型，你可以写：
 \begin{minted}{Rust}
     let t: u64 = m;
 \end{minted}
@@ -179,7 +179,7 @@ Rust语言内建有对测试的支持。为了测试我们的\texttt{gcd}函数�
 
 这里我们定义了一个叫\texttt{test\_gcd}的函数，它调用了\texttt{gcd}函数并检查返回值是否正确。函数上方的\texttt{\#[test]}标记\texttt{test\_gcd}是一个测试函数，这种函数在正常编译时会被跳过，但在使用\texttt{cargo test}命令时会被编译并自动调用。我们可以在整个源码树的任何位置定义测试函数，\texttt{cargo test}会自动收集它们并运行。
 
-\texttt{\#[test]}标记是\emph{属性}的是一个示例。属性是一种为函数和其他声明标记额外信息的开放式系统，类似于C++和C\#中的属性，或者Java中的注解。它们被用来控制编译器警告和代码风格检查、条件编译（类似于C和C++中的\texttt{\#ifdef}）、告诉Rust怎么和其它语言编写的代码交互等。随着继续深入我们将会看到更多使用属性的例子。
+\texttt{\#[test]}标记是一个\emph{属性(attribute)}。属性是一种为函数和其他声明标记额外信息的开放式系统，类似于C++和C\#中的属性，或者Java中的注解。它们被用来控制编译器警告和代码风格检查、条件编译（类似于C和C++中的\texttt{\#ifdef}）、告诉Rust怎么和其它语言编写的代码交互等。随着继续深入我们将会看到更多使用属性的例子。
 
 把\texttt{gcd}和\texttt{test\_gcd}函数的定义添加到\texttt{hello}包里之后，我们可以在包内的某个目录下按照如下方式运行测试：
 \begin{minted}{text}
@@ -243,26 +243,26 @@ Rust语言内建有对测试的支持。为了测试我们的\texttt{gcd}函数�
     let mut numbers = Vec::new();
 \end{minted}
 
-我们声明了一个可变的局部变量\texttt{numbers}，并将它初始化为一个空的向量。\texttt{Vec}是Rust的可变长的向量类型，类似于C++的\texttt{std::vector}、Python的\texttt{list}、或者JavaScript的\texttt{array}。即使vector被设计为动态伸缩，我们仍然需要将变量标记为\texttt{mut}，这样Rust才允许我们向它的末尾添加元素。
+我们声明了一个可变的局部变量\texttt{numbers}，并将它初始化为一个空的vector。\texttt{Vec}是Rust的可变长的向量类型，类似于C++的\texttt{std::vector}、Python的\texttt{list}、或者JavaScript的\texttt{array}。即使vector被设计为动态伸缩，我们仍然需要将变量标记为\texttt{mut}，这样Rust才允许我们向它的末尾添加元素。
 
-\texttt{numbers}的类型是\texttt{Vec<u64>}，一个\texttt{u64}的vector，但和之前一样，我们不需要写出类型。Rust将会为我们推断出它的类型，在这里我们把\texttt{u64}类型的值添加到了vector里，而且我们之后还把这个vector的元素传给了\texttt{gcd}函数，\texttt{gcd}函数的参数只能是\texttt{u64}。
+\texttt{numbers}的类型是\texttt{Vec<u64>}，一个\texttt{u64}的vector。但和之前一样，我们不需要写出类型。Rust将会为我们推断出它的类型：这里我们把\texttt{u64}类型的值添加到了vector里，而且我们之后还把这个vector的元素传给了\texttt{gcd}函数，而\texttt{gcd}函数的参数只能是\texttt{u64}。
 
 \begin{minted}{Rust}
     for arg in env::args().skip(1) {
 \end{minted}
 
-这里我们使用了一个\texttt{for}循环来处理命令行参数，将每个参数命名为\texttt{arg}变量，然后执行循环体。
+这里我们使用了一个\texttt{for}循环来处理命令行参数，依次将每个参数赋值给\texttt{arg}变量，然后执行循环体。
 
-\texttt{std::env}模块的\texttt{args}函数返回一个\emph{迭代器}，迭代器可以惰性产生每一个值，并指示我们何时迭代结束。迭代器在\texttt{Rust}中无处不在，标准库中还包含其他的迭代器例如产生vector中的每个元素、产生文件的每一行、产生通道收到的每一条消息、以及其他几乎所有可以循环处理的东西。Rust的迭代器非常高效：编译器通常能将它们翻译为和手写循环一样的代码。我们将会在\hyperref[ch15]{第15章}介绍该怎么使用它并给出一些示例。
+\texttt{std::env}模块的\texttt{args}函数返回一个\emph{迭代器}，迭代器可以惰性产生每一个值，并在迭代结束时告知我们。迭代器在\texttt{Rust}中无处不在，标准库中还包含其他的迭代器，例如产生vector中的每个元素、产生文件的每一行、产生通道收到的每一条消息、以及其他几乎所有可以循环处理的东西。Rust的迭代器非常高效：编译器通常能将它们翻译为和手写循环一样的代码。我们将会在\hyperref[ch15]{第15章}介绍该怎么使用它并给出一些示例。
 
-除了和\texttt{for}循环一起使用之外，迭代器还有很多可以直接使用的方法。例如，\texttt{args}方法返回的迭代器的第一个值总是正在运行的程序名。我们想要跳过它，因此我们调用了迭代器的\texttt{skip}方法来生成一个省略了第一个值的新迭代器。
+除了和\texttt{for}循环一起使用之外，迭代器还有很多可以直接使用的方法。例如，\texttt{args}方法返回的迭代器的第一个值总是正在运行的程序名，我们想要跳过它，因此我们调用了迭代器的\texttt{skip}方法来生成一个忽略了第一个值的新迭代器。
 
 \begin{minted}{Rust}
     numbers.push(u64.from_str(&arg)
                  .expect("error parsing argument"));
 \end{minted}
 
-这里我们调用了\texttt{u64::from\_str}来尝试将命令行参数解析为64位整数。和通过\texttt{u64}类型的值调用的方法不同，\texttt{u64::from\_str}是一个和\texttt{u64}类型的值关联的方法，类似于C++和Java中的静态方法。\texttt{from\_str}函数不直接返回一个\texttt{u64}类型的值，而是返回一个\texttt{Result}类型的值来表示解析是否成功。一个\texttt{Result}类型的值有两种可能：
+这里我们调用了\texttt{u64::from\_str}来尝试将命令行参数解析为64位整数。和通过\texttt{u64}类型的值调用的方法不同，\texttt{u64::from\_str}是一个和\texttt{u64}类型关联的方法，类似于C++和Java中的静态方法。\texttt{from\_str}函数不直接返回一个\texttt{u64}类型的值，而是返回一个\texttt{Result}类型的值来表示解析是否成功。一个\texttt{Result}类型的值有两种可能：
 
 \begin{itemize}
     \item 一个写作\texttt{Ok(v)}，表示解析成功，\texttt{v}就是解析出的值。
@@ -331,13 +331,13 @@ Rust对所有权和引用的规则是Rust的内存管理和安全并发的关键
     Usage: gcd NUMBER ...
 \end{minted}
 
-我们在这一节中用到了Rust标准库中的一小部分特性。如果你对其他的部分很好奇，我们强烈建议你去尝试Rust的在线文档。它的搜索功能很有用，甚至还包括到源代码的链接。当你安装Rust时\texttt{rustup}命令会自动在你的计算机上安装一份文档的拷贝。你可以在Rust的\href{https://www.rust-lang.org/learn}{网站}上查阅标准库的文档，或者通过如下命令在你的浏览器中查阅：
+我们在这一节中用到了Rust标准库中的一小部分特性。如果你对其他的部分很好奇，我们强烈建议你去尝试Rust的在线文档。它的搜索功能很有用，甚至还包括到源代码的链接。安装Rust时\texttt{rustup}命令会自动在你的计算机上安装一份文档的拷贝。你可以在Rust的\href{https://www.rust-lang.org/learn}{网站}上查阅标准库的文档，或者通过如下命令在你的浏览器中查阅：
 \begin{minted}{text}
     $ rustup doc --std
 \end{minted}
 
 \section{提供web页面}
-Rust的一个强项就是发布在网站\href{https://crates.io}{crates.io}上的可以自由使用的包。\texttt{cargo}命令让你可以方便的使用crates.io的包：它将会按需下载正确的版本，构建并在需要时更新它。一个Rust包，无论是库还是可执行文件，都被称为一个\emph{crate}。Cargo和crates.io都是因为这个术语而得名。
+Rust的一个强项就是发布在网站\href{https://crates.io}{crates.io}上的可以自由使用的包。\texttt{cargo}命令让你可以方便的使用crates.io的包：它将会下载正确的版本并按需构建和更新包。一个Rust包，无论是库还是可执行文件，都被称为一个\emph{crate}。Cargo和crates.io都是因为这个术语而得名。
 
 为了展示它的工作方式，我们将会使用\texttt{actix-web}网络框架crate，\texttt{serde}序列化crate和其它它们依赖的crate来构建一个简单的web服务器。如\hyperref[f2-1]{图2-1}所示，我们的网站将会提示用户输入两个数字，然后计算它们的最大公约数。
 \begin{figure}[htbp]
@@ -370,9 +370,9 @@ Rust的一个强项就是发布在网站\href{https://crates.io}{crates.io}上�
     serde = { version = "1.0", features = ["derive"] }
 \end{minted}
 
-\texttt{Cargo.toml}中\texttt{dependencies}节的每一行都有一个cartes.io上的crate的名字和需要使用的版本。在这个例子中，我们需要\texttt{actix-web} crate的\texttt{1.0.8}版本和\texttt{serde} crate的\texttt{1.0}版本。crates.io上这两个crate可能还有更新的版本，但是通过指定我们测试成功的特定版本，可以保证即使这两个crate发布了新的版本，代码仍然可以正常工作。我们将会在\hyperref[ch08]{第8章}中详细的讨论版本管理。
+\texttt{Cargo.toml}中\texttt{dependencies}节的每一行都有一个cartes.io上的crate的名字和需要使用的版本。在这个例子中，我们需要\texttt{actix-web} crate的\texttt{1.0.8}版本和\texttt{serde} crate的\texttt{1.0}版本。crates.io上这两个crate可能还有更新的版本，但是通过指定我们测试成功的特定版本，可以保证即使这两个crate发布了新的版本，代码仍然可以正常工作。我们将会在\hyperref[ch08]{第8章}中详细讨论版本管理。
 
-crate有一些可选的特性：这些特性是有些用户可能用不到、但仍然需要包含在crate中的部分接口或实现。\texttt{serde}提供了一个非常简洁的方式来处理web表单中的数据，但是根据\texttt{serde}的文档，只有当我们选择了这个crate的\texttt{derive}特性，才可以使用这种方式，因此我们在\texttt{Cargo.toml}文件中制定了这个特性。
+crate有一些可选的特性：这些特性是有些用户可能用不到、但仍然需要包含在crate中的部分接口或实现。\texttt{serde}提供了一个非常简洁的方式来处理web表单中的数据，但是根据\texttt{serde}的文档，只有当我们选择了这个crate的\texttt{derive}特性，才可以使用这种方式，因此我们在\texttt{Cargo.toml}文件中指定了这个特性。
 
 注意我们只需要指明那些我们直接使用的crate，\texttt{cargo}会自动下载它们依赖的其他crate。
 
@@ -413,15 +413,17 @@ crate有一些可选的特性：这些特性是有些用户可能用不到、但
 
 我们的\texttt{main}函数很简单：它首先调用\texttt{HttpServer::new}来创建一个服务器，这个服务器会响应对\texttt{"/"}路径的get方法；然后打印出一条消息；最后让服务器监听本地机器上的3000 TCP端口。
 
-我们传递给\texttt{HttpServer::new}的参数是Rust的\emph{闭包}表达式\texttt{|| \{ App::new() ... \}}。闭包是一种可以被当作函数来调用的值。这里定义的闭包没有参数，但如果需要参数的话，要写在\texttt{||}之间。\texttt{\{ ... \}}是闭包的函数体。当我们启动服务器时，Actix会启动一个线程池来处理到达的请求。每一个线程都会调用我们的闭包来获取一个\texttt{App}的拷贝，\texttt{App}的值将告诉它如何路由和处理请求。
+我们传递给\texttt{HttpServer::new}的参数是Rust的\emph{闭包}表达式\texttt{|| \{ App::new() ... \}}。闭包是一种可以被当作函数来调用的值。这里定义的闭包没有参数，但如果需要参数的话，要写在\texttt{||}之间。\texttt{\{ ... \}}是闭包的函数体。当我们启动服务器时，Actix会启动一个线程池来处理到达的请求。每个线程都会调用我们的闭包来获取一份\texttt{App}的拷贝，\texttt{App}的值将告诉它如何路由和处理请求。
 
-闭包会调用\texttt{App::new}来创建一个新的、空的\texttt{App}并调用它的\texttt{route}方法来添加一个路径\texttt{"/"}的路由。用\texttt{web::get().to(get\_index)}为这个路由添加处理函数，作用是遇到HTTP \texttt{GET}请求时调用函数\texttt{get\_index}。\texttt{route}方法会返回调用它的\texttt{App}自身，并增加新的路由。因为闭包的结尾处没有分号，因此\texttt{App}就是闭包的返回值，\texttt{HttpServer}线程将会使用它。
+闭包会调用\texttt{App::new}来创建一个新的\texttt{App}并调用它的\texttt{route}方法来添加一个路径\texttt{"/"}的路由。\texttt{web::get().to(get\_index)}为这个路由了添加处理函数，这样当遇到HTTP \texttt{GET}请求时会调用函数\texttt{get\_index}。\texttt{route}方法在增加新的路由之后会返回调用它的\texttt{App}自身。因为闭包的结尾处没有分号，因此\texttt{App}就是闭包的返回值，\texttt{HttpServer}线程将会使用它。
 
-\texttt{get\_index}函数构建了一个\texttt{HttpResponse}类型的值作为HTTP \texttt{GET /}请求的响应。\texttt{HttpResponse::Ok()}代表HTTP \texttt{200 OK}状态，表示请求被成功处理。我们还调用了它的\texttt{content\_type}和\texttt{body}方法来填充相应的细节；每一个调用都会返回调用它们的\texttt{HttpResponse}。最后，\texttt{body}方法的返回值作为\texttt{get\_index}的返回值。
+\texttt{get\_index}函数构建了一个\texttt{HttpResponse}类型的值作为HTTP \texttt{GET /}请求的响应。\\
+\texttt{HttpResponse::Ok()}代表HTTP \texttt{200 OK}状态，表示请求被成功处理。我们还调用了它的\texttt{content\_type}和\texttt{body}方法来填充相应的细节，这两个方法都会返回调用它们的\\
+\texttt{HttpResponse}。最后，\texttt{body}方法的返回值作为\texttt{get\_index}的返回值。
 
-因为相应的文本中包含很多双引号，所以我们使用了Rust的raw string语法：字母\texttt{r}、0个或多个井号（\texttt{\#}字符）、一个双引号，string的内容、最后以另一个双引号加上和开头处相同数量的井号结尾。raw string中出现的任何字符都不会被转义，包括双引号；事实上，没有转义的序列例如\texttt{\textbackslash"}也可以被识别。我们可以通过增多井号的数量来保证终止的标记不会出现在字符串内容中。
+因为响应文本中包含很多双引号，所以我们使用了Rust的raw string语法：开头是字母\texttt{r}+0个或多个井号（\texttt{\#}字符）+一个双引号，然后是string的内容，最后以另一个双引号加上和开头处相同数量的井号结尾。raw string中出现的任何字符都不会被转义，包括双引号；事实上，像\texttt{\textbackslash{}"}这样的转义序列也不会被转义。我们可以通过增多井号的数量来保证终止的标记不会出现在字符串内容中。
 
-编写完\texttt{main.rs}之后，我们可以使用\texttt{cargo run}命令来运行它：它会自动获取所需的crate、编译它们、编译我们自己的程序、并链接在一起、然后启动它：
+编写完\texttt{main.rs}之后，我们可以使用\texttt{cargo run}命令来运行它：它会自动获取所需的crate并编译它们，然后编译我们自己的程序，再链接在一起，最后运行程序：
 \begin{minted}{text}
     $ cargo run
         Updating crates.io index
@@ -441,7 +443,7 @@ crate有一些可选的特性：这些特性是有些用户可能用不到、但
     Serving on http://localhost:3000...
 \end{minted}
 
-到目前为止，我们可以可以访问给定的URL并看到如\hyperref[f2-1]{图2-1}所示的页面。
+到此我们已经可以访问给定的URL并看到如\hyperref[f2-1]{图2-1}所示的页面。
 
 不幸的是，点击GCD并不会做任何事，而且会把我们的浏览器导航到一个空页面。接下来让我们来修复它，通过向我们的\texttt{App}添加另一个路由来处理我们表单的\texttt{POST}请求的响应。
 
@@ -485,7 +487,7 @@ Rust程序员通常会把\texttt{use}声明集中在文件开始处，但这并�
     }
 \end{minted}
 
-作为Actix请求的处理函数，它的参数的类型必须是Actix知道怎么从中提取出HTTP请求的类型。我们的\texttt{post\_gcd}函数有一个参数\texttt{form}，它的类型是\texttt{web::Form<GcdParameters>}。当且仅当\texttt{T}可以从HTML的\texttt{POST}表单数据反序列化出来时，Actix才知道怎么\texttt{web::Form<T>}类型中提取出值。因为我们在\texttt{GcdParameters}类型的定义前加上了\texttt{\#[derive(Deserialize)]}属性，所以Actix可以从表单数据中反序列化出它，因此请求的处理函数可以使用\\
+作为Actix请求的处理函数，它的参数的类型必须是Actix知道怎么从中提取出HTTP请求的类型。我们的\texttt{post\_gcd}函数有一个参数\texttt{form}，它的类型是\texttt{web::Form<GcdParameters>}。当且仅当\texttt{T}可以由HTML的\texttt{POST}表单数据反序列化出来时，Actix才知道怎么从\texttt{web::Form<T>}类型中提取出值。因为我们在\texttt{GcdParameters}类型的定义前加上了\texttt{\#[derive(Deserialize)]}属性，所以Actix可以从表单数据中反序列化出它，因此请求的处理函数可以使用\\
 \texttt{web::Form<GcdParameters>}作为参数。这些类型和函数之间的关系都是在编译期处理的，如果你用了Actix不知道该如何处理的类型作为参数的类型，Rust编译器将会立刻告诉你这个错误。
 
 再看\texttt{post\_gcd}的实现：如果有参数的值为0，这个函数会返回一个HTTP \texttt{401 BAD REQUEST}错误，因为这种情况下我们的\texttt{gcd}函数会panic。然后，它使用\texttt{format!}宏创建了一个响应。\texttt{format!}宏类似于\texttt{println!}宏，只不过它不会把字符串写入到标准输出，而是会返回字符串。当响应的文本就绪后，\texttt{post\_gcd}用一个HTTP \texttt{200 OK}响应来包装它，设置好content type之后，就把它返回到请求方。
@@ -529,9 +531,9 @@ Rust程序员通常会把\texttt{use}声明集中在文件开始处，但这并�
 \section{并发}
 Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安全问题的规则同样可以保证线程之间在没有数据竞争的情况下共享数据。例如：
 \begin{itemize}
-    \item 如果你使用自旋锁来同步需要修改共享数据结构的线程，Rust保证只有当你持有锁的情况下才可以访问数据，并且当你处理完数据后自动释放锁。在C和C++中，自旋锁和要保护的数据之间的关系一般都写在注释里。
+    \item 如果你使用互斥锁来同步需要修改共享数据结构的线程，Rust保证只有当你持有锁的情况下才可以访问数据，并且当你处理完数据后自动释放锁。在C和C++中，互斥锁和要保护的数据之间的关系一般都写在注释里。
     \item 如果你想在几个线程中共享只读数据，Rust保证你不可能意外修改数据。在C和C++中，类型系统也可以帮我们做到这一点，但很容易出错。
-    \item 如果你把一个数据结构的所有权从一个线程转移到另一个线程，Rust保证你确实已经失去了对它的访问权。在C和C++中，需要由你自己来保证发送线程不会再次访问该数据。如果你没有正确做到这些，那么结果将会却决于处理器的缓存和你最近写入了多少内存。
+    \item 如果你把一个数据结构的所有权从一个线程转移到另一个线程，Rust会保证你确实已经失去了对它的访问权。在C和C++中，需要由你自己来保证发送线程不会再次访问该数据。如果你没有正确做到这些，那么结果将会取决于处理器的缓存和你最近写入了多少内存。
 \end{itemize}
 
 在这一节中，我们将带领你编写你的第二个多线程程序。
@@ -566,7 +568,7 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
     }
 \end{minted}
 
-在现实中，Rust可能会看出\texttt{x}的值从来没有被使用过，因此并不执行计算。但一开始，首先让我们假设代码按照我们所写的运行。\texttt{x}的值将会发生什么变化？任何小于1的数平方都会变得更小，因此它会接近于0；1的平方还是1；大于1的数平方会变得更大，因此它会接近无限大；负数的平方将会使它变为正数，然后它的变化就和前面说的一样（\hyperref[f2-3]{图2-3}）。
+事实上，Rust可能会看出\texttt{x}的值从来没有被使用过，因此并不执行计算。但一开始，首先让我们假设代码按照我们所写的运行。\texttt{x}的值将会发生什么变化？任何小于1的数平方都会变得更小，因此它会接近于0；1的平方还是1；大于1的数平方会变得更大，因此它会接近无限大；负数的平方将会使它变为正数，然后它的变化就和前面说的一样（\hyperref[f2-3]{图2-3}）。
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.8\textwidth]{../img/f2-3.png}
@@ -615,13 +617,13 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
     }
 \end{minted}
 
-用\texttt{z}表示复数是一种习惯，因此我们重命名了变量。表达式\texttt{Complex \{ re: 0.0, im: 0.0 \}}创建了一个\texttt{num} crate的\texttt{Complex}类型的复数0值。\texttt{Complex}时一个Rust的结构体类型，定义类似于如下：
+用\texttt{z}表示复数是一种习惯，因此我们重命名了变量。表达式\texttt{Complex \{ re: 0.0, im: 0.0 \}}创建了一个\texttt{num} crate的\texttt{Complex}类型的复数0值。\texttt{Complex}是一个Rust的结构体类型，定义类似于如下：
 \begin{minted}{Rust}
     struct Complex<T> {
-        /// Real portion of the complex number
+        /// 复数的实部
         re: T,
 
-        /// Imaginary portion of the complex number
+        /// 复数的虚部
         im: T,
     }
 \end{minted}
@@ -630,7 +632,7 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
 
 \texttt{num} crate为\texttt{Complex}类型的值提供了\texttt{*, +}和其他的算术运算符，因此剩余的代码就和之前一样，除了它现在是操作复数类型，而不是实数。我们将会在\hyperref[ch12]{第12章}解释怎么为自定义类型定义运算符。
 
-最后，我们终于完成了纯数学的部分。曼德勃罗集被定义为使得\texttt{z}不会变为无穷大的\texttt{c}的集合。我们最初始版本的循环很容易预测结果：任何大于1或小于-1的数都不满足。每次迭代平方之后再\texttt{+ c}让程序的行为更难预测：正如我们之前所说的那样，如果\texttt{c}的值大于0.25或者小于-2会导致\texttt{z}变为无穷大。但如果扩展到复数领域事情就会变得有趣起来，并且会生成漂亮的图形，我们将绘制这个图形。
+最后，我们终于完成了纯数学的部分。曼德勃罗集被定义为使得\texttt{z}不会变为无穷大的\texttt{c}的集合。我们最初始版本的循环很容易预测结果：任何大于1或小于-1的数都不满足曼德勃罗集的条件。每次迭代平方之后再\texttt{+ c}则让程序的行为更难预测：正如我们之前所说，如果\texttt{c}的值大于0.25或者小于-2会导致\texttt{z}变为无穷大。但如果扩展到复数领域事情就会变得有趣起来，并且会生成漂亮的图形，我们将绘制这个图形。
 
 因为一个复数\texttt{c}同时有实部\texttt{c.re}和虚部\texttt{c.im}，因此我们将它当作笛卡尔坐标系中的\texttt{x}和\texttt{y}坐标，然后如果\texttt{c}在曼德勃罗集里就把点设置为黑色，否则设置为白色。因此对于我们图片中的每个像素点，我们必须运行复数版本的循环，看看它最终是会变为无穷大还是围绕在原点附近，并以次判断点的颜色。
 
@@ -638,14 +640,12 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
 \begin{minted}{Rust}
     use num::Complex;
 
-    /// Try to determine if `c` is in the Mandelbrot set, using at most `limit`
-    /// iterations to decide.
+    /// 尝试判断`c`是否在曼德勃罗集里，最多迭代`limit`次。
     ///
-    /// If `c` is not a member, return `Some(i)`, where `i` is the number of
-    /// iterations it took for `c` to leave the circle of radius 2 centered on the
-    /// origin. If `c` seems to be a number (more precisely, if we reached the
-    /// iteration limit without being able to prove that `c` is not a member),
-    /// return `None`.
+    /// 如果`c`不在曼德勃罗集里，就返回`Some(i)`，其中`i`是
+    /// `z`离开以原点为圆心、2为半径的圆所需的迭代次数。
+    /// 如果`c`似乎在曼德勃罗集里（更确切地说是迭代了`limit`次
+    /// 之后仍无法证明`c`不在曼德勃罗集里），就返回`None`。
     fn escape_time(c: Complex<f64>, limit: usize) -> Option<usize> {
         let mut z = Complex { re: 0.0, im: 0.0 };
         for i in 0..limit {
@@ -668,7 +668,7 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
 
 \texttt{Option}是一个\emph{枚举类型}，通常被称为\emph{enum}，因为它的定义列举出了一个该类型的实例可能的值：对于任何类型\texttt{T}，一个\texttt{Option<T>}类型的值要么是\texttt{Some(v)}（其中\texttt{v}是\texttt{T}类型的值），要么是\texttt{None}，表示没有可用的\texttt{T}类型的值。类似于我们之前讨论的\texttt{Complex}类型，\texttt{Option}也是泛型类型：你可以用\texttt{Option<T>}来代替任何类型的可选值。
 
-在我们的例子中，\texttt{escape\_time}返回一个可选的\texttt{Option<usize>}来表示\texttt{c}是否在曼德勃罗集里——如果不在的话，我们需要多少次迭代才能知道它不在。如果\texttt{C}不在曼德勃罗集里，\texttt{escape\_time}会返回\texttt{Some(i)}，其中\texttt{i}是\texttt{z}离开半径为2的圆所需的迭代次数。否则，如果\texttt{c}在曼德勃罗集里，\texttt{escape\_time}会返回\texttt{None}。
+在我们的例子中，\texttt{escape\_time}返回一个可选的\texttt{Option<usize>}来表示\texttt{c}是否在曼德勃罗集里，并且如果不在的话，我们希望知道迭代多少次才能判断出来它不在。如果\texttt{C}不在曼德勃罗集里，\texttt{escape\_time}会返回\texttt{Some(i)}，其中\texttt{i}是\texttt{z}离开半径为2的圆所需的迭代次数。否则，如果\texttt{c}在曼德勃罗集里，\texttt{escape\_time}会返回\texttt{None}。
 \begin{minted}{Rust}
     for i in 0..limit {
 \end{minted}
@@ -686,15 +686,14 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
 \begin{minted}{Rust}
     use std::str::FromStr;
 
-    /// Parse the string `s` as a coordinate pair, like `"400x6000"` or `"1.0,0.5"`
+    /// 将`s`解析为一个坐标对，例如`"400x6000"`或者`"1.0,0.5"`
     ///
-    /// Specifically, `s` should have the form <left><sep><right>, where <sep> is
-    /// the character given by the `separator` argument, and <left> and <right> are
-    /// both strings that can be parsed by `T::from_str`, `separator` must be an
-    /// ASCII character.
+    /// 确切地说，`s`的形式应该是<left><sep><right>，其中<sep>是由
+    /// `separator`参数指定的字符，<left>和<right>都是可以被`T::from_str`
+    /// 解析的字符串，`separator`必须是个ASCII字符。
     ///
-    /// If `s` has the proper form, return `Some<(x, y)>`. If it doesn't parse
-    /// correctly, return `None`.
+    /// 如果`s`的格式正确，就返回`Some<(x, y)>`。
+    /// 如果不能正确解析，就返回`None`。
     fn parse_pair<T: FromStr>(s: &str, separator: char) -> Option<(T, T)> {
         match s.find(separator) {
             None => None,
@@ -724,7 +723,7 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
     fn parse_pair<T: FromStr>(s: &str, separator: char) -> Option<(T, T)> {
 \end{minted}
 
-你可以将语法\texttt{<T: FromStr>}读作：“对于任意实现了\texttt{FromStr} trait的类型\texttt{T}...”。这可以让我们方便的一次定义一系列函数：\texttt{parse\_pair::<i32>}是一个把字符串解析为\texttt{i32}值对的函数，\texttt{parse\_pair::<f64>}是一个吧字符串解析为浮点数对的函数，等等。这很像C++中的函数模板。一个Rust程序员会把\texttt{T}称为\emph{parse\_pair}的\emph{类型参数}。当你使用泛型函数时，Rust通常能推导出类型参数，你不需要像我们测试代码中那样指明类型。
+你可以将语法\texttt{<T: FromStr>}读作：“对于任意实现了\texttt{FromStr} trait的类型\texttt{T}...”。这可以让我们方便地一次定义一系列函数：\texttt{parse\_pair::<i32>}是一个把字符串解析为\texttt{i32}值对的函数，\texttt{parse\_pair::<f64>}是一个把字符串解析为浮点数对的函数，等等。这很像C++中的函数模板。一个Rust程序员会把\texttt{T}称为\texttt{parse\_pair}的\emph{类型参数}。当你使用泛型函数时，Rust通常能推导出类型参数，你不需要像我们测试代码中那样指明类型。
 
 我们的返回类型是\texttt{Option<(T, T)>}：要么是\texttt{None}要么是\texttt{Some((v1, v2))}，\texttt{(v1, v2)}是一个有两个值的元组，两个值类型都是\texttt{T}。\texttt{parse\_pair}函数没有使用显式的return语句，因此它的返回值就是函数体中最后一条表达式的值：
 \begin{minted}{Rust}
@@ -765,8 +764,7 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
 现在我们已经有了\texttt{parse\_pair}，很容易就可以写出一个解析一对浮点数并返回\\
 \texttt{Complex<f64>}值的函数：
 \begin{minted}{Rust}
-    /// Parse a pair of floating-point numbers separated by a comma as a complex
-    /// number.
+    /// 把一对逗号分隔的浮点数解析为一个复数。
     fn parse_complex(s: &str) -> Option<Complex<f64>> {
         match parse_pair(s, ',') {
             Some((re, im)) => Some(Complex { re, im }),
@@ -787,15 +785,14 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
 如果你仔细阅读代码，你可能已经注意到我们使用了一种简写的方式来构建\texttt{Complex}值。用同名的变量来初始化结构体的字段是很常见的，因此相比于强迫你写\texttt{Complex \{ re: re, im: im \}}，Rust允许你简写为\texttt{Complex \{ re, im \}}。这是受JavaScript和Haskell中类似写法的启发。
 
 \subsection{将像素映射到复数}
-我们的程序需要处理两个相关联的坐标空间：输出图片中的每个像素对应复平面中的一个点。这两个空间的关系取决于我们要绘制的曼德勃罗集的部分和图片的分辨率，这些都是命令行参数决定的。下面的函数实现从\emph{图片空间}到\emph{复数空间}的转换：
+我们的程序需要处理两个相关联的坐标空间：输出图片中的每个像素对应复平面中的一个点。这两个空间的关系取决于我们要绘制的曼德勃罗集的部分和图片的分辨率，这些都是由命令行参数指定的。下面的函数实现从\emph{图片空间}到\emph{复数空间}的转换：
 \begin{minted}{Rust}
-    /// Given the row and column of a pixel in the output image, return the
-    /// corresponding point on the complex plane.
+    /// 给定输出图片中一个像素的行和列，返回复平面中相应的点。
     ///
-    /// `bounds` is a pair giving the width and height of the image in pixels.
-    /// `pixel` is a (column, row) pair indicating a particular pixel in that image.
-    /// The `upper_left` and `lower_right` parameters are points on the complex
-    /// plane designating the area our image covers.
+    /// `bounds`是一个指定图片的宽和高的值对。
+    /// `pixel`是一个（行，列）对，指定图片中的某个像素。
+    /// `upper_left`和`lower_right`参数是复平面上的点，
+    /// 指定我们的图像覆盖的区域。
     fn pixel_to_point(bounds: (usize, usize),
                       pixel: (usize, usize),
                       upper_left: Complex<f64>,
@@ -805,8 +802,7 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
         Complex {
             re: upper_left.re + pixel.0 as f64 * width / bounds.0 as f64,
             im: upper_left.im - pixel.1 as f64 * height / bounds.1 as f64
-            // Why subtraction here? pixel.1 increases as we go down,
-            // but the imaginary component increases as we go up.
+            // 为什么这里是减法？当我们向下时pixel.1会增大，但虚部会减小。
         }
     }
 
@@ -838,17 +834,16 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
     pixel.0 as f64
 \end{minted}
 
-这是Rust的类型转换语法：把\texttt{pixel.0}转换为\texttt{f64}类型的值。与C和C++不同，Rust禁止数字类型之间的隐式转换，你必须显式写明类型转换。这可能会很枯燥，但显式指明类型转换有时会很有用。整数之间的隐式转换看起来似乎没有问题，但历史上在真实世界的C和C++代码中它们导致了很多的bug和安全漏洞。
+这是Rust的类型转换语法：把\texttt{pixel.0}转换为\texttt{f64}类型的值。与C和C++不同，Rust禁止数字类型之间的隐式转换，你必须显式写明类型转换。这可能会很枯燥，但显式指明类型转换有时会很有用。整数之间的隐式转换看起来似乎没有问题，但历史上它们曾在真实世界中的C和C++代码中导致了很多bug和安全漏洞。
 
 \subsection{绘制曼德勃罗集}
 为了绘制曼德勃罗集，对于图像中的每个像素点，我们需要用它在复平面中对应的点来调用\texttt{escape\_time}，然后根据结果决定像素点的颜色：
 \begin{minted}{Rust}
-    /// Render a rectangle of the Mandelbrot set into a buffer of pixels.
+    /// 把一个矩形区域内的曼德勃罗集渲染到像素的缓冲区里。
     ///
-    /// The `bounds` argument gives the width and height of the buffer `pixels`,
-    /// which holds one grayscale pixel per byte. The `upper_left` and `lower_right`
-    /// arguments specify points on the complex plane corresponding to the upper-
-    /// left and lower-right corners of the pixel buffer.
+    /// `bounds`参数指定了缓冲区`pixels`的宽度和高度，每个字节存储一个
+    /// 灰度像素。`upper_left`和`lower_right`参数指定了复平面中对应
+    /// 像素缓冲区左上角和右下角的两个点。
     fn render(pixels: &mut [u8],
           bounds: (usize, usize),
           upper_left: Complex<f64>,
@@ -893,9 +888,7 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
     use image::png::PNGEncoder;
     use std::fs::File;
 
-    /// Write the buffer `pixels`, whose dimensions are given by `bounds`, to the
-    /// file named `filename`.
-
+    /// 把缓冲区`pixels`写入到文件`filename`，它的宽和高由`bounds`指定。
     fn write_image(filename: &str, pixels: &[u8], bounds: (usize, usize))
         -> Result<(), std::io::Error> {
         let output = File::create(filename)?;
@@ -908,15 +901,15 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
     }
 \end{minted}
 
-这个函数的操作非常直观：它打开一个文件，然后尝试写入图片。我们把\texttt{pixels}编码为实际的像素数据，图片的宽和高来自\texttt{bounds}，最后一个参数表明该如何解析\texttt{pixels}的字节：\texttt{ColorType::Gray(8)表示每个字节都是8比特的灰度值}。
+这个函数的操作非常直观：它打开一个文件，然后尝试写入图片。我们向编码器传递了\texttt{pixels}中的像素数据，图片的宽和高则来自\texttt{bounds}，编码器的最后一个参数表明该如何解析\texttt{pixels}的字节：\texttt{ColorType::Gray(8)}表示每个字节都是8比特的灰度值。
 
-这些都很直观，有趣的地方是它处理错误的方式。如果我们遇到了一个错误，我们需要把错误返回给调用者。正如我们之前提到的那样，Rust里可能会失败的函数应该返回一个\texttt{Result}值，成功时是\texttt{Ok(s)}（\texttt{s}是成功后的结果），或者失败时是\texttt{Err(e)}（\texttt{e}是错误码）。因此\texttt{write\_image}的成功和错误类型是什么呢？
+这些都很直观，有趣的地方是它处理错误的方式。如果我们遇到了一个错误，我们需要把错误返回给调用者。正如我们之前提到的那样，Rust里可能会失败的函数应该返回一个\texttt{Result}值，成功时是\texttt{Ok(s)}（\texttt{s}是成功后的结果），或者失败时是\texttt{Err(e)}（\texttt{e}是错误码）。那么\texttt{write\_image}的成功和错误类型是什么呢？
 
 在一切顺利的情况下，我们的\texttt{write\_image}函数没有需要返回的值，因为它把数据都写入到了文件里。因此它的成功类型是\emph{单元}类型\texttt{()}，这么称呼是因为这种类型只有唯一的值，这个唯一的值也被写作\texttt{()}。单元类型类似于C和C++中的\texttt{void}。
 
 当出现错误时，不管是因为\texttt{File::create}不能创建文件还是\texttt{encoder.encode}不能写入图片，I/O操作都会返回一个错误码。\texttt{File::create}的返回类型是\texttt{Result<std::fs::File, std::io::Error>}，而\texttt{encoder.encode}的返回类型是\texttt{Result<(), std::io::Error>}，因此两者有相同的错误类型：\texttt{std::io::Error}。我们的\texttt{write\_image}函数也把错误类型设置为同样的类型，当两者中任何一个出现错误时，函数应该立即返回，并把描述错误信息的\texttt{std::io::Error}向上传播。
 
-因此为了正确的处理\texttt{File::create}的结果，我们需要\texttt{match}它的返回值，类似于这样：
+因此为了正确地处理\texttt{File::create}的结果，我们需要\texttt{match}它的返回值，类似于这样：
 \begin{minted}{Rust}
     let output = match File::create(filename) {
         Ok(f) => f,
@@ -989,7 +982,7 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
 \begin{minted}{Rust}
     render(&mut pixels, bounds, upper_left, lower_right);
 \end{minted}
-这里调用了\texttt{render}函数来计算图片。表达式\texttt{\&mut pixels}获取了对我们的像素缓冲区的可变引用，这样可以让\texttt{render}用计算出的灰度值填充像素缓冲区，即使\texttt{pixels}仍然保有vector的所有权。剩余的参数传递了图像的维度和我们要绘制的复平面对应的矩形。
+这里调用了\texttt{render}函数来计算图片。表达式\texttt{\&mut pixels}获取像素缓冲区的可变引用，这样可以让\texttt{render}用计算出的灰度值填充像素缓冲区，同时\texttt{pixels}仍然保有vector的所有权。剩余的参数传递了图像的维度和我们要绘制的复平面对应的矩形。
 
 \begin{minted}{Rust}
     write_image(&args[1], &pixels, bounds)
@@ -1023,7 +1016,7 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
 
 在上面的测试中，我们使用了Unix的\texttt{time}程序分析了程序的运行时间：它需要花费5秒才能对图片中的每个像素进行曼德勃罗计算。但几乎所有现代机器都有很多个处理核心，而这个程序只利用到了一个。如果我们可以把计算任务分配给机器提供的所有计算资源，我们将能更快的完成图片的计算。
 
-为了实现这一点，我们把图片分成了几个部分，每一个处理单元负责计算一个部分的像素值。为了简单，我们把图片分成水平的条带，如图\hyperref[f2-7]{图2-7}所示。当所有的处理单元都计算完成之后，我们再把结果写入到磁盘。
+为了实现这一点，我们把图片分成了几个部分，每一个处理单元负责计算一个部分的像素值。为了简单，我们把图片分成水平的条带，如\hyperref[f2-7]{图2-7}所示。当所有的处理单元都计算完成之后，我们再把结果写入到磁盘。
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.8\textwidth]{../img/f2-7.png}
@@ -1031,7 +1024,7 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
     \label{f2-7}
 \end{figure}
 
-\texttt{crossbeam} crate提供了很多值并行的设置，包括我们恰好需要的\emph{scoped thread}。为了使用它，我们需要在\texttt{Cargo.toml}中加上下面这一行：
+\texttt{crossbeam} crate提供了很多并行的设施，包括我们恰好需要的\emph{作用域线程(scoped thread)}。为了使用它，我们需要在\texttt{Cargo.toml}中加上下面这一行：
 \begin{minted}{toml}
     crossbeam = "0.8"
 \end{minted}
@@ -1075,7 +1068,7 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
         pixels.chunks_mut(rows_per_band * bounds.0).collect();
 \end{minted}
 
-这里我们把像素缓冲区划分为了若干条带。缓冲区的\texttt{chunks\_mut}方法返回了一个产生可变引用的迭代器，每一个引用都是缓冲区的切片，这些引用互相不重叠，切片里包含\texttt{rows\_per\_band * bounds.0}个像素——也就是说，\texttt{rows\_per\_band}行的像素。\texttt{chunks\_mut}产生的最后一个切片可能会含有较少的行，但每一行的像素数量都相同。最后，使用迭代器的\texttt{collect}方法创建一个vector来保存这些可变且互不相交的切片。
+这里我们把像素缓冲区划分为了若干条带。缓冲区的\texttt{chunks\_mut}方法返回了一个产生可变引用的迭代器，每一个引用都是缓冲区的切片，这些引用互相不重叠，切片里包含\texttt{rows\_per\_band * bounds.0}个像素——即\texttt{rows\_per\_band}行的像素。\texttt{chunks\_mut}产生的最后一个切片包含的行数可能会比较少，但每一行的像素数量都是相同的。最后，使用迭代器的\texttt{collect}方法创建一个vector来保存这些可变且互不相交的切片。
 
 现在我们可以使用\texttt{crossbeam}库了：
 \begin{minted}{Rust}
@@ -1100,7 +1093,7 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
         pixel_to_point(bounds, (bounds.0, top + height),
                        upper_left, lower_right);
 \end{minted}
-给定索引和每个条带的实际大小（再次提醒以下最后一个条带可能比其他的要短），我们可以构造出一个\texttt{render}所需的矩形区域，不同的是现在每一个区域指向缓冲区的条带，而不是整个图像。类似于之前，我们再次调用\texttt{pixel\_to\_point}函数来找出区域的左上角和右下角在复平面中的位置。
+给定索引和每个条带的实际大小（再次提醒一下最后一个条带可能比其他的要短），我们可以构造出一个\texttt{render}所需的矩形区域，不同的是现在每一个区域指向缓冲区的条带，而不是整个图像。类似于之前，我们再次调用\texttt{pixel\_to\_point}函数来找出区域的左上角和右下角在复平面中的位置。
 
 \begin{minted}{Rust}
     spawner.spawn(move |_| {
@@ -1144,20 +1137,20 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
 
 这里，我们再次使用了\texttt{time}来查看程序运行了多长时间；注意尽管还是花费了接近5秒的处理器时间，但实际经过的时间只有1.5秒左右。这其中有一部分时间用来写入图片文件，你可以试着注释掉相应的代码并再次测量。在我们的测试笔记本上，计算曼德勃罗集的并发版本只需要大概1/4的时间。我们将会在\hyperref[ch19]{第19章}中展示如何从本质上加快速度。
 
-和之前一样，程序会创建一个\texttt{mandel.png}文件。有了这个更快的版本，你可以更加轻易的通过改变命令行参数来探索曼德勃罗集。
+和之前一样，程序会创建一个\texttt{mandel.png}文件。有了这个更快的版本，你可以更加轻松地通过改变命令行参数来探索曼德勃罗集。
 
 \subsection{安全性是不可见的}
 
 在最后，我们的最终版本的并行程序和其它语言编写的并没有本质上的不同：我们把像素缓冲区分成不同部分，每一个处理器核心都单独计算它自己的那一部分，并在全部结束时保存结果。所以Rust的并发支持到底有什么特殊之处？
 
-我们在这个过程中并没有我们\emph{不能}编写的Rust程序。我们在这一章中编写的代码正确的把缓冲区划分到了各个线程中，但这段代码还有很多不正确的变体（会导致数据竞争）；所有这些变体都不可能通过Rust编译器的静态检查。一个C或C++编译器将会乐于帮助你探索带有数据竞争的程序的广阔空间；Rust则会在错误发生之前就告诉你。
+我们在这里并没有展示\emph{不能}编写的代码。我们在这一章中编写的代码正确的把缓冲区划分到了各个线程中，但这段代码还有很多不正确的变体（会导致数据竞争）；所有这些变体都不可能通过Rust编译器的静态检查。一个C或C++编译器将会乐于帮助你探索带有数据竞争的程序的广阔空间；Rust则会在错误发生之前就告诉你。
 
 在\hyperref[ch04]{第4章}和\hyperref[ch05]{第5章}中，我们描述了Rust保证内存安全的规则。\hyperref[ch19]{第19章}将会介绍这些规则怎么保证并发的安全性。
 
 \section{文件系统和命令行工具}
-Rust在命令行工具的世界中找到了合适的应用场景。作为一个现代、安全、高性能的系统级编程语言，它给程序员提供了一套用于创建命令行接口的工具箱，这些新的接口可以替代或者扩展现有的基础工具。例如，\texttt{bat}命令行工具提供了一个自带语法高亮并内建对分页程序的支持的\texttt{cat}命令替代品，\texttt{hyperfine}可以自动测量任何可以通过命令或管道运行的程序的性能。
+Rust在命令行工具的世界中找到了合适的应用场景。作为一个现代、安全、高性能的系统编程语言，它给程序员提供了一套用于创建命令行接口的工具箱，这些新的接口可以替代或者扩展现有的基础工具。例如，\texttt{bat}命令行工具提供了一个自带语法高亮并内建对分页程序的支持的\texttt{cat}命令替代品，\texttt{hyperfine}可以自动测量任何可以通过命令或管道运行的程序的性能。
 
-虽然复杂的东西超出了本书的范围，但Rust使您可以轻松的涉足人体工程学命令行程序的世界。在本节中，我们将向你展示如何构建你自己的搜索-替换工具，并带有彩色的输出和友好的错误信息。
+虽然这么复杂的东西超出了本书的范围，但Rust使你可以轻松的涉足人体工程学命令行程序的世界。在本节中，我们将向你展示如何构建自己的搜索-替换工具，并带有彩色的输出和友好的错误信息。
 
 开始之前，我们要创建一个新的Rust项目：
 \begin{minted}{text}
@@ -1284,7 +1277,7 @@ Rust中版本到达了1.0以上的crate都遵循“语义版本”的规则：�
     use std::fs;
 \end{minted}
 
-\texttt{std::fs::read\_to\_string}返回一个\texttt{Result<String, std::io::Error>}。如果函数成功执行，它会产生一个\texttt{String}。如果失败了，它会产生一个\texttt{std::io::Error}，标准库用这个类型表示I/O错误。类似的\texttt{std::fs::write}返回一个\texttt{Result<(), std::io::Error}：成功时什么也不返回，失败时返回错误详情。
+\texttt{std::fs::read\_to\_string}返回一个\texttt{Result<String, std::io::Error>}。如果函数成功执行，它会产生一个\texttt{String}。如果失败了，它会产生一个\texttt{std::io::Error}，标准库用这个类型表示I/O错误。与之类似，\texttt{std::fs::write}返回一个\texttt{Result<(), std::io::Error>}：成功时什么也不返回，失败时返回错误详情。
 
 \begin{minted}{Rust}
     use std::fs;
@@ -1313,7 +1306,7 @@ Rust中版本到达了1.0以上的crate都遵循“语义版本”的规则：�
 
 这里，我们使用了我们之前编写的\texttt{parse\_args()}函数，并把解析出的文件名传递给\texttt{read\_to\_string}和\texttt{write}。\texttt{match}语句优雅地处理错误，打印出错误的文件名、错误的原因、还有一点颜色来引起用户的注意。
 
-有了更新之后的\texttt{main}函数，我们就可以运行程序了。当然，新文件的内容和旧文件的内容完全一致：
+有了更新之后的\texttt{main}函数，我们就可以运行程序了。当然，新文件的内容和旧文件的内容完全相同：
 \begin{minted}{text}
     $ cargo run "find" "replace" Cargo.toml Copy.toml
        Compiling quickreplace v0.1.0 (/home/jimb/rust/quickreplace)
@@ -1339,9 +1332,9 @@ Rust中版本到达了1.0以上的crate都遵循“语义版本”的规则：�
 
 注意这个函数的返回值类型。像我们之前使用的标准库函数一样，\texttt{replace\_all}返回一个\texttt{Result}，这一次它的错误类型由\texttt{regex} crate提供。
 
-\texttt{Regex::new}编译用户提供的正则表达式，如果给定的表达式无效时可能会失败。像在曼德勃罗集程序中一样，我们使用\texttt{?}来短路处理\texttt{Regex::new}失败的情况，但这个例子中返回一个\texttt{regex} crate中特定的错误类型。当正则表达式编译完后，它的\texttt{replace\_all}方法替换\texttt{text}中的所有匹配为给定的字符串。
+\texttt{Regex::new}编译用户提供的正则表达式，如果给定的表达式无效时可能会失败。像在曼德勃罗集程序中一样，我们使用\texttt{?}来短路处理\texttt{Regex::new}失败的情况，但这个例子中返回一个\texttt{regex} crate中特定的错误类型。当正则表达式编译完后，它的\texttt{replace\_all}方法把\texttt{text}中的所有匹配项替换为指定的字符串。
 
-如果\texttt{replace\_all}找到了匹配，它会返回一个替换后的新的\texttt{String}。否则，\texttt{replace\_all}返回一个指向原始文本的指针，这样可以避免不必要的内存分配和拷贝。然而在这个例子中，我们总是想要一个独立的拷贝，所以我们使用\texttt{to\_string}方法来获取一个\texttt{String}，然后用\texttt{Result::Ok}包装之后返回。
+如果\texttt{replace\_all}找到了匹配项，它会返回一个替换后的新的\texttt{String}。否则，\texttt{replace\_all}返回一个指向原始文本的指针，这样可以避免不必要的内存分配和拷贝。然而在这个例子中，我们总是想要一个独立的拷贝，所以我们使用\texttt{to\_string}方法来获取一个\texttt{String}，然后用\texttt{Result::Ok}包装之后返回。
 
 现在，是时候在\texttt{main}函数的代码中插入我们的新函数了：
 \begin{minted}{Rust}
@@ -1402,6 +1395,6 @@ Rust中版本到达了1.0以上的crate都遵循“语义版本”的规则：�
     )
 \end{minted}
 
-当然，这个简单的演示中却少了很多特性，但基础的功能都已经有了。你可以看到如何读写文件、传播和显示错误、使用彩色输出来提高用户的终端体验。
+当然，这个简单的演示中缺少了很多特性，但基础的功能都已经有了。你可以看到如何读写文件、传播和显示错误、使用彩色输出来提高用户的终端体验。
 
 后续的章节会介绍更多高级的应用开发的技术：从数据集合和使用迭代器的函数式编程到为了实现极致并发效率的异步编程。但首先，你需要在下一章中为Rust的基本数据类型打下坚实的基础。
