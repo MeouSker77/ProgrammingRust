@@ -76,7 +76,7 @@
     \item 一个实现了\texttt{std::fmt::Debug}可以使用\texttt{println!()}的\texttt{\{:?\}}格式说明符进行打印。
 \end{itemize}
 
-那4个trait都是Rust标准库的一部分，有很多标准类型都实现了它们。例如：
+这4个trait都是Rust标准库的一部分，有很多标准类型都实现了它们。例如：
 \begin{itemize}
     \item \texttt{std::fs::File}实现了\texttt{Write} trait，它把字节写入到本地文件。\texttt{std::net::TcpStream}写入到网络连接。\texttt{Vec<u8>}也实现了\texttt{Write}。在字节vector上调用\texttt{.write()}会往尾部添加数据。
     \item \texttt{Range<i32>}(\texttt{0..10}的类型)实现了\texttt{Iterator} trait，一些和切片、哈希表等相关联的迭代器类型也实现了这个trait。
@@ -156,12 +156,13 @@ C++也有这种运行时的类型信息。它被称为\emph{虚表}或者\emph{v
     let w: Box<dyn Write> = Box::new(local_file);
 \end{minted}
 
-\texttt{Box<dyn Write>}类似于\texttt{\&mut dyn Write}，是一个胖指针：它包含writer自身的地址和vtable的地址。其他指针类型例如\texttt{Rc<dyn Write>}也一样。
+\texttt{Box<dyn Write>}和\texttt{\&mut dyn Write}一样是一个胖指针：它包含writer自身的地址和\\
+vtable的地址。其他指针类型例如\texttt{Rc<dyn Write>}也一样。
 
 这种转换是唯一创建trait对象的方法。编译器做的工作其实很简单，当转换发生时，Rust知道被引用值的真正类型（这个例子中是\texttt{File}），因此它只是加上了正确的vtable的地址、把普通指针变成了胖指针。
 
 \subsection{泛型函数和类型参数}
-在这一章的开始处，我们展示了\texttt{say\_hello()}函数，它以trait对象为参数。让我们把这个函数重新为泛型函数：
+在这一章的开始处，我们展示了\texttt{say\_hello()}函数，它以trait对象为参数。让我们把这个函数重写为泛型函数：
 \begin{minted}{Rust}
     fn say_hello<W: Write>(out: &mut W) -> std::io::Result<()> {
         out.write_all(b"hello world\n")?;
@@ -184,7 +185,9 @@ C++也有这种运行时的类型信息。它被称为\emph{虚表}或者\emph{v
     say_hello(&mut bytes)?;         // 调用say_hello<Vec<u8>>
 \end{minted}
 
-当你把\texttt{\&mut local\_file}传递给泛型的\texttt{say\_hello()}函数时，你实际是在调用\texttt{say\_hello::<File>()}。Rust会为这个函数生成机器码，机器码里还会调用\texttt{File::write\_all()}和\texttt{File::flush()}。当你传递\texttt{\&mut bytes}时，你实际是在调用\texttt{say\_hello::<Vec<u8>>()}。Rust会为这个版本的函数生成单独的机器码，然后调用相应的\texttt{Vec<u8>}的方法。在这两种情况下，Rust都从参数的类型推导出类型\texttt{W}，这个过程被称为\emph{单态化(monomorphization)}，编译器会自动进行处理。
+当你把\texttt{\&mut local\_file}传递给泛型的\texttt{say\_hello()}函数时，你实际是在调用\\
+\texttt{say\_hello::<File>()}。Rust会为这个函数生成机器码，机器码里还会调用\texttt{File::write\_all()}\\
+和\texttt{File::flush()}。当你传递\texttt{\&mut bytes}时，你实际是在调用\texttt{say\_hello::<Vec<u8>>()}。Rust会为这个版本的函数生成单独的机器码，然后调用相应的\texttt{Vec<u8>}的方法。在这两种情况下，Rust都从参数的类型推导出类型\texttt{W}，这个过程被称为\emph{单态化(monomorphization)}，编译器会自动进行处理。
 
 你也可以指明类型参数：
 \begin{minted}{Rust}
@@ -247,7 +250,7 @@ C++也有这种运行时的类型信息。它被称为\emph{虚表}或者\emph{v
 
 当然，\texttt{where}语法的一个替代是保持简单：寻找一种不需要大量使用泛型的方法来编写程序。
 
-“\nameref{RefAsArg}”介绍了生命周期的语法。一个泛型函数可以同时有生命周期参数和类型参数。生命周期参数在前：
+\nameref{RefAsArg}介绍了生命周期的语法。一个泛型函数可以同时有生命周期参数和类型参数。生命周期参数在前：
 \begin{minted}{Rust}
     /// 返回`candidates`中距离`target`最近的点的引用。
     fn nearest<'t, 'c, P>(target: &'t P, candidates: &'c [P]) -> &'c P
@@ -257,13 +260,13 @@ C++也有这种运行时的类型信息。它被称为\emph{虚表}或者\emph{v
     }
 \end{minted}
 
-这个函数有两个参数：\texttt{target}和\texttt{candidates}。它们都是引用，但我们给了它们不同的生命周期\texttt{'t}和\texttt{'c}（正如在“\nameref{DistLife}”中讨论的那样）。这个函数可以用于任何实现了\texttt{MeasureDistance} trait的类型\texttt{P}，因此我们可以在一个程序中用\texttt{Point2d}值调用它，而在另一个程序中用\texttt{Point3d}值调用它。
+这个函数有两个参数：\texttt{target}和\texttt{candidates}。它们都是引用，但我们给了它们不同的生命周期\texttt{'t}和\texttt{'c}（正如在\nameref{DistLife}中讨论的那样）。这个函数可以用于任何实现了\texttt{MeasureDistance} trait的类型\texttt{P}，因此我们可以在一个程序中用\texttt{Point2d}值调用它，而在另一个程序中用\texttt{Point3d}值调用它。
 
 生命周期绝不会影响到机器码。两个\texttt{P}的类型相同但生命周期不同的\texttt{nearest()}的调用，将会调用同一个编译好的函数。只有不同的类型才会导致Rust编译一个泛型函数的多个拷贝。
 
 当然，函数并不是Rust中唯一的泛型代码：
 \begin{itemize}
-    \item 我们已经在“\nameref{GenStruct}”和“\nameref{GenEnum}”中介绍过泛型类型了。
+    \item 我们已经在\nameref{GenStruct}和\nameref{GenEnum}中介绍过泛型类型了。
     \item 一个单独的方法也可以是泛型的，就算定义它的类型不是泛型的：
     \begin{minted}{Rust}
     impl PancakeStack {
@@ -296,7 +299,7 @@ C++也有这种运行时的类型信息。它被称为\emph{虚表}或者\emph{v
     }
 \end{minted}
 
-然而，这是一个非常糟糕的设计。每一个这样的沙拉都全部是由单一类型的蔬菜组成的。不是所有人都适合这么做，这本书的作者曾经为一个\texttt{Salad<IcebergLettuce}支付了\$14美元，并且直到现在也没有完全克服那次经历。
+然而，这是一个非常糟糕的设计。每一个这样的沙拉都全部是由单一类型的蔬菜组成的。不是所有人都适合这么做，本书的作者之一曾经为一个\texttt{Salad<IcebergLettuce>}支付了\$14美元，并且直到现在也没有忘记那次经历。
 
 然而我们怎么构建一个更好的沙拉呢？因为\texttt{Vegetable}值可能是不同大小的，我们不能要求Rust创建一个\texttt{Vec<dyn Vegetable>}：
 \begin{minted}{Rust}
@@ -526,7 +529,7 @@ Rust允许你在任意类型上实现任意trait，只要trait或者类型是在
 
 我们之前说过当你实现一个tarit时，trait和类型至少有一个必须是在当前crate中新定义的。这被称为\emph{孤儿规则(orphan rule)}。它帮助确保tarit的实现是唯一的。你的代码不能\texttt{impl Write for u8}，因为\texttt{Write}和\texttt{u8}都是在标准库中定义的。如果Rust允许crate这么做，那么不同的crate中可能会有不同的\texttt{u8}类型的\texttt{Write} trait实现。Rust将不知道为一个方法调用选择哪种实现。
 
-（C++也有一个类似的唯一性约束：一次定义规则。在传统的C++风格中，除了最简单的情况之外，编译器并不会强制这一点，如果你打破了这个规则会遇到未定义行为。
+（C++也有一个类似的唯一性约束：一次定义规则。在传统的C++风格中，除了最简单的情况之外，编译器并不会强制这一点，如果你打破了这个规则会遇到未定义行为。）
 
 \subsection{trait中的\texttt{Self}}
 trait中可以将\texttt{Self}关键字用作类型。例如标准的\texttt{Clone} trait，看起来像这样（简化版）：
@@ -571,8 +574,7 @@ trait中可以将\texttt{Self}关键字用作类型。例如标准的\texttt{Clo
     }
 \end{minted}
 
-当我们在深入研究trait的高级特性时会多次看到原因。Rust拒绝这段代码是因为它没有办法对\\
-\texttt{left.splice(right)}调用进行类型检查。关键点在于trait对象的类型直到运行时才能知道。Rust没有办法在编译期知道\texttt{left}和\texttt{right}是不是相同的类型。
+当我们在深入研究trait的高级特性时会多次看到原因。Rust拒绝这段代码是因为它没有办法对\texttt{left.splice(right)}调用进行类型检查。关键点在于trait对象的类型直到运行时才能知道。Rust没有办法在编译期知道\texttt{left}和\texttt{right}是不是相同的类型。
 
 trait对象实际上是为最简单的trait设计的，就是那种可以用Java中的接口或者C++中的抽象基类实现的那种trait。trait的还有更多有用的高级特性，但它们不能和现有的trait对象共存。因为使用trait对象时，你会丢失Rust对程序进行类型检查时必须的类型信息。
 
@@ -636,7 +638,8 @@ trait对象实际上是为最简单的trait设计的，就是那种可以用Java
     }
 \end{minted}
 
-每一个实现了\texttt{StringSet} trait的类型都必须实现这四个关联函数。前两个函数\texttt{new()}和\texttt{from\_slice()}，没有\texttt{self}参数。它们充当构造函数。在非泛型代码中，这些函数可以使用\texttt{::}语法调用，就像其他类型关联函数一样：
+每一个实现了\texttt{StringSet} trait的类型都必须实现这四个关联函数。前两个函数\texttt{new()}和\\
+\texttt{from\_slice()}，没有\texttt{self}参数。它们充当构造函数。在非泛型代码中，这些函数可以使用\texttt{::}语法调用，就像其他类型关联函数一样：
 \begin{minted}{Rust}
     // 创建两个impl StringSet的多态类型：
     let set1 = SortedStringSet::new();
@@ -673,7 +676,9 @@ trait对象实际上是为最简单的trait设计的，就是那种可以用Java
     }
 \end{minted}
 
-这个约束告诉Rust trait对象不支持这个关联函数。加上之后，你可以创建\texttt{StringSet}的trait对象了，但仍然不能使用\texttt{new}或者\texttt{from\_slice}，不过你可以使用它们调用\texttt{.contains()}和\texttt{.add()}。同样的技巧也适用于其他和trait对象不兼容的方法。（从技术上解释为什么会这样是相当乏味的，因此我们不会解释。不过\texttt{Sized} trait将会在\hyperref[ch13]{第13章}介绍。）
+这个约束告诉Rust trait对象不支持这个关联函数。加上之后，你可以创建\texttt{StringSet}的\\
+trait对象了，但仍然不能使用\texttt{new}和\texttt{from\_slice}，不过你可以使用它们调用\texttt{.contains()}和\\
+\texttt{.add()}。同样的技巧也适用于其他和trait对象不兼容的方法。（从技术上解释为什么会这样是相当乏味的，因此我们不会解释。不过\texttt{Sized} trait将会在\hyperref[ch13]{第13章}介绍。）
 
 \section{完全限定方法调用}\label{fullymethod}
 
@@ -693,7 +698,7 @@ trait对象实际上是为最简单的trait设计的，就是那种可以用Java
 
 第二种形式看起来很像一个关联函数的调用，即使\texttt{to\_string}方法以\texttt{self}为参数也没有问题，只会简单的传递\texttt{self}作为函数的第一个参数。
 
-因为\texttt{to\_string}是标准的\texttt{ToString} trait额方法，所以还有两种调用方式：
+因为\texttt{to\_string}是标准的\texttt{ToString} trait的方法，所以还有两种调用方式：
 \begin{minted}{Rust}
     ToString::to_string("hello")
 
@@ -739,12 +744,11 @@ trait对象实际上是为最简单的trait设计的，就是那种可以用Java
 
 \section{定义类型关系的trait}
 
-到目前为止，我们看到过的每个trait都是独立的：一个triat就是一些可以实现的方法的集合。trait也可以用于需要多个类型协同工作的场景。它们可以描述类型之间的关系：
+到目前为止，我们看到过的每个trait都是独立的：一个trait就是一些可以实现的方法的集合。trait也可以用于需要多个类型协同工作的场景。它们可以描述类型之间的关系：
 \begin{itemize}
     \item \texttt{std::iter::Iterator} trait将迭代器类型和产生的值的类型联系在了一起。
     \item \texttt{std::ops::Mul} trait将可以做乘法的类型联系了起来。在表达式\texttt{a * b}中，值\texttt{a}和\texttt{b}可以是相同类型，也可以是不同的类型。
-    \item \texttt{rand} crate包含一个代表随机数生成器的trait(\texttt{rand::Rng})，和一个代表可以被随机生成的类型的trait\\
-    (\texttt{rand::Distribution})。这些trait定义了这些类型怎么协同工作。
+    \item \texttt{rand} crate包含一个代表随机数生成器的trait(\texttt{rand::Rng})，和一个代表可以被随机生成的类型的trait(\texttt{rand::Distribution})。这些trait定义了这些类型怎么协同工作。
 \end{itemize}
 
 日常编程中你可能并不需要创建这样的trait，但你会在标准库和第三方crate中看到它们。在这一节中，我们将展示这些例子是怎么实现的、根据需要介绍相关的Rust的语言特性。这里最核心的技能就是读懂trait和方法签名、并搞清楚它们到底想表达什么意思。
@@ -764,9 +768,10 @@ Rust有一个标准的\texttt{Iterator} trait，它的定义如下：
 
 这个trait的第一个特性\texttt{type Item}，是一个\emph{关联类型(associated tepe)}。每一个实现了\texttt{Iterator}的类型都必须指明它产生什么类型的值。
 
-第二个特性\texttt{next()}方法，在返回值类型中使用了关联类型。\texttt{next()}返回一个\texttt{Option<Self::Item>}：要么是\texttt{Some(item)}，即序列中的下一个值；要么是\texttt{None}，表示已经没有值了。这个类型被写作\texttt{Self::Item}，而不是普通的\texttt{Item}，这是因为\texttt{Item}是每一个迭代器类型的一个特性，而不是单独的类型。和往常一样，\texttt{self}和\texttt{Self}类型需要显式地出现在使用它们的字段、方法等的代码中。
+第二个特性\texttt{next()}方法，在返回值类型中使用了关联类型。\texttt{next()}返回一个\\
+\texttt{Option<Self::Item>}：要么是\texttt{Some(item)}，即序列中的下一个值；要么是\texttt{None}，表示已经没有值了。这个类型被写作\texttt{Self::Item}，而不是普通的\texttt{Item}，这是因为\texttt{Item}是每一个迭代器类型的一个特性，而不是单独的类型。和往常一样，\texttt{self}和\texttt{Self}类型需要显式地出现在使用它们的字段、方法等的代码中。
 
-这里有一个为一个类型实现\texttt{Iterator}的示例：
+这里有个示例为一个类型实现了\texttt{Iterator}：
 \begin{minted}{Rust}
     // (这段代码出自std::env标准库模块)
     impl Iterator for Args {
@@ -780,7 +785,8 @@ Rust有一个标准的\texttt{Iterator} trait，它的定义如下：
     }
 \end{minted}
 
-我们在\hyperref[ch02]{第2章}中使用过标准库函数\texttt{std::env::args()}来获取命令行参数，\texttt{std::env::Args}就是它返回的迭代器的类型。它产生\texttt{String}值，因此\texttt{impl}块中声明了\texttt{type Item = String;}。
+我们在\hyperref[ch02]{第2章}中使用过标准库函数\texttt{std::env::args()}来获取命令行参数，\texttt{std::env::Args}\\
+就是它返回的迭代器的类型。它产生\texttt{String}值，因此\texttt{impl}块中声明了\texttt{type Item = String;}。
 
 泛型代码也可以使用关联类型：
 \begin{minted}{Rust}
@@ -794,7 +800,8 @@ Rust有一个标准的\texttt{Iterator} trait，它的定义如下：
     }
 \end{minted}
 
-在这个函数体重，Rust为我们推断出了\texttt{value}的类型，这很棒。但我们必须指明\texttt{collect\_into\_vector}的返回类型，而\texttt{Item}关联类型是唯一的方法。（\texttt{Vec<I>}显然是错的：它说明函数会返回一个迭代器的vector！）
+在这个函数体中，Rust为我们推断出了\texttt{value}的类型，这很棒。但我们必须指明\\
+\texttt{collect\_into\_vector}的返回类型，而\texttt{Item}关联类型是唯一的方法。（\texttt{Vec<I>}显然是错的：它说明函数会返回一个迭代器的vector！）
 
 上面的代码你可能永远不会自己写出来，因为在阅读了\hyperref[ch15]{第15章}后，你就会知道迭代器已经有了一个标准方法\texttt{iter.collect()}来做这件事了。因此在继续之前让我们再看一个例子：
 \begin{minted}{Rust}
@@ -824,7 +831,8 @@ Rust有一个标准的\texttt{Iterator} trait，它的定义如下：
       |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 \end{minted}
 
-错误信息有一点混淆，因为Rust使用了语法\texttt{<I as Iterator>::Item}，这种方式比\texttt{I::Item}更加显式和详细。这是有效的Rust语法，不过你很少会需要用这种方式指明类型。
+错误信息有一点混淆，因为Rust使用了语法\texttt{<I as Iterator>::Item}，这种方式比\texttt{I::Item}\\
+更加显式和详细。这是有效的Rust语法，不过你很少会需要用这种方式指明类型。
 
 错误信息的关键是，要想让这段泛型代码能编译，我们必须确保\texttt{I::Item}实现了\texttt{Debug} trait，这个trait用于使用\texttt{\{:?\}}格式化值。正如错误信息建议的那样，我们可以通过添加一个\texttt{I::Item}的约束来解决这个问题：
 \begin{minted}{Rust}
@@ -837,7 +845,7 @@ Rust有一个标准的\texttt{Iterator} trait，它的定义如下：
     }
 \end{minted}
 
-或者，我么可以写“\texttt{I}必须是一个在\texttt{String}值上迭代的迭代器”：
+或者，我们可以写“\texttt{I}必须是一个产生\texttt{String}值的迭代器”：
 \begin{minted}{Rust}
     fn dump<I>(iter: I)
         where I: Iterator<Item=String>
@@ -900,14 +908,14 @@ Rust中的乘法使用了这个trait：
     }
 \end{minted}
 
-\texttt{Mul}是一个泛型类型。类型参数\texttt{RHS}，是\emph{右手边(righthand side)}的缩写。
+\texttt{Mul}是一个泛型类型。类型参数\texttt{RHS}是\emph{右手边(righthand side)}的缩写。
 
-这里的类型参数和在结构体或函数中的含义一样：\texttt{Mul}是一个泛型trait，它实例化出的\texttt{Mul<f64>}、\texttt{Mul<String>}\\
-、\texttt{Mul<Size>}等都是不同的trait，正如\texttt{min::<i32>}和\texttt{min::<String>}是不同的函数、\texttt{Vec<i32>}和\texttt{Vec<String>}是不同的类型一样。
+这里的类型参数和在结构体或函数中的含义一样：\texttt{Mul}是一个泛型trait，它实例化出的\texttt{Mul<f64>}、\texttt{Mul<String>}、\texttt{Mul<Size>}等都是不同的trait，正如\texttt{min::<i32>}和\texttt{min::<String>}\\
+是不同的函数、\texttt{Vec<i32>}和\texttt{Vec<String>}是不同的类型一样。
 
-单个类型例如\texttt{WindowSize}，可以同时实现\texttt{Mul<f64>}和\texttt{Mul<i32>}，甚至更多。你可以将一个\texttt{WindowSize}和很多其它类型相乘。每一个实现都有它自己的关联\emph{Output}类型。
+单个类型例如\texttt{WindowSize}，可以同时实现\texttt{Mul<f64>}和\texttt{Mul<i32>}，甚至更多。你可以将一个\texttt{WindowSize}和很多其它类型相乘。每一个实现都有它自己的关联\texttt{Output}类型。
 
-泛型trait可以不受故而规则的约束：你可以为一个外部类型实现一个外部trait，只要trait的类型参数中有一个是在当前crate中定义的类型。因此，假设你自己已经定义了\texttt{WindowSize}，你可以为\texttt{f64}实现\texttt{Mul<WindowSize>}，即使你既没有定义\texttt{Mul}有没有定义\texttt{f64}。这些实现甚至也可以是泛型的，例如\texttt{impl<T> Mul<WindowSize> for Vec<T>}。之所以可以这样是因为在别的crate中没有任何方法可以为任何类型实现\texttt{Mul<WindowSize>}，因此和你的实现之间不可能发生冲突。（我们在“\nameref{OrphanRule}”一节中介绍过孤儿规则。）这正是像\texttt{nalgebra}这样的crate为vector定义算术运算的方法。
+泛型trait可以不受孤儿规则的约束：你可以为一个外部类型实现一个外部trait，只要trait的类型参数中有一个是在当前crate中定义的类型。因此，假设你自己已经定义了\texttt{WindowSize}，你可以为\texttt{f64}实现\texttt{Mul<WindowSize>}，即使你既没有定义\texttt{Mul}又没有定义\texttt{f64}。这些实现甚至也可以是泛型的，例如\texttt{impl<T> Mul<WindowSize> for Vec<T>}。之所以可以这样是因为在别的crate中没有任何方法可以为任何类型实现\texttt{Mul<WindowSize>}，因此和你的实现之间不可能发生冲突。（我们在\nameref{OrphanRule}一节中介绍过孤儿规则。）这正是像\texttt{nalgebra}这样的crate为vector定义算术运算的方法。
 
 之前展示的trait忽略了一个小细节。真正的\texttt{Mul} trait看起来像这样：
 \begin{minted}{Rust}
@@ -916,11 +924,11 @@ Rust中的乘法使用了这个trait：
     }
 \end{minted}
 
-语法\texttt{RHS=Self}意思是\texttt{RHS}的默认值为\texttt{Self}。如果我们写\texttt{impl Mul for Complex}，而不指明\texttt{Mul}的类型参数，那么意味着\texttt{impl Mul<Complex> for Complex}。在一个约束，如果我们写\texttt{where T: Mul}，那么意味着\texttt{T: Mul<T>}。
+语法\texttt{RHS=Self}意思是\texttt{RHS}的默认值为\texttt{Self}。如果我们写\texttt{impl Mul for Complex}，而不指明\texttt{Mul}的类型参数，那么意味着\texttt{impl Mul<Complex> for Complex}。如果我们在一个约束中写\texttt{where T: Mul}，那么意味着\texttt{T: Mul<T>}。
 
 在Rust中，表达式\texttt{lhs * rhs}是\texttt{Mul::mul(lhs, rhs)}的缩写。因此在Rust中重载\texttt{*}运算符和实现\texttt{Mul} trait一样简单。我们将在下一章中展示示例。
 
-\subsection{impl trait}
+\subsection{\texttt{impl Trait}}
 你可能想象过，组合使用多种泛型类型可能会变得一团糟。例如，仅仅只使用标准库中的组合器组合几个迭代器会让你的返回类型变得眼花缭乱：
 \begin{minted}{Rust}
     use std::iter;
@@ -940,7 +948,7 @@ Rust中的乘法使用了这个trait：
 
 然而，在大多数情况下，仅仅为了避免丑陋的类型签名，就要在每一次调用这个函数时付出动态分发的开销和一次不可避免的堆分配并不是一个好的折衷。
 
-Rust有一个专为此情形设计的特性叫做\texttt{impl trait}。\texttt{impl trait}允许我们“擦除”返回值的类型，只指明它实现的trait或traits，并且没有动态分发或者堆分配：
+Rust有一个专为此情形设计的特性叫做\texttt{impl Trait}。\texttt{impl Trait}允许我们“擦除”返回值的类型，只指明它实现的trait或traits，并且没有动态分发或者堆分配：
 \begin{minted}{Rust}
     fn cyclical_zip(v: Vec<u8>, u: Vec<u8>) -> impl Iterator<Item=u8> {
         v.into_iter().chain(u.into_iter()).cycle()
@@ -949,7 +957,8 @@ Rust有一个专为此情形设计的特性叫做\texttt{impl trait}。\texttt{i
 
 现在，与指明嵌套的迭代器组合器结构体的类型相比，\texttt{cyclical\_zip}的签名只简单的说明了它返回一种产生\texttt{u8}的迭代器。返回类型表达了函数的意图，而不是实现细节。
 
-这确实清理了代码并增强了可读性，但\texttt{impl Trait}并不只是一个方便的缩写。使用\texttt{impl Trait}意味着你可以在将来修改实际返回的类型，只要新的类型仍然实现了\texttt{Iterator<Item=u8>}，任何调用了这个函数的代码将仍然能不出错地继续编译。这为库的作者提供了很大的灵活性，因为只有相关的的功能被编码进类型签名。
+这确实清理了代码并增强了可读性，但\texttt{impl Trait}并不只是一个方便的缩写。使用\texttt{impl Trait}意味着你可以在将来修改实际返回的类型，只要新的类型仍然实现了\\
+\texttt{Iterator<Item=u8>}，任何调用了这个函数的代码将仍然能不出错地继续编译。这为库的作者提供了很大的灵活性，因为只有相关的的功能被编码进类型签名。
 
 例如，如果一个库的第一版按照上面的方法使用迭代器组合器，然后又发现了一个更好的算法，那么库的作者可以使用不同的迭代器组合器或者甚至返回一个自定义的实现了\texttt{Iterator}的类型，而库的用户可以在完全不改变代码的情况下享受性能的提升。
 
@@ -972,9 +981,9 @@ Rust有一个专为此情形设计的特性叫做\texttt{impl trait}。\texttt{i
     }
 \end{minted}
 
-从调用者的角度来看，想这样的函数并没有什么意义。\texttt{impl trait}是一种静态分发的版本，因此编译器需要在编译期知道函数内返回的实际类型，这样才能在栈上分配正确数量的空间并调用正确的字段和方法。这里，它可能是\texttt{Circle}、\texttt{Triganle}或者\texttt{Rectangle}，它们的空间大小都不同，而且都有不同的\texttt{area()}实现。
+从调用者的角度来看，像这样的函数并没有什么意义。\texttt{impl Trait}是一种静态分发的版本，因此编译器需要在编译期知道函数内返回的实际类型，这样才能在栈上分配正确数量的空间并调用正确的字段和方法。这里，它可能是\texttt{Circle}、\texttt{Triganle}或者\texttt{Rectangle}，它们的空间大小都不同，而且都有不同的\texttt{area()}实现。
 
-很重要的一点是要注意Rust不允许trait方法使用\texttt{impl trait}作为返回类型。要想支持这一点需要对语言的类型系统进行一些改进。在这项工作完成之前，只有自由函数和关联到特定类型的函数可以使用\texttt{impl Trait}作为返回值。
+很重要的一点是要注意Rust不允许trait方法使用\texttt{impl Trait}作为返回类型。要想支持这一点需要对语言的类型系统进行一些改进。在这项工作完成之前，只有自由函数和关联到特定类型的函数可以使用\texttt{impl Trait}作为返回值。
 
 \texttt{impl Trait}也可以用来在函数中接受泛型参数。例如，考虑下面的简单泛型代码：
 \begin{minted}{Rust}
@@ -983,16 +992,16 @@ Rust有一个专为此情形设计的特性叫做\texttt{impl trait}。\texttt{i
     }
 \end{minted}
 
-它和下面的使用\texttt{impl trait}的版本相同：
+它和下面的使用\texttt{impl Trait}的版本相同：
 \begin{minted}{Rust}
     fn print(val: impl Display) {
         println!("{}", val);
     }
 \end{minted}
 
-这里有一个很重要的例外。使用泛型允许函数的调用者指定泛型参数的类型，例如\texttt{print::<i32>(42)}，而使用\texttt{impl trait}则不行。
+这里有一个很重要的例外。使用泛型允许函数的调用者指定泛型参数的类型，例如\texttt{print::<i32>(42)}，而使用\texttt{impl Trait}则不行。
 
-每一个\texttt{impl trait}参数都会被赋予一个自己的匿名类型参数，因此\texttt{impl Trait}局限于最简单的的泛型函数中，不能表示参数的类型之间的关系。
+每一个\texttt{impl Trait}参数都会被赋予一个自己的匿名类型参数，因此\texttt{impl Trait}局限于最简单的泛型函数中，不能表示参数的类型之间的关系。
 
 \subsection{关联常量}
 像结构体和枚举一样，trait也可以有关联常量。你可以用和结构体或枚举一样的语法给trait声明关联常量：
@@ -1031,7 +1040,7 @@ trait中的关联常量也有特殊的作用。像关联类型和函数一样，
     }
 \end{minted}
 
-注意关联常量不能和trait对象一起使用，因为编译器依赖实现的类型信息，才能在编译器找出正确的值。
+注意关联常量不能和trait对象一起使用，因为编译器依赖实现的类型信息，才能在编译期找出正确的值。
 
 即使是一个没有任何行为的简单trait，例如\texttt{Float}，也可以给出足够的类型信息，再搭配上少数运算符，就可以实现一些非常普遍的数学函数例如斐波那契数列：
 \begin{minted}{Rust}
@@ -1159,7 +1168,7 @@ trait中的关联常量也有特殊的作用。像关联类型和函数一样，
 
 在Rust中偶尔会发生的一种情况是：有一段时间会与编译器激烈斗争，但最后写出来的代码看起来相当不错，好像编写起来轻而易举，并且运行得很漂亮。 
 
-我们在这里做的就是对\texttt{N}的约束进行逆向工程，让编译器来指导并检查我们的工作。这段代码写起来很麻烦是因为标准库中没有单独的\texttt{Number} trait包含我们需要的所有运算符和方法。有一个流行的开源crate叫做\texttt{num}定义了这样一个trait！我们已经知道，我们可以在\emph{Cargo.toml}中添加\texttt{add}并编写：
+我们在这里做的就是对\texttt{N}的约束进行逆向工程，让编译器来指导并检查我们的工作。这段代码写起来很麻烦是因为标准库中没有单独的\texttt{Number} trait包含我们需要的所有运算符和方法。有一个流行的开源crate叫做\texttt{num}定义了这样一个trait！我们已经知道，我们可以在\emph{Cargo.toml}中添加\texttt{num}并编写：
 \begin{minted}{Rust}
     use num::Num;
 

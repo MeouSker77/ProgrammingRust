@@ -6,11 +6,11 @@
     ——John C. Baez and James Dolan, “\href{https://arxiv.org/abs/math/9802029}{Categorification}”
 \end{flushright}
 
-Rust的结构体，有时也称为\emph{structure}，类似于C和C++中的\texttt{struct}类型、Python中的\texttt{class}、JavaScript中的对象。一个结构体把多个不同类型的值组合成单个值，所以你可以将它们作为一个单元进行处理。对于一个结构体，你可以读取并且修改它的各个组成部分。一个结构体也可以有一些关联的方法来操作它的组成部分。
+Rust的结构体，有时也称为\emph{structure}，类似于C和C++中的\texttt{struct}类型、Python中的\texttt{class}、JavaScript中的对象。一个结构体把多个不同类型的值组合成单个值，所以你可以将它们作为一个整体进行处理，你也可以读取并且修改结构体的各个组成部分。一个结构体也可以有一些关联的方法来操作它的组成部分。
 
 Rust有三种类型的结构体：\emph{命名字段(name-field)}、\emph{类元组(tuple-like)}、\emph{类单元(unit-like)}，它们的区别在于如何引用它们的组成部分：一个命名字段结构体给每一个组件取了一个名字，而类元组结构体用它们出现的顺序来标识它们。类单元结构体没有任何组成部分，它并不常见，但可能比你想象中的更加有用。
 
-在这一章中我们将详细解释每一种结构体，并展示它们在内存中的布局。我们家给你介绍如何给它们添加方法、如何定义可以处理很多不同类型组件的泛型结构体、以及如何让Rust为你的结构体生成通用的trait的实现。
+在本章中我们将详细解释每一种结构体，并展示它们在内存中的布局。我们将介绍如何给它们添加方法、如何定义可以处理很多不同类型组件的泛型结构体、以及如何让Rust为你的结构体生成通用的trait的实现。
 
 \section{命名字段结构体}
 
@@ -69,12 +69,12 @@ Rust有三种类型的结构体：\emph{命名字段(name-field)}、\emph{类元
     }
 \end{minted}
 
-其他的模块可以使用这个结构体和它的所有共有的关联函数，但不能通过字段名访问私有的字段，也不能通过结构体表达式创建新的\texttt{GrayscaleMap}值。也就是说，创建一个结构体的值要求所有的结构体字段都可见。这也是为什么你不能通过结构体表达式创建新的\texttt{String}或者\texttt{Vec}。这些标准类型都是结构体，但它们的字段全都是私有的。要想创建一个这些类型的值，你必须使用共有的类型关联函数，例如\texttt{Vec::new()}。
+其他的模块可以使用这个结构体和它的所有公有的关联函数，但不能通过字段名访问私有的字段，也不能通过结构体表达式创建新的\texttt{GrayscaleMap}值。也就是说，创建一个结构体的值要求所有的结构体字段都可见。这也是为什么你不能通过结构体表达式创建新的\texttt{String}或者\texttt{Vec}。这些标准类型都是结构体，但它们的字段全都是私有的。要想创建一个这些类型的值，你必须使用公有的类型关联函数，例如\texttt{Vec::new()}。
 
 在创建一个命名字段结构体值的时候，你可以使用另一个相同类型的结构体来提供你省略的字段的值。在一个结构体表达式中，如果命名字段最后跟着一个\texttt{.. EXPR}，那么没有提到的字段将从\texttt{EXPR}中获取值，\texttt{EXPR}必须是另一个相同类型的值。假设我们有一个代表游戏中的怪物的结构体：
 \begin{minted}{Rust}
-    // 在这个游戏中，连扫帚都有怪物。你将会看到。
-    struct Boom {
+    // 在这个游戏中，连扫帚都是怪物。
+    struct Broom {
         name: String,
         height: u32,
         health: u32,
@@ -177,7 +177,7 @@ Rust有三种类型的结构体：\emph{命名字段(name-field)}、\emph{类元
     let o = Onesuch;
 \end{minted}
 
-当在“\nameref{field}”一节中介绍\texttt{..}运算符时，你已经遇到过一个类单元结构体了。表达式\texttt{3..5}是结构体值\texttt{Range \{ start: 3, end: 5 \}}的缩写，而表达式\texttt{..}两端都省略的情况下，就是类单元结构体值\texttt{RangeFull}的缩写。
+当在\nameref{field}一节中介绍\texttt{..}运算符时，你已经遇到过一个类单元结构体了。表达式\texttt{3..5}是结构体值\texttt{Range \{ start: 3, end: 5 \}}的缩写，而表达式\texttt{..}两端都省略的情况下，就是类单元结构体值\texttt{RangeFull}的缩写。
 
 当和trait一起使用时，类单元结构体会变得很有用。我们将在\hyperref[ch11]{第11章}中介绍trait。
 
@@ -206,9 +206,9 @@ Rust有三种类型的结构体：\emph{命名字段(name-field)}、\emph{类元
 
 \section{使用\texttt{impl}定义方法}\label{method}
 
-整本书中，我们已经在很多类型的值上调用过方法。我们使用\texttt{v.push(e)}把元素添加进vector，使用\texttt{v.len()}获取它的长度，使用\texttt{r.expect("msg")}检查\texttt{Result}的值是否是错误值，等等。你可以为你自己的结构体类型定义方法。与C++或Java那种直接出现在结构体定义内部的方式不同，Rust的方法在一个单独的\texttt{impl}块中定义。
+在本书中，我们已经在很多类型的值上调用过方法。我们使用\texttt{v.push(e)}把元素添加进vector，使用\texttt{v.len()}获取它的长度，使用\texttt{r.expect("msg")}检查\texttt{Result}的值是否是错误值，等等。你可以为你自己的结构体类型定义方法。与C++或Java那种直接出现在结构体定义内部的方式不同，Rust的方法在一个单独的\texttt{impl}块中定义。
 
-一个\texttt{impl}块就是一些\texttt{fn}定义的结合，每一个函数都将成为这个结构体的一个方法。例如，这里，我们定义了一个共有的结构体\texttt{Queue}，然后为它定义了两个公有的方法：\texttt{push}和\texttt{pop}：
+一个\texttt{impl}块就是一些\texttt{fn}定义的结合，每一个函数都将成为这个结构体的一个方法。例如，这里我们定义了一个公有的结构体\texttt{Queue}，然后为它定义了两个公有的方法：\texttt{push}和\texttt{pop}：
 \begin{minted}{Rust}
     /// 一个先进先出的字符队列
     pub struct Queue {
@@ -246,7 +246,7 @@ Rust有三种类型的结构体：\emph{命名字段(name-field)}、\emph{类元
 
 在\emph{impl}块中定义的函数被称为\emph{关联函数}，因为它们被关联到特定的类型。与之相反的是\emph{自由函数}，也就是不在\texttt{impl}块中定义的函数。
 
-Rust将调用方法的值作为第一个参数传给方法，它的参数名必须是\texttt{self}。因为\texttt{self}的类型很明显是\texttt{impl}块外面的结构体类型，或者是其引用，所以Rust允许你省略类型，用\texttt{self}、\texttt{\&self}、\texttt{\&mut self}分别作为\texttt{self: Queue}、\texttt{self: \&Queue}、\texttt{self: \&mut Queue}的缩写。如果你喜欢的话也可以使用非缩写的形式，但几乎所有的Rust都是用缩写形式。
+Rust将调用方法的值作为第一个参数传给方法，它的参数名必须是\texttt{self}。因为\texttt{self}的类型很明显是\texttt{impl}块外面的结构体类型，或者是其引用，所以Rust允许你省略类型，用\texttt{self}、\texttt{\&self}、\texttt{\&mut self}分别作为\texttt{self: Queue}、\texttt{self: \&Queue}、\texttt{self: \&mut Queue}的缩写。如果你喜欢的话也可以使用非缩写的形式，但几乎所有的Rust代码都是用缩写形式。
 
 在我们的示例中，\texttt{push}和\texttt{pop}方法中通过\texttt{self.older}和\texttt{self.younger}引用了\texttt{Queue}的字段。与C++或Java中“this”对象的成员直接在方法内可见不同，Rust方法中必须显式使用\texttt{self}来引用字段，这和Python方法中\texttt{self}的用法、JavaScript方法中\texttt{this}的用法类似。
 
@@ -307,8 +307,7 @@ Rust将调用方法的值作为第一个参数传给方法，它的参数名必�
     assert_eq!(younger, vec!['X']);
 \end{minted}
 
-但是注意，因为\texttt{split}以值获取\texttt{self}，这回把\texttt{q}中的\texttt{Queue}值\emph{移动}走，导致\texttt{q}变为未初始化。因为\texttt{split}的\\
-\texttt{self}现在拥有了这个队列，因此它可以把两个单独的vector移动出来并返回给调用者。
+但是注意，因为\texttt{split}以值获取\texttt{self}，这会把\texttt{q}中的\texttt{Queue}值\emph{移动}走，导致\texttt{q}变为未初始化。因为\texttt{split}的\texttt{self}现在拥有了这个队列，因此它可以把两个单独的vector移动出来并返回给调用者。
 
 有时，像这样以值传递\texttt{self}，或者以引用传递都不能满足我们的需求，因此Rust还允许你通过智能指针类型传递\texttt{self}。
 
@@ -346,9 +345,9 @@ Rust将调用方法的值作为第一个参数传给方法，它的参数名必�
     }
 \end{minted}
 
-每一个节点都有一个tag来指示它是什么类型的节点，还有一个子节点的vector通过引用计数指针来允许共享，并让生命周期变得更有弹性。
+每一个节点都有一个tag来指示它是什么类型的节点，还有一个子节点的vector通过引用计数指针来允许共享，并让生命周期变得更灵活。
 
-通常，标记节点有一个方法可以向自己的列表中添加一个子节点，但此时让我们先保留这个规则，然后给\texttt{Node}实现一个把它自己添加到别的\texttt{Node}的子节点中的方法。我们可以写：
+通常我们会实现一个方法让它向自己的列表中添加一个子节点，但现在让我们把角色颠倒过来，给\texttt{Node}实现一个把它自己添加到别的\texttt{Node}的子节点中的方法。我们可以写：
 \begin{minted}{Rust}
     impl Node {
         fn append(self, parent: &mut Node) {
@@ -381,7 +380,8 @@ Rust将调用方法的值作为第一个参数传给方法，它的参数名必�
     shared_node.clone().append_to(&mut parent);
 \end{minted}
 
-克隆\texttt{Rc}只会递增引用计数：仍然没有堆分配或者拷贝。但当调用返回时，\texttt{shared\_node}和\texttt{parent}的子节点的vector现在指向同一个\texttt{Node}。
+克隆\texttt{Rc}只会递增引用计数，没有堆分配或者拷贝。但当调用返回时\texttt{shared\_node}和\texttt{parent}\\
+的子节点的vector现在指向同一个\texttt{Node}。
 
 最后，如果调用者现在拥有一个\texttt{Node}，那么它必须先创建一个\texttt{Rc}再调用方法：
 \begin{minted}{Rust}
@@ -391,8 +391,8 @@ Rust将调用方法的值作为第一个参数传给方法，它的参数名必�
 
 把\texttt{append\_to}方法的签名设为\texttt{Rc<Self>}可以让调用者知道\texttt{Node}的需求。然后调用者可以用最小化内存分配和引用计数调整的方式来调用：
 \begin{itemize}
-    \item 如果能传递\texttt{Rc}的所有权，就直接在指针上调用。
-    \item 如果需要保留\texttt{Rc}的所有权，就递增引用计数。
+    \item 如果可以传递\texttt{Rc}的所有权，就直接在指针上调用。
+    \item 如果需要保留\texttt{Rc}的所有权，就递增引用计数后再调用。
     \item 如果只拥有\texttt{Node}，那么必须先调用\texttt{Rc::new}来分配堆空间然后把\texttt{Node}移动进去。因为\texttt{parent}必须通过\texttt{Rc<Node>}指针引用它的子节点，所以这一步最终肯定是必须的。
 \end{itemize}
 
@@ -430,7 +430,7 @@ Rust的传统是构造函数都叫\texttt{new}，我们已经见过了\texttt{Ve
 \end{itemize}
 
 \section{关联常量}
-Rust的类型系统还采取了C\#和Java等语言中的一个特性，就是关联到类型而不是关联到类型实例的值。在Rust中，它们被称为\emph{关联常量}。
+Rust的类型系统还采用了C\#和Java等语言中的一个特性，就是关联到类型而不是关联到类型实例的值。在Rust中，它们被称为\emph{关联常量}。
 
 正如它的名字一样，关联常量是常量值。它们通常用来表示某一个类型中使用最广泛的值。例如，你可以定义一个二维的向量用于线性代数，并为它定义一个关联的单位向量：
 \begin{minted}{Rust}
@@ -445,7 +445,7 @@ Rust的类型系统还采取了C\#和Java等语言中的一个特性，就是关
     }
 \end{minted}
 
-这些值被关联到类型本身，你可以在不创建\texttt{Vector2}的实例的亲逛下使用它们。和类型关联方法一样，引用它们的方法是类型的名称再加上它们的名称：
+这些值被关联到类型本身，你可以在不创建\texttt{Vector2}的实例的情况下使用它们。和类型关联方法一样，引用它们的方法是类型的名称再加上它们的名称：
 \begin{minted}{Rust}
     let scaled = Vector2::UNIT.scaled_by(2.0);
 \end{minted}
@@ -502,7 +502,7 @@ Rust的类型系统还采取了C\#和Java等语言中的一个特性，就是关
     }
 \end{minted}
 
-这个\texttt{impl}块头读作“这里有一些\texttt{Queue<f64>}特定的管关联函数”。这样就给\texttt{Queue<f64>}添加了一个\texttt{sum}方法，而其它种类的\texttt{Queue}并没有这个方法。
+这个\texttt{impl}块头读作“这里有一些\texttt{Queue<f64>}特定的关联方法”。这样就给\texttt{Queue<f64>}添加了一个\texttt{sum}方法，而其它种类的\texttt{Queue}并没有这个方法。
 
 我们已经在之前的代码中使用过Rust的\texttt{self}参数的缩写形式。这里\texttt{Queue<T>}如果写出类型显得有些啰嗦。作为另一种缩写，每一个\texttt{impl}块，不管是不是泛型的，都定义了特殊的类型参数\texttt{Self}（注意\texttt{大驼峰}风格的名称）来表示我们要添加方法的类型。在之前的代码中，\texttt{Self}将是\texttt{Queue<T>}，因此我们可以进一步简化\texttt{Queue::new}的定义：
 \begin{minted}{Rust}
@@ -534,11 +534,11 @@ Rust的类型系统还采取了C\#和Java等语言中的一个特性，就是关
 
 事实上，这正是整本书中我们使用\texttt{Vec}的方式。
 
-并不只有结构体可以是泛型的。枚举也可以有类型参数，语法也非常的相似。我们将在“\nameref{enum}”一节中详细介绍。
+并不只有结构体可以是泛型的。枚举也可以有类型参数，语法也非常的相似。我们将在\nameref{enum}一节中详细介绍。
 
 \section{有生命周期参数的结构体}
 
-正如我们在“\nameref{refstruct}”一节中讨论过的一样，如果一个结构体类型中包含引用，你必须指明那些引用的生命周期。例如，这里有一个存储切片中最大和最小元素的引用的结构体：
+正如我们在\nameref{refstruct}一节中讨论过的一样，如果一个结构体类型中包含引用，你必须指明那些引用的生命周期。例如，这里有一个存储切片中最大和最小元素的引用的结构体：
 \begin{minted}{Rust}
     struct Extrema<'elt> {
         greatest: &'elt i32,
@@ -577,7 +577,7 @@ Rust的类型系统还采取了C\#和Java等语言中的一个特性，就是关
     }
 \end{minted}
 
-诚然，我们\emph{可能}是在说\texttt{Extrema<'static>}，但这并不是通常的情况。Rust为通用的情况提供了一个缩写。\footnote{译者注：没看懂。原文：Granted, we \emph{might} have meant \texttt{Extrema<'static>}, but that’s pretty unusual. Rust provides a shorthand for the common case}
+诚然，我们也\emph{可能}是想返回\texttt{Extrema<'static>}，但这并不是通常的情况。Rust只为通常的情况提供了一个缩写。
 
 \section{为结构体类型派生常见的trait}
 
@@ -717,7 +717,7 @@ Rust还可以派生\texttt{PartialOrd}，它可以支持比较运算符\texttt{<
 
 为了避免panic，你可以把这两个借用放进单独的块里。这样的话，\texttt{r}会在你尝试借用\texttt{w}之前被drop。
 
-这和普通引用的工作方式很像。唯一的不同在于普通的情况下，当你尝试借用一个变量的引用，Rust会在\emph{编译期}确保你必须安全地使用引用。如果检查失败了，你会得到一个编译期错误。\texttt{RefCell}使用运行时检查来执行同样的规则。引入如果你尝试打破规则，你会得到一个panic（或者使用\texttt{try\_borrow}和\texttt{try\_borrow\_mut}时会得到一个\texttt{Err}）。
+这和普通引用的工作方式很像。唯一的不同在于普通的情况下，当你尝试借用一个变量的引用，Rust会在\emph{编译期}确保你必须安全地使用引用。如果检查失败了，你会得到一个编译期错误。\texttt{RefCell}使用运行时检查来执行同样的规则。如果你尝试打破规则，你会得到一个panic（或者使用\texttt{try\_borrow}和\texttt{try\_borrow\_mut}时会得到一个\texttt{Err}）。
 
 现在我们已经准备好用\texttt{RefCell}来完善我们的\texttt{SpiderRobot}了：
 \begin{minted}{Rust}
@@ -740,6 +740,6 @@ Rust还可以派生\texttt{PartialOrd}，它可以支持比较运算符\texttt{<
 
 变量\texttt{file}的类型是\texttt{RefMut<File>}。它的使用方式就像\texttt{File}的可变引用一样。有关写入文件的细节，见\hyperref[ch18]{第18章}。
 
-Cell很容易使用。虽然必须调用\texttt{.get()}和\texttt{.set()}或者\texttt{.borrow()}和\texttt{.borrow\_mut()}有点麻烦，但那只是我们扭曲可变性规则的代价。还有一些不是很明显但却更严重的问题：Cell——和任何包含了它们的类型——都不是线程安全的。因此Rust\hyperref[threadsafe]{不允许}多个线程直接访问它们。我们将在\hyperref[ch19]{第19章}中讨论到“\nameref{mutex}”、“\nameref{atomic}”和“\nameref{globalvar}”时介绍多线程中的内部可变性。
+Cell很容易使用。虽然必须调用\texttt{.get()}和\texttt{.set()}或者\texttt{.borrow()}和\texttt{.borrow\_mut()}有点麻烦，但那只是我们扭曲可变性规则的代价。还有一些不是很明显但却更严重的问题：Cell——和任何包含了它们的类型——都不是线程安全的。因此Rust\hyperref[threadsafe]{不允许}多个线程直接访问它们。我们将在\hyperref[ch19]{第19章}中讨论到\nameref{mutex}、\nameref{atomic}和\nameref{globalvar}时介绍多线程中的内部可变性。
 
 不管一个结构体有命名字段还是类元组结构体，它都是一些其他值的聚合体：如果我有一个\texttt{SpiderSenses}结构体，那么我就有一个指向共享的\texttt{SpiderRobot}结构体的\texttt{Rc}指针、同时还有了eyes、accelerometer等等。因此结构体的本质是单词“和(and)”：我有一个X\emph{和(and)}一个Y。但是否有另一种类型用于单词“或(or)”呢？换句话说，当你有了一个这种类型的值时，你有了一个X\emph{或(or)}一个Y？这样的类型太有用了以至于它们在Rust中无处不在，它们就是我们下一章要讨论的主题。

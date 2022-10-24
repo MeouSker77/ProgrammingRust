@@ -6,9 +6,9 @@
     ——Graydon Hoare
 \end{flushright}
 
-这一章的第一个话题将是一个古老的、强有力的、可以帮你在短期内完成很多工作的（有代价地）、并且在许多语言中以不同的名字广为人知的特性。但它并不是魔鬼。而是一种用户自定义的数据类型，它是ML和Haskell程序员们熟知的和类型、也是互斥的联合、还是代数数据类型。在Rust中，它们被称为\emph{枚举(enumerations)}，或者简写为\emph{enum}。和魔鬼不同的是，它们非常安全、索取的代价也很小。
+这一章的第一个话题将是一个古老的、强大的、可以帮你在短期内完成很多工作的（有代价地）、并且在许多语言中以不同的名字广为人知的特性。但它并不是魔鬼。而是一种用户自定义的数据类型，它是ML和Haskell程序员们熟知的和类型、也是互斥的联合、还是代数数据类型。在Rust中，它们被称为\emph{枚举(enumerations)}，或者简写为\emph{enum}。和魔鬼不同的是，它们非常安全、索取的代价也很小。
 
-C++和C\#都有枚举，你可以使用它们来定义自己的类型，这种类型的取值范围是一些命名常量的集合。例如，你可能定义过一个叫\texttt{Color}的类型，取值范围为\texttt{Red}、\texttt{Orange}、\texttt{Yellow}等等。这种枚举在Rust中也能工作，但Rust进一步扩展了枚举。一个Rust枚举可以包含数据，包括多种不同类型的数据。例如，Rust的\texttt{Result<String, io::Error}类型是一个枚举；这样一个值要么是一个包含\texttt{String}的\texttt{Ok}值要么是一个包含\texttt{io::Error}的\texttt{Err}值。这就超出了C++和C\#中枚举的能力。它更像C中的\texttt{union}——但和联合不同的是，Rust的枚举是类型安全的。
+C++和C\#都有枚举，你可以使用它们来定义自己的类型，这种类型的取值范围是一些命名常量的集合。例如，你可能定义过一个叫\texttt{Color}的类型，取值范围为\texttt{Red}、\texttt{Orange}、\texttt{Yellow}等等。这种枚举在Rust中也能工作，但Rust进一步扩展了枚举。一个Rust枚举可以包含多种不同类型的数据。例如，Rust的\texttt{Result<String, io::Error>}类型就是一个枚举：该类型的值要么是一个包含\texttt{String}的\texttt{Ok}值要么是一个包含\texttt{io::Error}的\texttt{Err}值。这就超出了C++和C\#中枚举的能力。它更像C中的\texttt{union}——但和联合不同的是，Rust的枚举是类型安全的。
 
 枚举适用于一个值有多种可能的情况。使用它们的“代价”是你必须使用模式匹配来安全地访问数据，这也是我们这一章中的第二个话题。
 
@@ -57,7 +57,7 @@ C++和C\#都有枚举，你可以使用它们来定义自己的类型，这种�
     }
 \end{minted}
 
-导入constructor之后，我们可以写\texttt{Less}来代替\texttt{Ordering::Less}等，但因为这样不够明显，因此一般认为\emph{不要}导入它们式更好的风格，除非它能是你的代码的可读性更强。
+导入constructor之后，我们可以写\texttt{Less}来代替\texttt{Ordering::Less}等，但因为这样不够明显，因此一般认为\emph{不要}导入它们是更好的风格，除非它能使你的代码可读性更强。
 
 为了导入一个在当前模块中声明的枚举的constructor，可以使用\texttt{self}：
 \begin{minted}{Rust}
@@ -89,7 +89,7 @@ C++和C\#都有枚举，你可以使用它们来定义自己的类型，这种�
     assert_eq!(size_of::<HttpStatus>(), 2); // 404不能存储在u8中
 \end{minted}
 
-你可以通过添加\texttt{\#[repr]}属性来覆盖Rust选择的内存表示方式。更多的细节见“\nameref{repr}”。
+你可以通过添加\texttt{\#[repr]}属性来覆盖Rust选择的内存表示方式。更多的细节见\nameref{repr}。
 
 将C风格的枚举转换为整数是允许的：
 \begin{minted}{Rust}
@@ -111,7 +111,7 @@ C++和C\#都有枚举，你可以使用它们来定义自己的类型，这种�
 
 或者使用\href{https://crates.io/crates/enum_primitive}{\texttt{enum\_primitive}} crate。它包含一个宏可以为你自动生成这种类型的转换代码。
 
-和结构体一样，编译器也可以为你自动生成类似\texttt{==}运算符这样的特性，但你需要显式地要求这样：
+和结构体一样，编译器也可以为枚举自动生成类似\texttt{==}运算符这样的特性，但需要显式地要求：
 \begin{minted}{Rust}
     #[derive(Copy, Clone, Debug, PartialEq, Eq)]
     enum TimeUnit {
@@ -159,11 +159,9 @@ C风格的枚举就这么多内容了。Rust中最有趣的一类枚举是那些
 
 这个枚举中的两个variant，即\texttt{InThePast}和\texttt{InTheFuture}都有参数。这些被称为\emph{tuple variant}。就像类元组结构体一样，它们的constructor是创建新的\texttt{RoughTime}值的函数：
 \begin{minted}{Rust}
-    let four_score_and_seven_years_ago =
-        RoughTime::InThePast(TimeUnit::Years, 4 * 20 + 7);
+    let four_score_and_seven_years_ago = RoughTime::InThePast(TimeUnit::Years, 4 * 20 + 7);
 
-    let three_hours_from_now =
-        RoughTime::InTheFuture(TimeUnit::Hours, 3);
+    let three_hours_from_now = RoughTime::InTheFuture(TimeUnit::Hours, 3);
 \end{minted}
 
 枚举也可以有\emph{struct variant}，它们和普通的结构体一样拥有命名字段：
@@ -238,7 +236,7 @@ C风格的枚举就这么多内容了。Rust中最有趣的一类枚举是那些
     \label{f10-2}
 \end{figure}
 
-一个\texttt{HashMap}会更大如果我们一定要在每一个\texttt{Json}值中给它留出空间，它们将会变得更大，也就是8个字。但\texttt{Box<HashMap>}是单个字：它只是一个指向堆上分配的数据的指针。我们甚至可以通过装箱更多的字段来让\texttt{Json}变得更加紧凑。
+\texttt{HashMap}会更大一些，如果我们一定要在每一个\texttt{Json}值中给它留出空间，它会变大到8个字。但\texttt{Box<HashMap>}是单个字：它只是一个指向堆上分配的数据的指针。我们甚至可以通过装箱更多的字段来让\texttt{Json}变得更加紧凑。
 
 这里优秀的地方在于，我们如此简单的就完成了这一切。如果是在C++中，可能要写一个这样的一个类才行：
 \begin{minted}{Rust}
@@ -296,7 +294,8 @@ C风格的枚举就这么多内容了。Rust中最有趣的一类枚举是那些
 
 到现在这些类型你应该已经很熟悉了，泛型枚举的语法和泛型结构体完全相同。
 
-一个不明显的细节是当类型\texttt{T}是引用、\texttt{Box}或其他智能指针类型时Rust可以省略\texttt{Option<T>}的标签字段。因为这些指针类型中的任何一个都不允许为0，所以Rust可以用单个机器字来表示\texttt{Option<Box<i32>>}：用0表示\texttt{None}，用非0表示\texttt{Some}指针。这使得这样的\texttt{Option}类型与C和C++中可以为空的指针值非常相似。不同之处在于Rust的类型系统要求你必须先检查\texttt{Option}的值是\texttt{Some}，然后才能使用它内含的值。这有效的避免了空指针解引用。
+一个不明显的细节是当类型\texttt{T}是引用、\texttt{Box}或其他智能指针类型时，Rust可以省略\\
+\texttt{Option<T>}的标签字段。因为这些指针类型中的任何一个都不允许为0，所以Rust可以用单个机器字来表示\texttt{Option<Box<i32>>}：用0表示\texttt{None}，用非0表示\texttt{Some}指针。这使得这样的\texttt{Option}类型与C和C++中可以为空的指针值非常相似。不同之处在于Rust的类型系统要求你必须先检查\texttt{Option}的值是\texttt{Some}，然后才能使用它内含的值。这有效的避免了空指针解引用。
 
 泛型数据结构体可以用很少的几行代码构建：
 \begin{minted}{Rust}
@@ -318,7 +317,7 @@ C风格的枚举就这么多内容了。Rust中最有趣的一类枚举是那些
 
 这两个定义包含了大量信息，所以我们将花费一些时间把代码翻译为中文。每一个\texttt{BinaryTree}值是\texttt{Empty}或者\texttt{NonEmpty}。如果它是\texttt{Empty}，那么它不包含任何数据。如果是\texttt{NonEmpty}，那么它会包含一个\texttt{Box}，这个指针指向一个在堆上分配的\texttt{TreeNode}值。
 
-每一个\texttt{TreeNode}值包含一个实际的元素，和两个\texttt{BinaryTree}值。这意味着一棵树可以包含子树，因此一个\texttt{NonEmpty}树可以包含任意数量的后台节点。
+每一个\texttt{TreeNode}值包含一个实际的元素，和两个\texttt{BinaryTree}值。这意味着一棵树可以包含子树，因此一个\texttt{NonEmpty}树可以包含任意数量的后代节点。
 
 一个\texttt{BinaryTree<\&str>}类型的值的视图如\hyperref[f10-3]{图10-3}所示。因为对于\texttt{Option<Box<T>>}，Rust会省略标签字段，所以一个\texttt{BinaryTree}值只占一个机器字。
 
@@ -341,7 +340,7 @@ C风格的枚举就这么多内容了。Rust中最有趣的一类枚举是那些
 
 更大的树可以通过较小的树构建：
 \begin{minted}{Rust}
-    let mars_tree = NonEmpty(BOx::new(TreeNode {
+    let mars_tree = NonEmpty(Box::new(TreeNode {
         element: "Mars",
         left: jupiter_tree,
         right: mercury_tree,
@@ -374,7 +373,7 @@ C风格的枚举就这么多内容了。Rust中最有趣的一类枚举是那些
     let r = shape.radius;   // 错误：`Shape`类型没有字段`radius`
 \end{minted}
 
-访问枚举中的值的唯一方式是：使用枚举，这是一种安全的方式。
+访问枚举中的值的唯一方式是：使用模式，这是一种安全的方式。
 
 \section{模式}
 
@@ -404,7 +403,8 @@ C风格的枚举就这么多内容了。Rust中最有趣的一类枚举是那些
 \end{minted}
 \texttt{match}会进行模式匹配。在这个例子中，\emph{模式}是第3、5、7行中出现在\texttt{=>}符号左边的部分。匹配\texttt{RoughTime}值的模式看起来就像是一个创建\texttt{RoughTime}值的表达式。这并不是巧合。表达式\emph{产生}值，模式\emph{消耗}值。它们使用相同的语法。
 
-让我们逐步看看运行这个\emph{match}表达式时发生了什么。假设\texttt{rt}的值是\texttt{RoughTime::InTheFuture(TimeUnit::Months, 1)}。Rust首先尝试将这个值和第3行的模式匹配。正如\hyperref[f10-4]{图10-4}所示，它并不能匹配。
+让我们逐步看看运行这个\emph{match}表达式时发生了什么。假设\texttt{rt}的值是\\
+\texttt{RoughTime::InTheFuture(TimeUnit::Months, 1)}。Rust首先尝试将这个值和第3行的模式匹配。正如\hyperref[f10-4]{图10-4}所示，它并不能匹配。
 
 \begin{figure}[htbp]
     \centering
@@ -413,7 +413,7 @@ C风格的枚举就这么多内容了。Rust中最有趣的一类枚举是那些
     \label{f10-4}
 \end{figure}
 
-Rust中用于匹配一个枚举、结构体或者元组的模式的工作原理就好像简单地从左到右扫描，检查模式中的每个部分来看看是不是和值匹配。如果不是，Rust会移动到下一个模式。
+Rust中使用模式来匹配一个枚举、结构体或者元组，它的工作原理就好像简单地从左到右扫描，检查模式中的每个部分来看看是不是和值匹配。如果不是，Rust会移动到下一个模式。
 
 第3和第5行的模式都匹配失败。但第7行的模式成功了（\hyperref[f10-5]{图10-5}）。
 
@@ -424,7 +424,7 @@ Rust中用于匹配一个枚举、结构体或者元组的模式的工作原理�
     \label{f10-5}
 \end{figure}
 
-当一个模式包含像\texttt{units}和\texttt{count}这样的简单标识符时，在匹配之后的代码中它们会变为局部变量。当前值里的任何内容都会被拷贝或移动到新的变量中。Rust把\texttt{TimeUnit::Months}存储在\texttt{units}中，把\texttt{1}存储在\texttt{count}中，然后运行第8行的代码，最后返回字符串\texttt{"1 months from now"}。
+如果模式包含像\texttt{units}和\texttt{count}这样的简单标识符时，在匹配后的代码中它们会变为局部变量。被匹配的值里的任何内容都会被拷贝或移动到新变量中。Rust把\texttt{TimeUnit::Months}存储在\texttt{units}中，把\texttt{1}存储在\texttt{count}中，然后运行第8行的代码，最后返回字符串\texttt{"1 months from now"}。
 
 这个输出有一点语法上的错误，可以通过给\texttt{match}添加另一个分支来修正：
 \begin{minted}{Rust}
@@ -473,7 +473,7 @@ Rust中用于匹配一个枚举、结构体或者元组的模式的工作原理�
 \end{table}
 
 \subsection{模式中的字面量、变量和通配符}
-到目前为止，我们已经展示了\texttt{match}表达式和枚举一起使用，其实其它类型也可以用模式来匹配。当你需要类似C的\texttt{switch}语句的功能时，可以使用处理整数值的\texttt{match}表达式。整数字面量例如\texttt{0}和\texttt{1}可以用作模式：
+到目前为止，我们已经展示了\texttt{match}表达式和枚举一起使用，其实其他类型也可以用模式来匹配。当你需要类似C的\texttt{switch}语句的功能时，可以使用处理整数值的\texttt{match}表达式。整数字面量例如\texttt{0}和\texttt{1}可以用作模式：
 \begin{minted}{Rust}
     match meadow.count_rabbits() {
         0 => {} // 什么都不输出
@@ -535,10 +535,8 @@ Rust中用于匹配一个枚举、结构体或者元组的模式的工作原理�
 结构体模式要使用花括号，就和结构体表达式一样。它们可以包含每个字段的子模式：
 \begin{minted}{Rust}
     match balloon.location {
-        Point { x: 0, y: height } =>
-            println!("straight up {} meters", height),
-        Point { x: x, y: y } =>
-            println!("at ({}m, {}m)", x, y),
+        Point { x: 0, y: height } => println!("straight up {} meters", height),
+        Point { x: x, y: y } => println!("at ({}m, {}m)", x, y),
     }
 \end{minted}
 
@@ -590,7 +588,7 @@ Rust中用于匹配一个枚举、结构体或者元组的模式的工作原理�
     }
 \end{minted}
 
-切片模式与此类似，单核数组不同的是，切片的长度可以变化。因此切片模式并不只匹配值，还要匹配长度。切片模式中的\texttt{..}匹配任意数量的元素：
+切片模式与此类似，但和数组不同的是，切片的长度可以变化。因此切片模式并不只匹配值，还要匹配长度。切片模式中的\texttt{..}匹配任意数量的元素：
 \begin{minted}{Rust}
     fn greet_people(names: &[&str]) {
         match names {
@@ -662,9 +660,9 @@ Rust模式支持两种和引用有关的特性。\texttt{ref}模式会借用被�
     \label{f10-7}
 \end{figure}
 
-这里有一点诡异，因为Rust在这里解除了引用，也就是\texttt{*}运算符的功能。要住的是模式和表达式天然是相反的。表达式\texttt{(x, y)}把两个值放入一个新的元组中，而模式\texttt((x, y))恰好相反：它匹配一个元组然后取出两个值。\texttt{\&}也是一样，在表达式里，\texttt{\&}创建一个引用；在模式里，\texttt{\&}匹配一个引用。
+这里有一点诡异，因为Rust在这里解除了引用，也就是\texttt{*}运算符的功能。要记住模式和表达式天然是相反的。表达式\texttt{(x, y)}把两个值放入一个新的元组中，而模式\texttt{(x, y)}恰好相反：它匹配一个元组然后取出两个值。\texttt{\&}也是一样，在表达式里，\texttt{\&}创建一个引用；在模式里，\texttt{\&}匹配一个引用。
 
-匹配一个引用遵循我们期望的所有规则。生命周期是强制的。你不能通过共享引用获取\texttt{mut}访问权限。你不能将值移动出引用，即使是\texttt{mut}引用。当我们匹配\texttt{\&Point3d \{ x, y, z \}}时，变量\texttt{x, y, z}都是坐标的拷贝，原本的\texttt{Point3d}值还是完整的。只有当这些字段都是拷贝类型才可以正常工作。如果我们想对结构体中一个不可拷贝的字段这么做，我们会遇到错误：
+匹配一个引用遵循我们期望的所有规则：生命周期是强制的、你不能通过共享引用获取\texttt{mut}访问权限、你不能将值移动出引用，即使是\texttt{mut}引用。当我们匹配\texttt{\&Point3d \{ x, y, z \}}时，变量\texttt{x, y, z}都是坐标的拷贝，原本的\texttt{Point3d}值还是完整的。只有当这些字段都是拷贝类型才可以正常工作。如果我们想对结构体中一个不可拷贝的字段这么做，我们会遇到错误：
 \begin{minted}{Rust}
     match friend.borrow_car() {
         Some(&Car { engine, .. }) => // error: can't move out of borrow
@@ -689,7 +687,7 @@ Rust模式支持两种和引用有关的特性。\texttt{ref}模式会借用被�
 \end{minted}
 
 \subsection{匹配守卫}
-有时一个匹配分支还有附加的条件必须要满足。假设我们在实现一个六边形空间内的棋子游戏，玩家只需要点击即可移动棋子。为了确认点击时有效的，我们可能要尝试类似这样的代码：
+有时一个匹配分支还有附加的条件必须要满足。假设我们在实现一个六边形空间内的棋子游戏，玩家只需要点击即可移动棋子。为了确认点击是有效的，我们可能要尝试类似这样的代码：
 \begin{minted}{Rust}
     fn check_move(current_hex: Hex, click: Point) -> game::Result<Hex> {
         match point_to_hex(click) {
@@ -832,10 +830,11 @@ Rust（目前）不允许在模式中使用尾开区间例如\texttt{0..100}。
     }
 \end{minted}
 
-有关这些表达式的细节，见“\nameref{iflet}”和“\nameref{loop}”。
+有关这些表达式的细节，见\nameref{iflet}和\nameref{loop}。
 
 \subsection{填充二叉树}\label{BinaryTree}
-之前我们说过要展示如何实现一个\texttt{BinaryTree::add()}方法，它把一个节点添加到\texttt{BinaryTree}中：
+之前我们说过要展示如何实现一个\texttt{BinaryTree::add()}方法，它把一个节点添加到\\
+\texttt{BinaryTree}中：
 \begin{minted}{Rust}
     // 一个类型`T`的顺序集合
     enum BinaryTree<T> {
@@ -876,7 +875,7 @@ Rust（目前）不允许在模式中使用尾开区间例如\texttt{0..100}。
     }    
 \end{minted}
 
-第1行告诉了Rust我们正在为有序类型的\texttt{BinaryTree}定义一个方法。这和我们之前为泛型结构体定义方法的语法完全相同，语法的解释见“\nameref{method}”一节。
+第1行告诉了Rust我们正在为有序类型的\texttt{BinaryTree}定义一个方法。这和我们之前为泛型结构体定义方法的语法完全相同，语法的解释见\nameref{method}一节。
 
 如果现有的树\texttt{*self}是空的，那么就很简单。第5-9行把\texttt{Empty}树变成了一个\texttt{NonEmpty}的树。\texttt{Box::new()}的调用在堆上分配一个新的\texttt{TreeNode}。当运行完之后，树就有了一个元素，这个元素的左子树和右子树都是\texttt{Empty}。
 
@@ -897,12 +896,12 @@ Rust（目前）不允许在模式中使用尾开区间例如\texttt{0..100}。
 
 \section{宏观视图}
 
-Rust的枚举对系统级编程来说也许很新，但它们并不是一个新的概念。它有过很多学术性的名称，例如\emph{代数数据类型(algebraic data types)}，它们在函数式编程语言中已经被使用了40多年。不知道为什么遵循C传统的语言中只有很少的语言有这种特性。可能只是因为对于一个编程语言的设计者来说，将variant、引用、可变性和内存安全融合在一起非常有挑战性。函数式语言不需要考虑可变性。C的\texttt{union}相反，有variant、指针和可变性——但它们是如此的不安全以至于即使在C中，它们也是最少用到的特性。Rust的借用检查器是使得在不妥协的情况下把这四者融合在一起变为可能的魔法。
+Rust的枚举对系统编程来说也许很新，但它们并不是一个新的概念。它有过很多学术性的名称，例如\emph{代数数据类型(algebraic data types)}，它们在函数式编程语言中已经被使用了40多年。不知道为什么遵循C传统的语言中只有很少的语言有这种特性。可能只是因为对于一个编程语言的设计者来说，将variant、引用、可变性和内存安全融合在一起非常有挑战性。函数式语言不需要考虑可变性。C的\texttt{union}相反，有variant、指针和可变性——但它们是如此的不安全以至于即使在C中，它们也是最少用到的特性。Rust的借用检查器是使得在不妥协的情况下把这四者融合在一起变为可能的魔法。
 
 程序就是数据处理的过程。一个小巧、快速、优雅的程序与一个充满缓慢、巨大的类型嵌套和虚拟方法调用的程序之间的区别可能就是是否把数据以正确的方式存储。
 
 这正是枚举专注于解决的问题。它们是一种把数据以正确方式存储的设计工具。对于值可能是这样、也可能是那样、设置可能为空的情况，枚举在每一个维度上都比类层次结构要好：更快、更安全、更少的代码、更容易编写文档。
 
-唯一的限制是灵活性。枚举的最终用户不能添加新的variant来扩展它。Variant只能通过修改枚举的定义的来添加，而这么做的话，又会打破现有的代码。每一个单独匹配枚举的每个variant的\texttt{match}表达式都需要修改——需要添加一个新的分支来处理新的variant。在某些情况下，牺牲灵活性换取简洁性是明智之举。毕竟，像JSON这样的结构体预计不会改变。而在某些情况下，当枚举改变时修改所有使用的地方正是我们所期望的。例如，当一个编译器使用\texttt{enum}来表示语言中的不同运算符时，添加一个新的运算符\emph{应该}涉及到所有处理操作符的代码。
+唯一的限制是灵活性。枚举的最终用户不能添加新的variant来扩展它。Variant只能通过修改枚举的定义来添加，而这么做的话，又会打破现有的代码。每一个单独匹配枚举的每个variant的\texttt{match}表达式都需要修改——需要添加一个新的分支来处理新的variant。在某些情况下，牺牲灵活性换取简洁性是明智之举。毕竟，像JSON这样的结构体预计不会改变。而在某些情况下，当枚举改变时修改所有使用的地方正是我们所期望的。例如，当一个编译器使用\texttt{enum}来表示语言中的不同运算符时，添加一个新的运算符\emph{应该}涉及到所有处理操作符的代码。
 
 但有些时候也需要更多的灵活性。对于这些情况，Rust有trait，也就是我们下一章要讨论的话题。
