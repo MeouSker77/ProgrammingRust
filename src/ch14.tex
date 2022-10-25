@@ -39,19 +39,19 @@ Rust会报错\texttt{City}没有实现\texttt{std::cmp::Ord}。我们需要像�
 
 这个辅助函数\texttt{city\_population\_descending}，获取一个\texttt{City}记录并提取出\emph{key}，我们根据这个字段来排序数据。（它返回一个负数是因为\texttt{sort}以递增顺序排序，但我们想以降序排序：人多最多的城市优先。）\texttt{sort\_by\_key}方法以这个返回key的函数为参数。
 
-这可以工作的很好，当如果将辅助函数写成一个\emph{闭包(closure)}（一个匿名的函数表达式）会更简洁：
+它可以很好地工作，但如果将辅助函数写成一个\emph{闭包(closure)}（一个匿名的函数表达式）会更简洁：
 \begin{minted}{Rust}
     fn sort_cities(cities: &mut Vec<City>) {
         cities.sort_by_key(|city| -city.population);
     }
 \end{minted}
 
-这里的闭包是\texttt{|city| -city.population}。它有一个参数\texttt{city}，然后返回\texttt{-city.population}。Rust会从闭包的使用中推断出参数和返回值的类型。
+这里的闭包是\texttt{|city| -city.population}，它的参数是\texttt{city}，返回值是\texttt{-city.population}。Rust会从闭包的使用中推断出参数和返回值的类型。
 
 标准库中其他接受闭包的特性的例子包括：
 \begin{itemize}
     \item \texttt{Iterator}的方法例如\texttt{map}和\texttt{filter}。我们将在\hyperref[ch15]{第15章}介绍这些方法。
-    \item 线程的API例如\texttt{thread::spawn}，它会创建一个新的系统线程。并发就是把工作移动到其他的线程，闭包能方便的表示这种工作单元。我们将在\hyperref[ch19]{第19章}中介绍这些特性。
+    \item 线程的API例如\texttt{thread::spawn}，它会创建一个新的系统线程。并发就是把工作移动到其他的线程，闭包能方便地表示这种工作单元。我们将在\hyperref[ch19]{第19章}中介绍这些特性。
     \item 一些需要根据条件计算默认值的方法，例如\texttt{HashMap}条目的\texttt{or\_insert\_with}方法。这个方法获取一个\texttt{HashMap}的表项，或者创建一个表项，当计算默认值有很大开销时会使用这个方法。只有当必须创建一个新表项的时候作为闭包传入的默认值才会被调用。
 \end{itemize}
 
@@ -87,7 +87,8 @@ Rust会报错\texttt{City}没有实现\texttt{std::cmp::Ord}。我们需要像�
     }
 \end{minted}
 
-这个闭包\texttt{keyfn}被存储在新的\texttt{SortingAnimation}对象中。这意味着它可能会在\texttt{startSortingAnimation}返回之后被调用。通常来讲当一个函数返回时，它的所有变量和参数都会离开作用域并且被丢弃。但这里，JavaScript引擎必须一直保持\texttt{stat}，因为闭包中用到了它。大多数JavaScript引擎通过在堆上分配\texttt{stat}，然后让垃圾收集器之后再回收它来做到这一点。
+这个闭包\texttt{keyfn}被存储在新的\texttt{SortingAnimation}对象中。这意味着它可能会在\\
+\texttt{startSortingAnimation}返回之后被调用。通常来讲当一个函数返回时，它的所有变量和参数都会离开作用域并且被丢弃。但这里，JavaScript引擎必须一直保留\texttt{stat}，因为闭包中用到了它。大多数JavaScript引擎通过在堆上分配\texttt{stat}，然后让垃圾收集器之后再回收它来做到这一点。
 
 Rust没有垃圾收集。那么这样的代码会如何运作？为了回答这个问题，我们先看两个例子。
 
@@ -100,7 +101,7 @@ Rust没有垃圾收集。那么这样的代码会如何运作？为了回答这�
     }
 \end{minted}
 
-在这个例子中，当Rust创建闭包时，它会自动自动借用一个\texttt{stat}的引用。按理来说，闭包用到了\texttt{stat}，所以它必须有一个指向它的引用。
+在这个例子中，当Rust创建闭包时，它会自动借用一个\texttt{stat}的引用。按理来说，闭包用到了\texttt{stat}，所以它必须有一个指向它的引用。
 
 剩余的部分就很简单了。闭包仍然遵循我们在\hyperref[ch05]{第5章}中介绍的有关借用和生命周期的规则。另外，因为闭包包含一个\texttt{stat}的引用，所以Rust不允许它比\texttt{stat}活得更长。因为这个闭包只在排序中使用，所以这个例子没有问题。
 
@@ -138,7 +139,7 @@ Rust没有垃圾收集。那么这样的代码会如何运作？为了回答这�
        |              may outlive borrowed value `stat`
 \end{minted}
 
-事实上，这里有两个问题，因为\texttt{cities}也被不安全地共享。简单来说，\texttt{thread::spawn}新创建的线程不能保证在\texttt{cities}和\texttt{stat}在离开函数被销毁之前完成工作。
+（事实上，这里有两个问题，因为\texttt{cities}也被不安全地共享。）简单来说，\texttt{thread::spawn}新创建的线程不能保证在\texttt{cities}和\texttt{stat}被销毁之前完成工作。
 
 解决这两个问题的方法是一样的：告诉Rust把\texttt{cities}和\texttt{stat}\emph{移动(move)}进新的闭包，而不是借用它们的引用：
 \begin{minted}{Rust}
@@ -162,7 +163,7 @@ Rust没有垃圾收集。那么这样的代码会如何运作？为了回答这�
 \begin{itemize}
     \item 就像语言中其他任何部分一样，如果一个闭包\texttt{move}一个可拷贝类型，例如\texttt{i32}，那么它会拷贝这个值。因此如果\texttt{Statistic}恰巧是个可拷贝类型，那么即使创建了使用了它的\texttt{move}闭包之后，我们仍然可以继续使用\texttt{stat}。
     \item 非拷贝类型，例如\texttt{Vec<City>}，会真的被移动：上面的代码会通过\texttt{move}闭包把\texttt{cities}移动到新线程。Rust不允许我们在创建了这个闭包之后再访问\texttt{cities}。
-    \item 这里，在闭包移动\texttt{cities}之后，我们不需要再使用\texttt{cities}。如果我们还需要用到它，那么我们告诉Rust克隆\texttt{cities}并把拷贝存储到不同的变量中。闭包将只偷取拷贝中的一个——不管它用的是哪一个。
+    \item 这里，在闭包移动\texttt{cities}之后，我们不需要再使用\texttt{cities}。如果我们还需要用到它，那么我们可以先克隆\texttt{cities}并把拷贝存储到不同的变量中。闭包将只偷取拷贝中的一个——不管它用的是哪一个。
 \end{itemize}
 
 Rust的严格规则给我们带来了很重要的一个保证：线程安全。正因为vector被移动了，而不是在线程之间共享，所以我们可以知道旧的线程不会在新的线程修改vector时释放它。
@@ -244,7 +245,7 @@ Rust的严格规则给我们带来了很重要的一个保证：线程安全。�
     }
 \end{minted}
 
-我们只修改了\texttt{count\_selected\_cities}的类型签名，没有修改函数体。新的版本是泛型的。它接受任何\texttt{F}类型的参数\texttt{test\_fn}，只要\texttt{F}实现了特殊的trait \texttt{Fn(\&City) -> bool}。大多数函数和接受单个\texttt{\&City}返回一个布尔值的闭包会自动实现这个trait：
+我们只修改了\texttt{count\_selected\_cities}的类型签名，没有修改函数体。新的版本是泛型的。它接受任何\texttt{F}类型的参数\texttt{test\_fn}，只要\texttt{F}实现了特殊的trait \texttt{Fn(\&City) -> bool}。接受单个\texttt{\&City}并返回一个布尔值的所有函数和大部分闭包会自动实现这个trait：
 \begin{minted}{Rust}
     fn(&City) -> bool   // fn 类型（只限函数）
     Fn(&City) -> bool   // Fn trait（函数和闭包）
@@ -263,48 +264,48 @@ Rust的严格规则给我们带来了很重要的一个保证：线程安全。�
         |city| city.monster_attack_risk > limit);   // 也ok
 \end{minted}
 
-为什么第一次尝试不能工作？这是因为一个闭包可以调用，但不是一个\texttt{fn}。闭包\\
-\texttt{|city| city.monster\_attack\_risk > limit}有自己的类型，不是一个\texttt{fn}类型。
+为什么第一次尝试不能工作？这是因为闭包虽然可以调用，但它不是一个\texttt{fn}。闭包\texttt{|city| city.monster\_attack\_risk > limit}有自己的类型，不是一个\texttt{fn}类型。
 
 事实上，你写的每一个闭包都有自己的类型，因为一个闭包可能包含数据：从作用域中借用或偷取的值。这可能是任意数量、任意类型的变量。因此每一个闭包都有一个编译器创建的特定的类型，大到足够存储数据。没有类型完全相同的两个闭包。但每一个闭包都实现了\texttt{Fn} trait；我们的例子中的闭包实现了\texttt{Fn(\&City) -> i64}。
 
-因为每一个闭包都有自己的类型，所以处理闭包的代码通常要是泛型的，比如\texttt{count\_selected\_cities}。每次都要写出这种泛型类型有些笨拙，但要了解这种设计的优点，请继续阅读。
+因为每一个闭包都有自己的类型，所以处理闭包的代码通常要是泛型的，比如\\
+\texttt{count\_selected\_cities}。每次都要写出这种泛型类型有些笨拙，但要了解这种设计的优点，请继续阅读。
 
 \section{闭包的性能}
 
-Rust的闭包被设计得很快：比函数指针更快，快到你可以在非常频繁、性能敏感的代码中使用它们。如果你熟悉C++的lambda，你将会发现Rust的闭包和它一样快和紧凑，但更安全。
+Rust的闭包被设计得很快：比函数指针更快，快到你可以在调用非常频繁、性能敏感的代码中使用它们。如果你熟悉C++的lambda，你将会发现Rust的闭包和它一样快和紧凑，但更安全。
 
 在大多数语言中，闭包都在堆上分配、动态分发、被垃圾收集器回收。因此创建、调用、回收每个闭包都需要消耗额外的CPU时间。更糟的是，闭包常常会排除\emph{内联(inline)}，这是一种编译器用于消除函数调用的开销并为其它优化提供支持的关键技术。总的来说，那些语言中的闭包太慢，以至于需要从紧密的内层循环中手动移除它们。
 
-Rust的闭包没有任何这些性能缺陷。它们没有垃圾回收。和Rust中的其他所有东西一样，除非你把它们放在\texttt{Box}、\texttt{Vec}或其他容器中，否则它们不会在堆上分配。并且因为每个闭包都有不同的类型，任何时候Rust编译器都知道你要调用的必报的类型，它可以为那个特殊的闭包内联代码。这让闭包完全可以在紧密的循环中使用，并且Rsut程序通常确实会踊跃地这么做，正如你将在\hyperref[ch15]{第15章}中看到的一样。
+Rust的闭包没有任何这些性能缺陷。它们没有垃圾回收。和Rust中的其他所有东西一样，除非你把它们放在\texttt{Box}、\texttt{Vec}或其他容器中，否则它们不会在堆上分配。并且因为每个闭包都有不同的类型，任何时候Rust编译器都知道你要调用的闭包的类型，它可以为那个特殊的闭包内联代码。这让闭包完全可以在紧密的循环中使用，并且Rsut程序通常确实会踊跃地这么做，正如你将在\hyperref[ch15]{第15章}中看到的一样。
 
-\autoref{f14-1}展示了Rust闭包在内存中的布局。在图片的顶部，我们展示了我们的闭包引用的两个局部变量：一个字符串\texttt{food}和一个简单的枚举\texttt{weather}，它的数字值恰好是27。
+\hyperref[f14-1]{图14-1}展示了Rust闭包在内存中的布局。在图片的顶部，我们展示了我们的闭包引用的两个局部变量：一个字符串\texttt{food}和一个简单的枚举\texttt{weather}，它的数字值恰好是27。
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.9\textwidth]{../img/f14-1.png}
-    \caption{必报的内存布局}
+    \caption{闭包的内存布局}
     \label{f14-1}
 \end{figure}
 
-闭包(a)使用了两个变量。显然我们在查找同时有炸玉米和龙卷放的城市。在内存中，这个闭包看起来像一个包含两个引用的结构体。
+闭包(a)使用了两个变量。显然我们在查找同时有炸玉米和龙卷风的城市。在内存中，这个闭包看起来像一个包含两个引用的结构体。
 
-注意它并没有一个指针指向它的代码！这没有必要：只要Rust知道闭包的类型，它就知道当你调用闭包时要允许哪里的代码。
+注意并没有一个指向它的代码的指针！这没有必要：只要Rust知道闭包的类型，它就知道当你调用闭包时要运行哪里的代码。
 
 闭包(b)基本相同，除了它是一个\texttt{move}闭包，因此它包含值而不是引用。
 
 闭包(c)并没有使用环境中的任何变量。结构体是空的，因此这个闭包不会占用任何内存。
 
-正如图片所示，这些闭包并不会占用太多空间。但在实践中即使这一点空间有时候也不需要。通常，编译器可以把所有调用内联为一个闭包，并且即使上面的图中展示的小结构体也可能被优化掉。
+正如图中所示，这些闭包并不会占用太多空间。但在实践中即使这一点空间有时候也不需要。通常，编译器可以内联一个闭包的所有调用，并且即使上面的图中展示的小结构体也可能被优化掉。
 
-在“\nameref{callback}”中，我们将展示怎么在堆上分配闭包并使用trait对象动态地调用它们。这样会稍微慢一点，但它仍然和其他的trait对象的方法一样快。
+在\nameref{callback}中，我们将展示怎么在堆上分配闭包并使用trait对象动态地调用它们。这样会稍微慢一点，但它仍然和其他的trait对象的方法一样快。
 
 \section{闭包和安全性}
 
 本章中到目前为止，我们已经讨论了Rust怎么保证闭包在借用或者移动环境中的值时遵循语言的安全规则。但还有更多不明显的情况。在这一节中，我们会解释当一个闭包drop或修改一个捕获的值时会发生什么。
 
 \subsection{杀死值的闭包}
-我们已经看到过借用值和偷取值的闭包，它们一路走下坡路只是时间问题。
+我们已经看到过借用值和偷取值的闭包，但只有它们还不够，还需要更多种类的闭包。
 
 当然，\emph{杀死(kill)}并不是真正正确的术语。在Rust中，我们\emph{丢弃(drop)}值。最直观的方法是调用\texttt{drop()}：
 \begin{minted}{Rust}
@@ -365,9 +366,9 @@ Rust知道这个闭包不能被调用两次。
         | ---------- the requirement to implement `Fn` derives from here
 \end{minted}
 
-错误信息告诉了我们更多有关Rust如何处理“杀死值的闭包”的信息。它们可以被整个语言禁用，但清理的闭包有时也是有用的。因此，Rust限制了它们的使用。drop值的闭包，例如\texttt{f}，不允许实现\texttt{Fn}。它们显然完全不是\texttt{Fn}。它们实现了一个相对弱小一些的trait \texttt{FnOnce}，表示只能调用一次的闭包。
+错误信息告诉了我们更多有关Rust如何处理“杀死值的闭包”的信息。原本Rust可以直接禁止这类闭包，它们有时也是有用的。因此，Rust限制了它们的使用：drop值的闭包，例如\texttt{f}，不允许实现\texttt{Fn}（它们显然也不应该是\texttt{Fn}）。它们实现了一个相对弱一些的trait \texttt{FnOnce}，表示只能调用一次的闭包。
 
-当你第一次调用\texttt{FnOnce}闭包时，\emph{闭包本身会被消耗掉(the closure itself is used up)}。\texttt{Fn}和\texttt{FnOnce}这两个trait就好像是这样定义的一样：
+当你第一次调用\texttt{FnOnce}闭包时，\emph{闭包本身会被消耗掉(the closure itself is used up)}。\texttt{Fn}和\texttt{FnOnce}这两个trait就好像是以如下方式定义的：
 \begin{minted}{Rust}
     // 没有参数的`Fn`和`FnOnce` trait的伪代码
     trait Fn() -> R {
@@ -379,7 +380,8 @@ Rust知道这个闭包不能被调用两次。
     }
 \end{minted}
 
-就像算术表达式例如\texttt{a + b}是方法调用\texttt{Add::add(a, b)}的缩写一样，Rust把\texttt{closure()}看错是上面的例子中展示的两个闭包方法之一。对于一个\texttt{Fn}闭包，\texttt{closure()}会展开为\texttt{closure.call()}。这个方法以引用获取\texttt{self}，因此闭包本身没有被移动。但如果闭包只有第一次调用时是安全的，那么\texttt{closure()}会展开为\texttt{closure.call\_once()}。这个方法以值获取\texttt{self}参数，因此闭包会被消耗掉。
+就像算术表达式例如\texttt{a + b}是方法调用\texttt{Add::add(a, b)}的缩写一样，Rust把\texttt{closure()}看做是上面的例子中展示的两个闭包方法之一。对于一个\texttt{Fn}闭包，\texttt{closure()}会展开为\\
+\texttt{closure.call()}。这个方法以引用获取\texttt{self}，因此闭包本身没有被移动。但如果闭包只有第一次调用时是安全的，那么\texttt{closure()}会展开为\texttt{closure.call\_once()}。这个方法以值获取\texttt{self}参数，因此闭包会被消耗掉。
 
 当然，我们一直在故意使用\texttt{drop}制造麻烦。在实际中，你只会偶尔遇到这种情况。它并不会经常发生，但偶尔你会不经意间编写出消耗掉一个值的闭包代码：
 \begin{minted}{Rust}
@@ -422,7 +424,7 @@ Rust知道这个闭包不能被调用两次。
 \subsection{\texttt{FnMut}}
 还有一种闭包，这种闭包包含可变的数据或者\texttt{mut}引用。
 
-Rust认为non-\texttt{mut}的值可以安全在线程间共享。但在线程间共享这种包含\texttt{mut}数据的non-\texttt{mut}闭包不是安全的：在多个线程中调用这种闭包可能会导致各种数据竞争，就和多个线程同时读写同一份数据一样。
+Rust认为non-\texttt{mut}的值可以安全在线程间共享。但在线程间共享包含\texttt{mut}数据的non-\texttt{mut}闭包不是安全的：在多个线程中调用这种闭包可能会导致各种数据竞争，就和多个线程同时读写同一份数据一样。
 
 因此，Rust又分出了一种闭包类别\texttt{FnMut}，这个类别用于有写入操作的闭包。\texttt{FnMut}闭包以\texttt{mut}引用调用，就好像它们被定义为这样：
 \begin{minted}{Rust}
@@ -450,14 +452,14 @@ Rust认为non-\texttt{mut}的值可以安全在线程间共享。但在线程间
     call_twice(incr);
 \end{minted}
 
-我们编写的\texttt{call\_twice}需要一个\texttt{Fn}。因为\texttt{incr}是一个\texttt{FnMut}而不是\texttt{Fn}，所以这段代码回编译失败。然而，有一种简单的修复方法。为了理解这种修复方法，让我们后退一步，总结一下你学到的有关Rust的三种闭包的知识：
+我们编写的\texttt{call\_twice}需要一个\texttt{Fn}。因为\texttt{incr}是一个\texttt{FnMut}而不是\texttt{Fn}，所以这段代码会编译失败。然而，有一种简单的修复方法。为了理解这种修复方法，让我们后退一步，总结一下你学到的有关Rust的三种闭包的知识：
 \begin{itemize}
     \item \texttt{Fn}是你可以没有限制地调用多次的闭包和函数家族。这个最高的类别还包括所有的\texttt{fn}函数。
     \item \texttt{FnMut}是如果闭包本身被声明为\texttt{mut}时可以调用多次的闭包家族。
     \item \texttt{FnOnce}是当调用者拥有它时可以调用一次的闭包家族。
 \end{itemize}
 
-每一个\texttt{Fn}都满足\texttt{FnMut}的要求，每一个\texttt{FnMut}都满足\texttt{FnOnce}的要求。如\autoref{f14-2}所示，它们并不是独立的三个类别。
+每一个\texttt{Fn}都满足\texttt{FnMut}的要求，每一个\texttt{FnMut}都满足\texttt{FnOnce}的要求。如\hyperref[f14-2]{图14-2}所示，它们并不是独立的三个类别。
 
 \texttt{Fn()}是\texttt{FnMut()}的一个子集，\texttt{FnMut()}又是\texttt{FnOnce()}的一个子集。这使得\texttt{Fn}是最独特和强大的分类。\texttt{FnMut}和\texttt{FnOnce}是范围更广一些的分类，它们包含有一些使用限制的闭包。
 
@@ -476,7 +478,7 @@ Rust认为non-\texttt{mut}的值可以安全在线程间共享。但在线程间
     }
 \end{minted}
 
-原本第一行的约束是\texttt{F: Fn()}，现在是\texttt{F: FnMut()}。有了这个修改之后，我们仍然可以接受所有的\texttt{Fn}闭包，并且现在还可以对可变的数据调用调用\texttt{call\_twice}：
+原本第一行的约束是\texttt{F: Fn()}，现在是\texttt{F: FnMut()}。有了这个修改之后，我们仍然可以接受所有的\texttt{Fn}闭包，并且现在还可以对可变的数据调用\texttt{call\_twice}：
 \begin{minted}{Rust}
     let mut i = 0;
     call_twice(|| i += 1);  // ok!
@@ -514,13 +516,13 @@ Rust认为non-\texttt{mut}的值可以安全在线程间共享。但在线程间
     greet.clone()("Bruce");
 \end{minted}
 
-这个\texttt{.clone()(...)}语法有一点奇怪，但它只是因为着我们克隆了闭包然后调用它。这个程序输出：
+这个\texttt{.clone()(...)}语法有一点奇怪，但它只是因为我们克隆了闭包然后调用它。这个程序输出：
 \begin{minted}{Rust}
     Hello, Alfred
     Hello, Bruce
 \end{minted}
 
-当\texttt{greeting}在\texttt{greet}中使用时，它会被移动进表示\texttt{greet}的内部结构体里，因为它是\texttt{move}闭包。因此，当我们克隆\texttt{greet}时，它里面的所有内容都会被克隆。这里有两个\texttt{greeting}的拷贝，当调用克隆的\texttt{greet}时它们会被独立地修改。它本身用处不大，但当你需要把同样的闭包传递给不止一个函数时，它会很有用。
+当\texttt{greeting}在\texttt{greet}中被用到时，它会被移动进表示\texttt{greet}的内部结构体里，因为它是\texttt{move}闭包。因此，当我们克隆\texttt{greet}时，它里面的所有内容都会被克隆。这里有两个\texttt{greeting}的拷贝，当调用克隆的\texttt{greet}时它们会被独立地修改。它本身用处不大，但当你需要把同样的闭包传递给不止一个函数时，它会很有用。
 
 \section{回调}\label{callback}
 
@@ -531,7 +533,8 @@ Rust认为non-\texttt{mut}的值可以安全在线程间共享。但在线程间
         .route("/gcd", web::post().to(post_gcd))
 \end{minted}
 
-路由的目的是把到来的网络请求发送到处理特定种类请求的函数。在这个例子中，\texttt{get\_index}和\texttt{post\_gcd}是我们在程序里其他地方用\texttt{fn}关键字声明的函数的名字，但我们也可以传递一个闭包，像这样：
+路由的目的是把到来的网络请求发送到处理特定请求的函数。在这个例子中，\texttt{get\_index}和\\
+\texttt{post\_gcd}是我们在程序里其他地方用\texttt{fn}关键字声明的函数的名字，但我们也可以传递一个闭包，像这样：
 \begin{minted}{Rust}
     App::new()
         .route("/", web::get().to(|| {
@@ -565,7 +568,7 @@ Rust认为non-\texttt{mut}的值可以安全在线程间共享。但在线程间
     }
 \end{minted}
 
-现在一个路由器的任务就是简单地存储一个把URL映射到回调函数的表，这样可以按需调用正确的回调函数。（为了简单起见，我们只允许用户创建匹配单个确切的URL。）
+现在一个路由器的任务就是简单地存储一个把URL映射到回调函数的表，这样可以按需调用正确的回调函数。（为了简单起见，我们只允许用户创建匹配单个具体URL的路由。）
 
 \begin{minted}{Rust}
     struct BasicRouter<C> where C: Fn(&Request) -> Response {
@@ -620,7 +623,7 @@ Rust认为non-\texttt{mut}的值可以安全在线程间共享。但在线程间
     }
 \end{minted}
 
-我们不知不觉中声明了每一个\texttt{BasicRouter}都有单一的回调类型\texttt{C}，并且\texttt{HashMap}里的所有回调函数都是这个类型。回顾“\nameref{WhichToUse}”，我们展示了一个有同样问题的\texttt{Salad}类型：
+我们不知不觉中声明了每个\texttt{BasicRouter}都只有单个回调类型\texttt{C}，并且\texttt{HashMap}里的所有回调函数都是这个类型。回顾\nameref{WhichToUse}，我们展示了一个有同样问题的\texttt{Salad}类型：
 \begin{minted}{Rust}
     struct Salad<V: Vegetable> {
         veggies: Vec<V>
@@ -711,13 +714,13 @@ Rust认为non-\texttt{mut}的值可以安全在线程间共享。但在线程间
     }
 \end{minted}
 
-如\autoref{f14-1}所示，闭包会有单独的类型是因为每一个闭包都捕获了不同的变量，因此它们每一个的大小都不同。如果它们不捕获任何内容，就没有任何东西需要存储。在接受回调的函数中使用\texttt{fn}指针，可以限制调用只能使用没有捕获东西的闭包，这样在代码内能获取一些性能和灵活性的改善，但对于使用你的API的用户来说要付出灵活性的代价。
+如\hyperref[f14-1]{图14-1}所示，闭包会有单独的类型是因为每一个闭包都捕获了不同的变量，因此它们每一个的大小都不同。如果它们不捕获任何内容，就没有任何东西需要存储。在接受回调的函数中使用\texttt{fn}指针，可以限制调用只能使用没有捕获东西的闭包，这样在代码内能获取一些性能和灵活性的改善，但对于使用你的API的用户来说要付出灵活性的代价。
 
 \section{高效地使用闭包}
 
 正如我们所见，Rust的闭包和大多数其他语言的闭包不同。最大的不同是在有GC的语言中，你可以在闭包中使用局部变量，并且不需要考虑生命周期和所有权。没有了GC，事情就变得不一样了。一些在Java、C\#、JavaScript中很普遍的设计模式在Rust中如果不做修改将不能工作。
 
-以\autoref{f14-3}中的模型-视图-控制器设计模式（简称为MVC）为例。对于用户界面的每一个元素，MVC框架会创建三个对象：一个\emph{模型(model)}表示UI元素的状态，一个\emph{视图(view)}负责它的外观，一个\emph{控制器(controller)}处理用户的交互。过去这些年里有不计其数的MVC的变体被实现，但总体思路都是三个对象以某种方式分配UI职责。
+以\hyperref[f14-3]{图14-3}中的模型-视图-控制器设计模式（简称为MVC）为例。对于用户界面的每一个元素，MVC框架会创建三个对象：一个\emph{模型(model)}表示UI元素的状态，一个\emph{视图(view)}负责它的外观，一个\emph{控制器(controller)}处理用户的交互。过去这些年里有不计其数的MVC的变体被实现，但总体思路都是三个对象以某种方式分配UI职责。
 
 \begin{figure}[htbp]
     \centering
@@ -726,11 +729,11 @@ Rust认为non-\texttt{mut}的值可以安全在线程间共享。但在线程间
     \label{f14-3}
 \end{figure}
 
-这就是问题。通常来讲，如\autoref{f14-3}所示，每个对象有另外一个或者另外两个的引用，直接的或者是通过回调函数的。当其中一个发生了变化时，它会通知其他的两个，因此它们也会一起更新。哪一个对象“拥有”其他两个对象的问题永远不会出现。
+这就是问题。通常来讲，如\hyperref[f14-3]{图14-3}所示，每个对象有另外一个或者另外两个的引用，直接的或者是通过回调函数的。当其中一个发生了变化时，它会通知其他的两个，因此它们也会一起更新。哪一个对象“拥有”其他两个对象的问题永远不会出现。
 
 在Rust中如果不做修改将不能实现这个模式。必须明确所有权，必须消除循环引用。模型和控制器不能有直接到彼此的引用。
 
-Rust的赌注是有更好的替代设计。有时你可以让每一个闭包接受引用作为参数来解决闭包的所有权和生命周期的问题。有时你可以给系统中的每个部分赋予一个数字，然后传递这些数字来代替引用。或者你可以实现一种其中的对象并不是都有彼此引用的MVC的变体。或者将你的工具集建模成单向的数据流架构的非MVC系统，例如Facebook的Flux架构，如\autoref{f14-4}所示。
+Rust的赌注是有更好的替代设计。有时你可以让每一个闭包接受引用作为参数来解决闭包的所有权和生命周期的问题。有时你可以给系统中的每个部分赋予一个数字，然后传递这些数字来代替引用。或者你可以实现一种其中的对象并不是都有彼此引用的MVC的变体。或者将你的工具集建模成单向的数据流架构的非MVC系统，例如Facebook的Flux架构，如\hyperref[f14-4]{图14-4}所示。
 
 \begin{figure}[htbp]
     \centering
@@ -741,4 +744,4 @@ Rust的赌注是有更好的替代设计。有时你可以让每一个闭包接�
 
 简单来说，如果你尝试使用Rust的闭包来制造一个“对象之海”，你会遇到很多困难。但有替代的方案。在例子中的这个场景，软件工程这门学科已经开始倾向于替代方案，因为它们更简单。
 
-在下一章中，我们将开始一个闭包真正闪耀的话题。我们将书写一种充分利用Rust闭包的简洁、快速、高效的优势的代码。并且它们写起来很有趣、读起来很轻松、非常实用。下一篇：Rust迭代器。
+在下一章中，我们将开始一个闭包真正闪耀的话题。我们将书写一种充分利用Rust闭包的简洁、快速、高效的优势的代码。并且它们写起来很有趣、读起来很轻松、非常实用。下一章：Rust迭代器。
