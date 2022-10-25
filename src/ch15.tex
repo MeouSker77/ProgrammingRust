@@ -6,7 +6,7 @@
     ——Phil
 \end{flushright}
 
-一个\emph{迭代器(iterator)}可以产生一个指的序列，通常会使用一个循环来进行处理。Rust的标准库提供了遍历vector、字符串、哈希表和其他集合的迭代器，以及从一个输入流中产生若干行文本的迭代器、到达网络服务器的连接的迭代器、通过通道从其他线程接收到的值的迭代器，等等。当然，你可以实现自己的迭代器。Rust的\texttt{for}循环提供了一种自然地使用迭代器的语法，但迭代器自身也提供了丰富的方法集合用于映射、过滤、连接、收集等用途。
+一个\emph{迭代器(iterator)}可以产生一个值的序列，通常会使用一个循环来进行处理。Rust的标准库提供了遍历vector、字符串、哈希表和其他集合的迭代器，以及从一个输入流中产生若干行文本的迭代器、到达网络服务器的连接的迭代器、通过通道从其他线程接收到的值的迭代器，等等。当然，你可以实现自己的迭代器。Rust的\texttt{for}循环提供了一种自然地使用迭代器的语法，但迭代器自身也提供了丰富的方法集合用于映射、过滤、连接、收集等用途。
 
 Rust的迭代器灵活、表达力强、高效。考虑下面的函数，它返回前\texttt{n}个正数的和（通常也被称为\emph{第n个三角数(nth triangle number)}：
 \begin{minted}{Rust}
@@ -37,11 +37,11 @@ Rust的迭代器灵活、表达力强、高效。考虑下面的函数，它返�
 在本章中，我们将会解释：
 \begin{itemize}
     \item \texttt{Iterator}和\texttt{IntoIterator} trait，它们是Rust迭代器的基础
-    \item 经典迭代器管道的三个阶段：从初始的值创建一个迭代器；通过选择或处理值将一种迭代器变成另一种；消耗迭代器产生的值
+    \item 经典迭代器流水线的三个阶段：从初始的值创建一个迭代器；通过选择或处理值将一种迭代器变成另一种；消耗迭代器产生的值
     \item 如何为自己的类型实现迭代器
 \end{itemize}
 
-迭代器有很多方法，所以一旦你了解了大概的思路，就可以跳过一节。但迭代器在Rust的习惯用法中非常普遍，熟悉这些随附的工具对掌握这门语言至关重要。
+迭代器有很多方法，所以一旦你了解了大概的思路，就可以跳过那一节。但迭代器在Rust的习惯用法中非常普遍，熟悉这些随附的工具对掌握这门语言至关重要。
 
 \section{\texttt{Iterator}与\texttt{IntoIterator trait}}\label{iter}
 
@@ -56,7 +56,7 @@ Rust的迭代器灵活、表达力强、高效。考虑下面的函数，它返�
 
 \texttt{Item}是迭代器产生的值的类型。\texttt{next}方法可能返回\texttt{Some(v)}，其中\texttt{v}是迭代器的下一个值；或者返回\texttt{None}，表示已经到达序列的终点。这里我们省略了\texttt{Iterator}的很多默认方法；我们将在本章的剩余部分分别介绍它们。
 
-如果有一种自然的方法从一个类型上迭代，那么这个类型可以实现\texttt{std::iter::IntoIterator}，它的\texttt{into\_iter}方法获取一个值并返回一个迭代它的迭代器：
+如果某个类型有一种很自然的迭代方法，那么它可以实现\texttt{std::iter::IntoIterator}，它的\texttt{into\_iter}方法获取一个值并返回一个迭代它的迭代器：
 \begin{minted}{Rust}
     trait IntoIterator where Self::IntoIter: Iterator<Item=Self::Item> {
         type Item;
@@ -65,7 +65,8 @@ Rust的迭代器灵活、表达力强、高效。考虑下面的函数，它返�
     }
 \end{minted}
 
-\texttt{IntoIter}是迭代器自身的类型，\texttt{Item}是它产生的值的类型。我们称所有实现了\texttt{IntoIterator}的类型为\emph{可迭代对象(iterable)}，因为你可以迭代它。
+\texttt{IntoIter}是迭代器本身的类型，\texttt{Item}是它产生的值的类型。我们称所有实现了\texttt{IntoIterator}\\
+的类型为\emph{可迭代对象(iterable)}，因为你可以迭代它。
 
 Rust的\texttt{for}循环将这些部分漂亮地组合在一起。为了迭代一个迭代器的元素，你可以写：
 \begin{minted}{Rust}
@@ -90,15 +91,15 @@ Rust的\texttt{for}循环将这些部分漂亮地组合在一起。为了迭代�
 考虑这个例子，其中有一些迭代器的术语：
 \begin{itemize}
     \item 正如我们所说，\emph{迭代器(iterator)}是任何实现了\texttt{Iterator}的类型。
-    \item \emph{可迭代对象(iterable)}是任何实现了\texttt{IntoIterator}的类型：你可以通过调用它的\texttt{into\_iter}方法获得一个迭代它的迭代器。这个例子中vector的引用\texttt{\&v}就是可迭代对象。
+    \item \emph{可迭代对象(iterable)}是任何实现了\texttt{IntoIterator}的类型：你可以调用它的\texttt{into\_iter}方法获得一个迭代它的迭代器。这个例子中vector的引用\texttt{\&v}就是可迭代对象。
     \item 一个迭代器\emph{产生(produce)}值。
-    \item 迭代器产生的值是\emph{item}。这里，item是\texttt{"antimony", "arsenic}，等等。
+    \item 迭代器产生的值是\emph{item}。这里item是\texttt{"antimony", "arsenic"}，等等。
     \item 接受迭代器产生的item的代码是\emph{消费者(consumer)}。这个例子中，\texttt{for}循环就是消费者。
 \end{itemize}
 
 尽管\texttt{for}循环总是调用操作数的\texttt{into\_iter}，你也可以直接向\texttt{for}循环传递迭代器；例如，当你在\texttt{Range}上循环时就是这种情况。所有的迭代器都会自动实现\texttt{IntoIterator}，它们的\texttt{into\_iter}方法简单地返回迭代器自身。
 
-如果在迭代器返回了\texttt{None}之后，你再调用它的\texttt{next}方法，那么\texttt{Iterator} trait并没有指定这种情况下该怎么做。大多数会再次返回\texttt{None}，但不是所有。（如果这导致了问题，“\nameref{fuse}”中介绍的\texttt{fuse}适配器可能会有帮助。）
+如果在迭代器返回了\texttt{None}之后，你再调用它的\texttt{next}方法，那么\texttt{Iterator} trait并没有指定这种情况下该怎么做。大多数会再次返回\texttt{None}，但不是所有。（如果这导致了问题，\nameref{fuse}中介绍的\texttt{fuse}适配器可能会有帮助。）
 
 \section{创建迭代器}
 Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器，但标准库提供了一些通用的约定来帮助你找到需要的迭代器。
@@ -118,7 +119,8 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
 
 这个迭代器的item类型是\texttt{\&i32}：每一次调用\texttt{next}都会产生下一个元素的引用，直到到达vector的终点。
 
-每一个类型都可以实现\texttt{iter}和\texttt{iter\_mut}，不管它们实现的方式是什么。\texttt{std::path::Path}的\texttt{iter}返回的迭代器一次产生路径的一段：
+每一个类型都可以实现\texttt{iter}和\texttt{iter\_mut}，不管它们的实现是否有意义。\texttt{std::path::Path}的\\
+\texttt{iter}返回的迭代器一次产生路径的一段：
 \begin{minted}{Rust}
     use std::ffi::OsStr;
     use std::path::Path;
@@ -158,7 +160,7 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
     \item 当集合\emph{以值}传递时，\texttt{into\_iter}返回一个获取集合所有权并返回item自身的迭代器；item的所有权从集合移动到消费者，原来的集合在这个过程中被消耗。例如，上面代码中的\texttt{favorites.into\_iter()}会返回一个产生每个字符串值的迭代器；消费者会接受每个字符串的所有权。当迭代器被drop时，\texttt{BTreeSet}中剩余的所有元素也都会被drop，并且集合会变为未初始化。
 \end{itemize}
 
-因为一个\texttt{for}循环会对操作数调用\texttt{IntoIterator::into\_iter}，这三种实现会导致有下面三种迭代方式：迭代集合的共享引用、迭代集合的可变引用、或者消耗集合并获取它的元素的所有权：
+因为\texttt{for}循环会对操作数调用\texttt{IntoIterator::into\_iter}，这三种实现会导致有下面三种迭代方式：迭代集合的共享引用、迭代集合的可变引用、或者消耗集合并获取它的元素的所有权：
 \begin{minted}{Rust}
     for element in &collection { ... }
     for element in &mut collection { ... }
@@ -167,7 +169,7 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
 
 这三种写法会调用上面列出的\texttt{IntoIterator}实现之一。
 
-并不是每个类型都提供了全部这三种实现。例如，\texttt{HashSet}、\texttt{BTreeSet}、\texttt{BinaryHeap}没有实现共享引用的\texttt{IntoIterator}，因为修改它们的元素可能会破坏类型的不变量：修改后的值可能会有不同的哈希值、或者和它的邻居的顺序关系会改变，因此修改元素会导致它们北方在错误的地方。其他的类型支持可变性，但只支持部分。例如，\texttt{HashMap}和\texttt{BTreeMap}产生表项的value的可变引用，以及key的共享引用，原因和上面类似。
+并不是每个类型都提供了全部这三种实现。例如，\texttt{HashSet}、\texttt{BTreeSet}、\texttt{BinaryHeap}没有实现可变引用的\texttt{IntoIterator}，因为修改它们的元素可能会破坏类型的不变量：修改后的值可能会有不同的哈希值、或者和它的邻居的顺序关系会改变，因此修改元素会导致它们被放在错误的地方。其他的类型支持可变性，但只支持部分。例如，\texttt{HashMap}和\texttt{BTreeMap}产生表项的value的可变引用，以及key的共享引用，原因和上面类似。
 
 一般的准则是迭代应该高效和可预测，因此Rust不提供开销很大或者可能展现出令人惊讶的行为的实现（例如，重新哈希被修改的\texttt{HashSet}条目并因此导致之后的迭代中可能再次遇到它们）。
 
@@ -175,9 +177,7 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
 
 你可能已经注意到前两种\texttt{IntoIterator}的变体产生共享和可变的引用，这和调用\texttt{iter}或者\texttt{iter\_mut}是等价的。为什么Rust同时提供两者？
 
-\texttt{IntoIterator}使\texttt{for}循环能正常工作，因此它显然是必要的。但当你不使用\texttt{for}循环时，使用\\
-\texttt{favorites.iter()}比\texttt{(\&favorites).into\_iter()}更加清晰。你可能会频繁需要以共享引用迭代，因此\texttt{iter}和\\
-\texttt{iter\_mut}也很有用。
+\texttt{IntoIterator}使\texttt{for}循环能正常工作，因此它显然是必要的。但当你不使用\texttt{for}循环时，使用\texttt{favorites.iter()}比\texttt{(\&favorites).into\_iter()}更加清晰。你可能会频繁需要以共享引用迭代，因此\texttt{iter}和\texttt{iter\_mut}也很有用。
 
 \texttt{IntoIterator}在泛型代码中也很有用：你可以使用一个约束例如\texttt{T: IntoIterator}来限制类型参数\texttt{T}必须是可以迭代的类型。或者，你可以写\texttt{T: IntoIterator<Item=U>}来进一步要求迭代会产生\texttt{U}类型的值。例如，这个函数打印出任何item可以用\texttt{"{:?}"}格式打印的可迭代对象：
 \begin{minted}{Rust}
@@ -192,7 +192,7 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
         }
     }
 \end{minted}
-你不能在这个泛型函数中使用\texttt{iter}或者\texttt{iter\_mut}，因为它们不是任何trait的方法：大多数可迭代类型只是恰好有这两个方法。
+你不能在这个泛型函数中使用\texttt{iter}或者\texttt{iter\_mut}，因为它们不是任何trait的方法，大多数可迭代类型只是恰好有这两个方法。
 
 \subsection{\texttt{from\_fn}和\texttt{successors}}
 
@@ -211,9 +211,9 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
         .collect();
 \end{minted}
 
-这里调用了\texttt{from\_fn}来制作一个产生随机数的迭代器。因为这个迭代器总是返回\texttt{Some}，因此这个序列永远不会终止，但我们调用了\texttt{take(1000)}来限制只要前1000个元素。然后\texttt{collect}从最后的迭代器构建一个vector。这是一种高效地构建初始化的vector的方式。我们将在本章稍后的“\nameref{BuildColl}”中介绍为什么。
+这里调用了\texttt{from\_fn}来制作一个产生随机数的迭代器。因为这个迭代器总是返回\texttt{Some}，因此这个序列永远不会终止，但我们调用了\texttt{take(1000)}来限制只要前1000个元素。然后\texttt{collect}从最后的迭代器构建一个vector。这是一种高效地构建初始化的vector的方式。我们将在本章稍后的\nameref{BuildColl}中介绍为什么。
 
-如果每一个item都依赖上一个，那么\texttt{std::iter::successors}函数可以漂亮地工作。你需要提供一个初始item，和一个获取上一个item并返回一个下一个item的\texttt{Option}。如果返回\texttt{None}，那么迭代终止。例如，这里有另一种编写\hyperref[ch02]{第2章}中的曼德勃罗集绘制器的\texttt{escape\_time}函数的方法：
+如果每一个item都依赖上一个，那么\texttt{std::iter::successors}函数可以漂亮地工作。你需要提供一个初始item和一个函数，这个函数要获取上一个item并返回下一个item的\texttt{Option}。如果返回\texttt{None}，那么迭代终止。例如，这里有另一种编写\hyperref[ch02]{第2章}中的曼德勃罗集绘制器的\texttt{escape\_time}函数的方法：
 \begin{minted}{Rust}
     use num::Complex;
     use std::iter::successors;
@@ -228,7 +228,7 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
     }
 \end{minted}
 
-从zero开始，\texttt{successors}调用通过重复平方再加上参数\texttt{c}来产生一个复平面上点的序列。当绘制曼德勃罗集时，我们希望知道这个序列会一直在原点附近还是远离原点。\texttt{take(limit)}调用设置了序列长度的限制，\texttt{enumerate}为每一个点加上一个序号、把每个点\texttt{z}变为元组\texttt{(i, z)}。然后我们使用\texttt{find}来查找第一个离远点足够远可以逃离的点。如果存在这样的点，\texttt{find}方法返回一个\texttt{Option::Some((i, z))}，否则返回\texttt{None}。\texttt{Option::map}的调用会把\texttt{Some((i, z))}变为\texttt{Some(i)}，但不会改变\texttt{None}：这正是我们想要的返回值。
+从zero开始，\texttt{successors}调用通过重复平方再加上参数\texttt{c}来产生一个复平面上点的序列。当绘制曼德勃罗集时，我们希望知道这个序列会一直在原点附近还是远离原点。\texttt{take(limit)}调用设置了序列长度的限制，\texttt{enumerate}为每一个点加上一个序号、把每个点\texttt{z}变为元组\texttt{(i, z)}。然后我们使用\texttt{find}来查找第一个离原点足够远可以逃离的点。如果存在这样的点，\texttt{find}方法返回一个\texttt{Option::Some((i, z))}，否则返回\texttt{None}。\texttt{Option::map}的调用会把\texttt{Some((i, z))}变为\texttt{Some(i)}，但不会改变\texttt{None}：这正是我们想要的返回值。
 
 \texttt{from\_fn}和\texttt{successors}都接受\texttt{FnMut}闭包，因此你的闭包可以捕获并修改作用域中的变量。例如，这个\texttt{fibonacci}函数使用一个\texttt{move}闭包来捕获一个变量并使用它作为运行状态：
 \begin{minted}{Rust}
@@ -244,7 +244,7 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
                vec![1, 1, 2, 3, 5, 8, 13, 21]);
 \end{minted}
 
-注意：\texttt{from\_fn}和\texttt{successors}方法非常灵活，你可以通过传递闭包来达到你想要的行为，并将很多迭代器的使用变为一次对其中一个的调用。但这样做会忽略迭代器提供的表明数据流动和使用标准名称用于通用模式的能力。在你使用这两个函数之前请确保你已经熟悉了本章中的其他迭代器方法，它们通常是更好的完成工的方式。
+注意：\texttt{from\_fn}和\texttt{successors}方法非常灵活，你可以把对迭代器的任何使用变成对其中一个的单一调用，通过复杂的闭包来获得你需要的行为。但这样做会忽略迭代器提供的表明数据流动和使用标准名称用于通用模式的能力。在你使用这两个函数之前请确保你已经熟悉了本章中的其他迭代器方法，它们通常是更好的完成工作的方式。
 
 \subsection{\texttt{drain}方法}
 很多集合类型提供一个\texttt{drain}方法来获取集合的可变引用，并返回一个迭代器把每个元素的所有权传递给消费者。然而，和\texttt{into\_iter()}以值获取集合并消耗它不同，\texttt{drain}借用一个集合的可变引用，并且当迭代器被drop时，它会移除集合中剩余的所有元素，让集合变为空。
@@ -263,9 +263,9 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
 如果你确实要消耗整个序列，使用整个范围\texttt{..}作为参数。
 
 \subsection{其他迭代器源}
-上面的几节基本都是关于像vector和\texttt{HashMap}这样的集合类型的，但标准库中还有很多其他类型支持迭代。\autoref{t15-1}总结了一些有趣的类型，但还有更多没有列出。我们将在专门介绍特定类型的章节（即\hyperref[ch16]{第16章}、\hyperref[ch17]{第17章}、\hyperref[ch18]{第18章}）中详细介绍其中的一些方法。
+上面的几节基本都是关于像vector和\texttt{HashMap}这样的集合类型的，但标准库中还有很多其他类型支持迭代。\hyperref[t15-1]{图15-1}总结了一些有趣的类型，但还有更多没有列出。我们将在专门介绍特定类型的章节（即\hyperref[ch16]{第16章}、\hyperref[ch17]{第17章}、\hyperref[ch18]{第18章}）中详细介绍其中的一些方法。
 
-\begin{longtable}{p{0.22\textwidth}p{0.23\textwidth}p{0.45\textwidth}}
+\begin{longtable}{p{0.26\textwidth}p{0.26\textwidth}p{0.4\textwidth}}
     \caption{标准库中的其他迭代器}
     \label{t15-1}\\
     \hline
@@ -333,7 +333,7 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
 \subsection{\texttt{map}和\texttt{filter}}
 \texttt{Iterator} trait的\texttt{map}适配器让你通过对每一个item应用一个闭包来产生新迭代器。\texttt{filter}迭代器让你通过一个闭包决定保留哪些item丢弃哪些item，以此过滤迭代器中的某些item。
 
-例如，假设你在迭代文本的每一行，并且想省略每一行的前导和尾部的空格。标准库的\texttt{str::trim}方法排除一个\texttt{\&str}中的前导和尾部空格，返回一个新的新的借用\texttt{\&str}。你可以使用\texttt{map}适配器来对迭代器返回的每一行应用\texttt{str::trim}：
+例如，假设你在迭代文本的每一行，并且想省略每一行的前导和尾部的空格。标准库的\texttt{str::trim}方法排除一个\texttt{\&str}中的前导和尾部空格，返回一个新的借用\texttt{\&str}。你可以使用\texttt{map}适配器来对迭代器返回的每一行应用\texttt{str::trim}：
 \begin{minted}{Rust}
     let text = "  ponies \n   giraffes\niguanas  \nsquid".to_string();
     let v: Vec<&str> = text.lines()
@@ -365,9 +365,8 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
         where Self: Sized, P: FnMut(&Self::Item) -> bool;
 \end{minted}
 
-在标准库中，\texttt{map}和\texttt{filter}实际上返回特定的不透明\texttt{struct}类型，分别是\texttt{std::iter::Map}和\\
-\texttt{std::iter::Filter}。然而它们的名字提供的信息量很少，所以在本书中我们将用\texttt{-> impl Iterator<Item=...>}\\
-来代替，因为它们能告诉我们我们实际想要知道的信息：这个方法返回一个产生给定类型的item的\texttt{Iterator}。
+在标准库中，\texttt{map}和\texttt{filter}实际上返回特定的不透明\texttt{struct}类型，分别是\texttt{std::iter::Map}\\
+和\texttt{std::iter::Filter}。然而它们的名字提供的信息量很少，所以在本书中我们将用\texttt{-> impl Iterator<Item=...>}来代替，因为它们能告诉我们我们实际想要知道的信息：这个方法返回一个产生给定类型的item的\texttt{Iterator}。
 
 因为大多数适配器以值获取\texttt{self}，所以它们需要\texttt{Self}是\texttt{Sized}（大多数迭代器都是）。
 
@@ -441,7 +440,7 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
     1.77
 \end{minted}
 
-传给\texttt{filter\_map}的闭包尝试对每一个空格分隔的切片调用\texttt{f64::from\_str}。这会返回一个\texttt{Result<f64, ParseFloatError>}，它的\texttt{.ok()}返回一个\texttt{Option<f64>}：解析错误变为\texttt{None}，成功的解析会变为\texttt{Some(v)}。\texttt{filter\_map}迭代器丢弃所有的\texttt{None}值，然后对每一个\texttt{Some(v)}产生值\texttt{v}。
+传给\texttt{filter\_map}的闭包尝试对每一个空格分隔的切片调用\texttt{f64::from\_str}。这会返回一个\texttt{Result<f64, ParseFloatError>}，它的\texttt{.ok()}返回一个\texttt{Option<f64>}：解析错误时是\texttt{None}，解析成功时是\texttt{Some(v)}。\texttt{filter\_map}迭代器丢弃所有的\texttt{None}值，然后对每一个\texttt{Some(v)}产生值\texttt{v}。
 
 但为什么要将\texttt{map}和\texttt{filter}融合成这样的单个操作，而不是直接使用两个适配器？\texttt{filter\_map}适配器适用于刚刚展示过的这种情况，即只有实际尝试处理过item才知道应不应该包含这个item的情况。你可以只用\texttt{filter}和\texttt{map}做到同样的事情，但这样会很笨拙：
 \begin{minted}{Rust}
@@ -451,8 +450,7 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
         .map(|r| r.unwrap())
 \end{minted}
 
-你可以认为\texttt{flat\_map}适配器和\texttt{map}、\texttt{filter\_map}是同一类的，区别在于现在闭包不是只能返回一个item(\texttt{map})\\
-或者0或1个item(\texttt{filter\_map})，而是可以返回任意数量的item。\texttt{flat\_map}迭代器产生闭包返回的序列的串联。
+你可以认为\texttt{flat\_map}适配器和\texttt{map}、\texttt{filter\_map}是同一类的，区别在于现在闭包不是只能返回一个item(\texttt{map})或者0或1个item(\texttt{filter\_map})，而是可以返回任意数量的item。\texttt{flat\_map}迭代器产生闭包返回的序列的串联。
 
 \texttt{flat\_map}的签名如下：
 \begin{minted}{Rust}
@@ -461,14 +459,14 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
 \end{minted}
 传给\texttt{flat\_map}的闭包必须返回一个可迭代对象，但任何类型的可迭代对象都可以。\footnote{事实上，因为\texttt{Option}也是一个可迭代对象，行为就像一个有0个或者1个item的序列。所以假设\texttt{closure}返回一个\texttt{Option<T>}，那么\texttt{iterator.filter\_map(closure)}等价于\texttt{iterator.flat\_map(closure)}。}
 
-例如，假设我们有一个把国家映射到主要城市的表。给定一个构架的列表，那我们怎么遍历它们的主要城市？
+例如，假设我们有一个把国家映射到主要城市的表。给定一个国家的列表，那我们怎么遍历它们的主要城市？
 \begin{minted}{Rust}
     use std::collections::HashMap;
 
     let mut major_cities = HashMap::new();
     major_cities.insert("Japan", vec!["Tokyo", "Kyoto"]);
     major_cities.insert("The United States", vec!["Portland", "Nashville"]);
-    major_cities.insert(""Brazil", vec!["São Paulo", "Brasilia"]);
+    major_cities.insert("Brazil", vec!["São Paulo", "Brasilia"]);
     major_cities.insert("Kenya", vec!["Nairobi", "Mombasa"]);
     major_cities.insert("The Netherlands", vec!["Amsterdam", "Utrecht"]);
 
@@ -535,7 +533,8 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
 
 \texttt{Result}也实现了\texttt{IntoIterator}，\texttt{Err}时代表一个空的序列，因此对一个产生\texttt{Result}值的迭代器调用\texttt{flatten}可以高效地排除所有\texttt{Err}，产生一个解包之后的成功值的序列。我们不推荐在代码中忽略错误，但当用户知道自己在做什么时这是一个巧妙的技巧。
 
-当你需要\texttt{flatten}时你可能会发现你真正需要的是\texttt{flat\_map}。例如，标准库的\texttt{str::to\_uppercase}方法把一个字符串转换成大写，工作方式类似于下面的代码：
+当你需要\texttt{flatten}时你可能会发现你真正需要的是\texttt{flat\_map}。例如，标准库的\\
+\texttt{str::to\_uppercase}方法把一个字符串转换成大写，工作方式类似于下面的代码：
 \begin{minted}{Rust}
     fn to_uppercase(&self) -> String {
         self.chars()
@@ -545,13 +544,13 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
     }
 \end{minted}
 
-这里必须使用\texttt{flatten}的原因是\texttt{ch.to\_uppercase()}并不是返回单个字符，而是返回一个可能产生一个或更多字符的迭代器。将每一个字符映射到大写形式会返回一个产生字符迭代器的迭代器，\texttt{flatten}将它们拼接在一起，因此我们最后可以调用\texttt{collect}把它们转换为一个\texttt{String}。
+这里必须使用\texttt{flatten}的原因是\texttt{char::to\_uppercase()}并不是返回单个字符，而是返回一个可能产生一个或更多字符的迭代器。map调用会返回一个产生字符迭代器的迭代器，\texttt{flatten}将它们拼接在一起，因此我们最后可以调用\texttt{collect}把它们转换为一个\texttt{String}。
 
 但这种\texttt{map}和\texttt{flatten}的组合使用如此普遍，以至于\texttt{Iterator}提供了\texttt{flat\_map}适配器来处理这种情况。（事实上，\texttt{flat\_map}比\texttt{flatten}更先加入标准库。）因此上面的代码可以写成：
 \begin{minted}{Rust}
     fn to_uppercase(&self) -> String {
         self.chars()
-            .flat_map(char::to_upeprcase)
+            .flat_map(char::to_uppercase)
             .collect()
     }
 \end{minted}
@@ -580,7 +579,7 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
     }
 \end{minted}
 
-回顾“\nameref{StrLiteral}”，当字符串行以反斜杠结尾时，Rust并不会把下一行的缩进包含进字符串里，因此这个字符串中的任何一行都没有前导空格。这意味着\texttt{message}的第三行是空行。\texttt{take\_while}适配器第一看到空行时就会停止迭代，一次你这段代码只会打印出两行：
+回顾\nameref{StrLiteral}，当字符串行以反斜杠结尾时，Rust并不会把下一行的缩进包含进字符串里，因此这个字符串中的任何一行都没有前导空格。这意味着\texttt{message}的第三行是空行。\texttt{take\_while}适配器第一次看到空行时就会停止迭代，因此这段代码只会打印出两行：
 \begin{minted}{text}
     To: jimb
     From: superego <editor@oreilly.com>
@@ -613,7 +612,7 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
         println!("{}", body);
 \end{minted}
 
-这里使用了\texttt{skip\_while}来跳过非空的行，但这个迭代器会产生那个空行——也就是使闭包返回\texttt{false}的那个item。因此我们使用了\texttt{skip}方法来丢弃那个空行，这样最后的迭代器的第一个item就是消息主体的第一行。集合上一节中\texttt{message}的生命，这段代码会打印出：
+这里使用了\texttt{skip\_while}来跳过非空的行，但这个迭代器会产生那个空行——也就是使闭包返回\texttt{false}的那个item。因此我们使用了\texttt{skip}方法来丢弃那个空行，这样最后的迭代器的第一个item就是消息主体的第一行。结合上一节中的\texttt{message}，这段代码会打印出：
 \begin{minted}{text}
     Did you get any writing done today?
     When will you stop wasting time plotting fractals?
@@ -629,7 +628,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 
 \texttt{Peekable}迭代器有一个额外的\texttt{peek}方法返回一个\texttt{Option<\&Item>}：如果底层迭代器已经迭代完就返回\texttt{None}，否则返回\texttt{Some(r)}，其中\texttt{r}是下一个item的共享引用。（注意如果底层迭代器的item的类型已经是一个引用，那么最后返回的将是一个引用的引用。）
 
-调用\texttt{peek}尝试获取底层迭代器的下一个item，如果确实还有item，就缓存它直到下一次调用\texttt{next}。\texttt{Peekable}的其他\texttt{Iterator}的方法都知道这个缓存：例如，一个peekable迭代器\texttt{iter}的调用\texttt{iter.last()}知道在耗尽了底层的迭代器之后检查缓存。
+调用\texttt{peek}会尝试获取底层迭代器的下一个item，如果确实还有item，就缓存它直到下一次调用\texttt{next}。\texttt{Peekable}的其他\texttt{Iterator}的方法都知道这个缓存：例如，一个peekable迭代器\texttt{iter}的调用\texttt{iter.last()}知道在耗尽了底层的迭代器之后检查缓存。
 
 当你必须要遍历之后才知道到底要消耗多少item时，peekable迭代器就很重要了。例如，如果你正在一个字符流解析数字，只有当你看到了数字之后的第一个非数字字符时你才能知道数字在哪里结束：
 \begin{minted}{Rust}
@@ -692,7 +691,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
     assert_eq!(not_flaky.next(), None);
 \end{minted}
 
-\texttt{fuse}适配器可能在需要使用不确定来源的迭代器的泛型代码中最有用。与其希望每一个要处理的迭代器都是良定义的，不如使用\texttt{fuse}来确保这种行为。
+\texttt{fuse}适配器最有用的场景可能是需要使用不确定来源的迭代器的泛型代码。与其希望每一个要处理的迭代器都是良定义的，不如使用\texttt{fuse}来确保这种行为。
 
 \subsection{可逆迭代器和\texttt{rev}}
 一些迭代器可以从序列的任意一端产生item。你可以通过使用\texttt{rev}适配器来反转这样的迭代器。例如，一个vector的迭代器可以简单的从尾部到头部产生item。这样的迭代器可以实现\texttt{std::iter::DoubleEndedIterator} trait，它是\texttt{Iterator}的扩展：
@@ -736,10 +735,10 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
     assert_eq!(iter.next(), None);
 \end{minted}
 
-大多数迭代器适配器，如果被用于可逆迭代器，会返回另一个可逆迭代器。例如，\texttt{map}和\texttt{filter}会保留可逆性。
+大多数迭代器适配器如果被用于可逆迭代器，会返回另一个可逆迭代器。例如，\texttt{map}和\texttt{filter}会保留可逆性。
 
 \subsection{\texttt{inspect}}
-\texttt{inspect}适配器在调试迭代器适配器的管道时很有用，但通常不用在生产代码中。它简单地对每一个item的共享引用应用一个闭包然后传递它们。闭包不能影响到item，但可以做一些类似于打印或进行断言的操作。
+\texttt{inspect}适配器在调试迭代器适配器的流水线时很有用，但通常不用在生产代码中。它简单地对每一个item的共享引用应用一个闭包然后传递它们。闭包不能影响到item，但可以做一些类似于打印或进行断言的操作。
 
 这个例子展示了一个将字符串转换为大写会改变长度的例子：
 \begin{minted}{Rust}
@@ -767,7 +766,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 \end{minted}
 
 \subsection{\texttt{chain}}
-\texttt{chain}迭代器适配器讲一个迭代器附加到另一个之后。更确切地说，\texttt{i1.chain(i2)}返回的迭代器会首先产生\texttt{i1}的item，当\texttt{i1}耗尽后，再继续产生\texttt{i2}的item。
+\texttt{chain}迭代器适配器将一个迭代器附加到另一个之后。更确切地说，\texttt{i1.chain(i2)}返回的迭代器会首先产生\texttt{i1}的item，当\texttt{i1}耗尽后，再继续产生\texttt{i2}的item。
 
 \texttt{chain}适配器的签名如下：
 \begin{minted}{Rust}
@@ -791,7 +790,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 一个\texttt{chain}迭代器会追踪是否两个底层迭代器返回过\texttt{None}，并正确地调用\texttt{next}或者\texttt{next\_back}。
 
 \subsection{\texttt{enumerate}}\label{enumerate}
-\texttt{Iterator} trait的\texttt{enumerate}适配器把一个索引附加到序列中，它以一个产生\texttt{A, B, C, ...}的迭代器为参数，返回一个查收讷会给你\texttt{(0, A), (1, B), (2, C), ...}的迭代器。第一样可能会觉得它没多大用，但实际上它非常常用。
+\texttt{Iterator} trait的\texttt{enumerate}适配器把一个索引附加到序列中，它以一个产生\texttt{A, B, C, ...}的迭代器为参数，返回一个产生\texttt{(0, A), (1, B), (2, C), ...}的迭代器。第一眼可能会觉得它用处不大，但实际上它非常常用。
 
 消费者可以使用索引来区分不同的item并建立起处理每个item的上下文。例如，\hyperref[ch02]{第2章}中的曼德勃罗集绘制器将图像分割成了8个水平的条带，并把每个条带分到不同的线程中进行处理。那段代码使用了\texttt{enumerate}来告诉每个线程它的条带是图像中的哪一部分。
 
@@ -840,14 +839,14 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
         .zip(endings)
         .collect();
     assert_eq!(rhyme, vec![("going", "once"),
-                           ("going), "twice"),
+                           ("going", "twice"),
                            ("going", "chicken soup with rice")]);
 \end{minted}
 
 \subsection{\texttt{by\_ref}}
 在本节中，我们已经见过很多次把适配器附加到迭代器上。但一旦这么做了之后，还可以把适配器去除掉吗？通常是不行的：适配器会获取底层迭代器的所有权，而且不提供方法返回底层迭代器。
 
-迭代器的\texttt{by\_ref}方法借用一个迭代器的可变引用，因此你可以对引用应用适配器。当你消耗完这些适配器的item之后，你会drop它们，然后借用结束，你可以重新访问原本的迭代器。
+迭代器的\texttt{by\_ref}方法借用一个迭代器的可变引用，然后你可以对这个引用应用适配器。当你消耗完这些适配器的item之后，你会drop它们，然后借用结束，你可以重新访问原本的迭代器。
 
 例如，本章前面我们展示过怎么使用\texttt{take\_while}和\texttt{skip\_while}来处理邮件消息的消息头或者主体。但如果你想用同一个底层迭代器同时处理两者呢？使用\texttt{by\_ref}，我们可以使用\texttt{take\_while}来处理消息头，然后等它结束之后重新获得底层迭代器的访问权，而\texttt{take\_while}结束之后底层迭代器恰好留在消息主体的位置上：
 \begin{minted}{Rust}
@@ -868,8 +867,8 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
         println!("{}", body);
     }
 \end{minted}
-\texttt{line.by\_ref()}调用借用了迭代器的可变引用，然后\texttt{take\_while}获取的是这个可变引用的所有权。当地一个\texttt{for}循环结束时，这个引用就离开了作用域，这意味着借用结束了，因此你可以在第二个\texttt{for}循环中再次使用\texttt{lines}。这会打印出下面的内容：
-\begin{minted}{Rust}
+\texttt{line.by\_ref()}调用借用了迭代器的可变引用，然后\texttt{take\_while}获取的是这个可变引用的所有权。当第一个\texttt{for}循环结束时，这个引用就离开了作用域，这意味着借用结束了，因此你可以在第二个\texttt{for}循环中再次使用\texttt{lines}。这会打印出下面的内容：
+\begin{minted}{text}
     Headers:
     To: jimb
     From: id
@@ -901,7 +900,8 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
     assert_eq!(a.iter().cloned().next(), Some('1'));
 \end{minted}
 
-\texttt{copied}适配器也是相同的思路，但更加严格：被引用的类型必须实现\texttt{Copy}。类似\texttt{iter.copied()}的调用类似于\texttt{iter.map(|r| *r)}。因为每一个实现了\texttt{Copy}的类型都实现了\texttt{Clone}，所以\texttt{cloned}通常更一般化，但根据item的类型不同，\texttt{clone}调用可以做任意次的分配和拷贝操作。如果你假设你的item的类型足够简单所以永远不会发生这种情况，那么最好的方法还是使用\texttt{copied}来让类型检查器检查你的假设。
+\texttt{copied}适配器也是相同的思路，但更加严格：被引用的类型必须实现\texttt{Copy}。\\
+\texttt{iter.copied()}调用类似于\texttt{iter.map(|r| *r)}。因为每个实现了\texttt{Copy}的类型都实现了\texttt{Clone}，所以\texttt{cloned}通常更一般化，但根据item的类型不同，\texttt{clone}调用可以做任意次的分配和拷贝操作。如果你假设你的item的类型足够简单所以永远不会发生这种情况，那么最好的方法还是使用\texttt{copied}来让类型检查器检查你的假设。
 
 \subsection{\texttt{cycle}}
 \texttt{cycle}适配器返回一个无限重复底层迭代器产生的序列的迭代器。底层迭代器必须实现了\texttt{std::clone::Clone}，这样\texttt{cycle}才可以保存它的初始状态，然后在每一次循环开始时重用它。
