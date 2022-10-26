@@ -170,7 +170,7 @@
 
 Rust中另一种常见的大小不固定类型是\texttt{dyn}类型，它是trait对象引用的目标。正如我们在\nameref{traitobject}中解释的一样，一个trait对象是一个指向实现了给定trait的值的指针。例如，类型\texttt{\&dyn std::io::Write}和\texttt{Box<dyn std::io::Write>}是指向实现了\texttt{Write} trait的值的指针。被引用的目标可能是一个文件或者网络套接字，或者是实现了\texttt{Write}的自定义类型。因为实现了\texttt{Write}的类型的集合是开放的，所以\texttt{dyn Write}也是大小不固定的类型：它的值可能有任意的大小。
 
-Rust不能在变量中存储大小不固定的值或者将它们传递为参数。你只能通过指针例如\texttt{\&str}或\texttt{Box<dyn Write>}来处理它们，指针本身是固定大小的。正如\hyperref[f13-1]{表13-1}所示，一个指向大小不固定的值的指针总是一个\emph{胖指针(fat pointer)}，占用两个字节：一个指向切片的指针加上切片的长度、一个trait对象加上一个指向方法实现的vtable的指针。
+Rust不能在变量中存储大小不固定的值或者将它们传递为参数。你只能通过指针例如\texttt{\&str}或\texttt{Box<dyn Write>}来处理它们，指针本身是固定大小的。正如\hyperref[f13-1]{图13-1}所示，一个指向大小不固定的值的指针总是一个\emph{胖指针(fat pointer)}，占用两个字节：一个指向切片的指针加上切片的长度、一个trait对象加上一个指向方法实现的vtable的指针。
 
 trait对象和切片的指针是对称的。在这两种情况下，都缺乏相应的类型信息：你不能在不知道\texttt{[u8]}长度的情况下索引它，也不能在不知道被指向的值的具体\texttt{Write}实现的情况下调用\texttt{Box<dyn Write>}的方法。在这两种情况下，胖指针填充了类型缺失的信息，加上了一个长度或者vtable的指针。被省略的静态信息被替换为了动态信息。
 
