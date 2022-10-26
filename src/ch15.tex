@@ -970,10 +970,10 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
     assert_eq!(factorial(20), 2432902008176640000);
 \end{minted}
 
-（你可以通过实现\texttt{std::iter::Sum}和\texttt{std::iter::Product} trait来扩展\texttt{sum}和\texttt{product}可以用于其他类型，但本书中不会介绍。）
+（你可以通过实现\texttt{std::iter::Sum}和\texttt{std::iter::Product} trait来扩展\texttt{sum}和\texttt{product}以支持其他类型，但本书中不会介绍。）
 
 \subsection{\texttt{max, min}}
-\texttt{Iterator}的\texttt{min}和\texttt{max}方法分别返回迭代器产生的item中最小的和最大的。迭代器的类型必须实现了\texttt{std::cmp::Ord}，这样item才可以彼此比较。例如：
+\texttt{Iterator}的\texttt{min}和\texttt{max}方法分别返回迭代器产生的item中最小的和最大的。item的类型必须实现了\texttt{std::cmp::Ord}，这样才可以互相比较。例如：
 \begin{minted}{Rust}
     assert_eq!([-2, 0, 1, 0, -2, -5].iter().max(), Some(&1));
     assert_eq!([-2, 0, 1, 0, -2 ,-5].iter().min(), Some(&-5));
@@ -981,12 +981,12 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 
 这些方法返回\texttt{Option<Self::Item>}，这样如果迭代器没产生值的时候可以返回\texttt{None}。
 
-正如“\nameref{equal}”中解释的一样，Rust的浮点数类型\texttt{f32}和\texttt{f64}只实现了\texttt{std::cmp::PartialOrd}，没有实现\\
-\texttt{std::cmp::Ord}，因此你不能使用\texttt{min}和\texttt{max}方法来计算浮点数序列中的最小值或最大值。这不是Rust设计中的优势，但它是故意的：因为不清楚这样的函数如果遇到了IEEE NaN值时该怎么处理。简单地忽略它们可能会导致代码中更严重的问题。
+正如\nameref{equal}中解释的一样，Rust的浮点数类型\texttt{f32}和\texttt{f64}只实现了\\
+\texttt{std::cmp::PartialOrd}，没有实现\texttt{std::cmp::Ord}，因此你不能使用\texttt{min}和\texttt{max}方法来计算浮点数序列中的最小值或最大值。这不是Rust设计中的优势，但它是故意的：因为不清楚这样的函数如果遇到了IEEE NaN值时该怎么处理。简单地忽略它们可能会导致代码中更严重的问题。
 
 如果你知道如何处理NaN值，你可以使用\texttt{max\_by}和\texttt{min\_by}迭代器方法作为代替，它允许你提供自己的比较函数。
 
-\subsection{\texttt{max\_by, min\_by}}\label{MaxKey}
+\subsection{\texttt{max\_by, min\_by}}\label{MaxBy}
 \texttt{max\_by}和\texttt{min\_by}方法分别返回迭代器产生的最大值和最小值，通过一个你提供的比较函数来判断大小：
 \begin{minted}{Rust}
     use std::cmp::Ordering;
@@ -1004,7 +1004,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
     assert_eq!(numbers.iter().copied().max_by(cmp), Some(4.0)); // panic
 \end{minted}
 
-\texttt{max\_by}和\texttt{min\_by}方法以引用向比较函数传递item，这样对于任何种类的迭代器它们都可以高效工作，因此\texttt{cmp}以引用获取参数，即使我们已经使用\texttt{copied}获取过一个产生\texttt{f64} item的迭代器。
+\texttt{max\_by}和\texttt{min\_by}方法以引用的方式把item传递给比较函数，这样不管迭代器产生什么类型的值它们都可以高效工作。因此这里\texttt{cmp}要以引用获取参数，即使我们已经使用\texttt{copied}获取过一个产生\texttt{f64} item的迭代器。
 
 \subsection{\texttt{max\_by\_key, min\_by\_key}}
 \texttt{Iterator}的\texttt{max\_by\_key}和\texttt{min\_by\_key}方法通过比较对item调用闭包返回的值来分别返回最大值和最小值。闭包可以选择item的某些字段或者对item进行计算。因为你通常对最大和最小值相关联的数据感兴趣，而不是对极值本身感兴趣，因此这些方法通常比\texttt{max}和\texttt{min}更有用。它们的签名如下：
@@ -1016,7 +1016,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
         where Self: Sized, F: FnMut(&Self::Item) -> B;
 \end{minted}
 
-也就是说，给定一个接受一个item然后返回任意有序的类型\texttt{B}的闭包，返回一个闭包返回的\texttt{B}最大或最小的item，或者如果没有item产生时返回\texttt{None}。
+这两个方法接受一个闭包\texttt{f}作为参数，\texttt{f}需要接受一个item并返回一个有序的类型\texttt{B}。然后这两个方法对每个item都调用\texttt{f}，根据返回的\texttt{B}类型的值来比较大小，最后分别返回最大和最小的item，或者如果没有item产生时返回\texttt{None}。
 
 例如，如果你需要扫描一个城市的哈希表来查找人口最多和最少的城市，你可以写：
 \begin{minted}{Rust}
@@ -1035,7 +1035,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
                Some((&"Greenhorn", &2)));
 \end{minted}
 
-闭包\texttt{|\&(\_name, pop)| pop}会应用到迭代器产生的每个item，然后返回用于比较的值——在这个例子中，就是城市的人口。最后返回的值是整个item，而不仅仅是闭包返回的值。（自然地，如果你经常进行这样的查询，你可能会需要一种更高效的存储方式来查找，而不是在这样的表上进行线性查找。）
+闭包\texttt{|\&(\_name, pop)| pop}会应用到迭代器产生的每个item，然后返回用于比较的值——在这个例子中，就是城市的人口。最后返回的值是整个item，而不仅仅是闭包返回的值。（当然，如果你经常进行这样的查询，你可能会需要一种更高效的存储方式来查找，而不是在这样的表上进行线性查找。）
 
 \subsection{比较item序列}
 你可以使用\texttt{<}和\texttt{==}运算符来比较字符串、vector、切片，假设它们的元素可以被比较。尽管迭代器不支持Rust的比较运算符，但它们确实提供了方法例如\texttt{eq}和\texttt{lt}来做相同的工作，这些方法每次从两个迭代器各取一个item进行比较，直到可以比较出结果。例如：
@@ -1083,8 +1083,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
     assert_eq!(bytes.iter().rposition(|&c| c == b'e'), Some(4));
     assert_eq!(bytes.iter().rposition(|&c| c == b'X'), Some(0));
 \end{minted}
-\texttt{rposition}方法需要一个可逆迭代器这样它可以从最后往前遍历。它还需要一个exact-size迭代器这样它才可以返回一个和\texttt{position}一样的索引，即最左侧的索引为\texttt{0}。exact-size迭代器是一个实现了\\
-\texttt{std::iter::ExactSizeIterator} trait的迭代器：
+\texttt{rposition}方法要求一个可逆迭代器这样它才可以从最后往前遍历。它还要求一个exact-size迭代器这样它才可以返回一个和\texttt{position}一样的索引，即从前往后数情况下的索引。exact-size迭代器是一个实现了\texttt{std::iter::ExactSizeIterator} trait的迭代器：
 \begin{minted}{Rust}
     trait ExactSizeIterator: Iterator {
         fn len(&self) -> usize { ... }
@@ -1094,10 +1093,10 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 
 \texttt{len}方法返回剩余item的数量，当迭代结束时\texttt{is\_empty}方法返回\texttt{true}。
 
-自然地，不是每一个迭代器都知道它还会产生多少个item。例如，之前使用的\texttt{str::chars}迭代器就做不到（因为UTF-8是可变宽度的编码），因此你不能对字符串使用\texttt{rposition}。但一个迭代字节数组的迭代器当然知道数组的长度，因此它可以实现\texttt{ExactSizeIterator}。
+当然，不是每一个迭代器都知道它还会产生多少个item。例如，之前使用的\texttt{str::chars}迭代器就做不到（因为UTF-8是可变宽度的编码），因此你不能对字符串使用\texttt{rposition}。但一个迭代字节数组的迭代器当然知道数组的长度，因此它可以实现\texttt{ExactSizeIterator}。
 
 \subsection{\texttt{fold}和\texttt{rfold}}
-在计算某种需要累计所有item的序列的计算时\texttt{fold}方法是非常通用的工具。给定一个初始值（我们称之为\emph{累加器(accumulator)}）和一个闭包，\texttt{fold}会重复对当前的累加器和下一个item应用这个闭包。闭包返回的值被用作新的累加器，然后和下一个item一起传递给闭包。最终累加器的值就是\texttt{fold}自身的返回值。如果序列为空，\texttt{fold}直接返回初始的累加器。
+在进行某种需要累计所有item的计算时\texttt{fold}方法是非常通用的工具。给定一个初始值（我们称之为\emph{累加器(accumulator)}）和一个闭包，\texttt{fold}会重复对当前的累加器和下一个item应用这个闭包。闭包返回的值被用作新的累加器，然后和下一个item一起传递给闭包。最终累加器的值就是\texttt{fold}自身的返回值。如果序列为空，\texttt{fold}直接返回初始的累加器。
 
 很多其他消耗迭代器的方法都可以用\texttt{fold}来实现：
 \begin{minted}{Rust}
@@ -1119,27 +1118,24 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 
 其中，\texttt{A}是累加器的类型。\texttt{init}参数就是一个\texttt{A}类型的值，\texttt{A}也是闭包的第一个参数和返回值的类型，也是\texttt{fold}本身的返回值的类型。
 
-注意累加器值被移动进和移动出闭包，因此你可以用非\texttt{Copy}类型的累加器类型调用\texttt{fold}：
+注意累加器值被移动进和移出闭包，因此你可以用非\texttt{Copy}的累加器类型调用\texttt{fold}：
 \begin{minted}{Rust}
     let a = ["Pack", "my", "box", "with",
              "five", "dozen", "liquor", "jugs"];
     
-    // See also：切片的`join`方法，
-    // 最后不会有多余的空格。
-    let pangram = a.iter()
-        .fold(String::new(), |s, w| s + w + " ");
+    // See also：切片的`join`方法，最后不会有多余的空格。
+    let pangram = a.iter().fold(String::new(), |s, w| s + w + " ");
     assert_eq!(pangram, "Pack my box with five dozen liquor jugs");
 \end{minted}
 
 \texttt{rfold}方法和\texttt{fold}方法相同，除了它需要双端迭代器，并且从最后开始往前处理item：
 \begin{minted}{Rust}
-    let weird_pangram = a.iter()
-        .rfold(String::new(), |s, w| s + w + " ");
+    let weird_pangram = a.iter().rfold(String::new(), |s, w| s + w + " ");
     assert_eq!(weird_pangram, "jugs liquor dozen five with box my Pack ");
 \end{minted}
 
 \subsection{\texttt{try\_fold}和\texttt{try\_rfold}}
-\texttt{try\_fold}方法和\texttt{fold}基本一样，除了它的迭代过程可以提前退出，不需要消耗迭代器里的所有值。传递给\texttt{try\_fold}的闭包必须返回一个\texttt{Result}：如果它是\texttt{Err(e)}，\texttt{try\_fold}会立刻返回\texttt{Err(e)}作为返回值。否则，它会继续处理成功的值。闭包也可以返回一个\texttt{Option}：返回\texttt{None}会提前退出，之后的返回值是值的\texttt{Option}。
+\texttt{try\_fold}方法和\texttt{fold}基本一样，除了它的迭代过程可以提前退出，不需要消耗迭代器里的所有值。传递给\texttt{try\_fold}的闭包需要返回一个\texttt{Result}：如果它是\texttt{Err(e)}，\texttt{try\_fold}会立刻返回\texttt{Err(e)}作为返回值。否则，它会继续处理成功的值。闭包也可以返回一个\texttt{Option}：返回\texttt{None}会提前退出，最后的返回值是个\texttt{Option}。
 
 这里有一个求来自标准输入的数字之和的程序：
 \begin{minted}{Rust}
@@ -1223,7 +1219,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 
 \texttt{rfind}方法类似，不过它需要双端迭代器并且从最后往前搜索，返回\emph{最后一个}使闭包返回\texttt{true}的item。
 
-例如，使用“\nameref{MaxKey}”中的城市和人口的表，你可以写：
+例如，使用\nameref{MaxBy}中的城市和人口的表，你可以写：
 \begin{minted}{Rust}
     assert_eq!(populations.iter().find(|&(_name, &pop)| pop > 1_000_000), None);
     assert_eq!(populations.iter().find(|&(_name, &pop)| pop > 500_000), Some((&"Portland", &583_776)));
@@ -1237,7 +1233,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
         F: FnMut(Self::Item) -> Option<B>;
 \end{minted}
 
-这类似于\texttt{find}，除了它不是返回\texttt{bool}，而是返回某些值的\texttt{Option}。\texttt{find\_map}返回第一个是\texttt{Some}的\texttt{Option}。
+这类似于\texttt{find}，区别在于它接受的闭包不是返回\texttt{bool}，而是返回一个\texttt{Option}。\texttt{find\_map}返回第一个是\texttt{Some}的\texttt{Option}。
 
 例如，如果我们有一个每个城市的公园的数据库，我们可能想看看其中是否有火山，并且如果有的话返回公园的名字：
 \begin{minted}{Rust}
@@ -1258,8 +1254,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 \end{minted}
 
 \subsection{构建集合：\texttt{collect}和\texttt{FromIterator}}\label{BuildColl}
-在这本书中，我们曾多次看见使用\texttt{collect}方法来构建vector。例如，在\hyperref[ch02]{第2章}中，我们调用了\\
-\texttt{std::env::args()}来获取一个程序命令行参数的迭代器，然后调用了迭代器的\texttt{collect}方法来把它们收集到一个vector中：
+在这本书中，我们曾多次看见使用\texttt{collect}方法来构建vector。例如，在\hyperref[ch02]{第2章}中，我们调用了\texttt{std::env::args()}来获取一个程序命令行参数的迭代器，然后调用了迭代器的\texttt{collect}方法来把它们收集到一个vector中：
 \begin{minted}{Rust}
     let args: Vec<String> = std::env::args().collect();
 \end{minted}
@@ -1279,7 +1274,8 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 
     // 等等
 \end{minted}
-自然地，\texttt{collect}方法本身并不知道如何构建这些类型。当一些集合类型例如\texttt{Vec}或者\texttt{HashMap}知道如何从一个迭代器构建自身时，它会实现\texttt{std::iter::FromIterator} trait，\texttt{collect}只是它的便捷用法：
+
+当然，\texttt{collect}方法本身并不知道如何构建这些类型。当一些集合类型例如\texttt{Vec}或者\texttt{HashMap}知道如何从一个迭代器构建自身时，它会实现\texttt{std::iter::FromIterator} trait，\texttt{collect}只是它的便捷用法：
 \begin{minted}{Rust}
     trait FromIterator<A>: Sized {
         fn from_iter<T: IntoIterator<Item=A>>(iter: T) -> Self;
@@ -1314,13 +1310,13 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 
 这两个界限正是\texttt{Vec}的\texttt{FromIterator}的实现所需要知道的信息，这样它就能从一开始就分配正确大小的缓冲区。插入新元素仍然会检查缓冲区是否足够大，因此即使提示不正确，也只会影响性能，而不会影响安全性。其他类型也可以选择类似的策略：例如，\texttt{HashSet}和\texttt{HashMap}也实现了\texttt{Iterator::size\_hint}来为哈希表选择合适的初始大小。
 
-有关于类型推导的一个提示：在这一节的开始处，同样的调用\texttt{std::env::args().collect()}根据上下文会产生四种不同类型的集合，这看起来可能有些奇怪。\texttt{collect}的返回值类型是它的类型参数，因此前两个调用等价于下面的调用：
+有关于类型推导的一个提示：在本节的开始处，同样的调用\texttt{std::env::args().collect()}根据上下文会产生四种不同类型的集合，这看起来可能有些奇怪。\texttt{collect}的返回值类型是它的类型参数，因此前两个调用等价于下面的调用：
 \begin{minted}{Rust}
     let args = std::env::args().collect::<Vec<String>>();
     let args = std::env::args().collect::<HashSet<String>>();
 \end{minted}
 
-但只要\texttt{collect}的参数只有一个可能的类型才可以正常工作，那么Rust会自动为你填充它。当你写出\texttt{args}的类型时，就是确保了这种情况。
+但如果\texttt{collect}的类型参数只有唯一一种可能，那么Rust会自动为你填充它。当你写出\texttt{args}的类型时，就是确保了这种情况。
 
 \subsection{\texttt{Extend} trait}\label{extend}
 如果一个类型实现了\texttt{std::iter::Extend} trait，那么它的\texttt{extend}方法可以把一个可迭代对象的item添加到集合中：
@@ -1351,12 +1347,11 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 \end{minted}
 
 \subsection{\texttt{partition}}
-\texttt{partition}方法讲一个迭代器的item分成两个集合，使用一个闭包来决定每个item属于哪个集合：
+\texttt{partition}方法将一个迭代器的item分成两个集合，使用一个闭包来决定每个item属于哪个集合：
 \begin{minted}{Rust}
     let things = ["doorknob", "mushroom", "noodle", "giraffe", "grapefruit"];
 
-    // 一个令人震惊的事实：活物的名字都以
-    // 奇数字母开头。
+    // 一个令人震惊的事实：活物的名字都以奇数字母开头。
     let (living, nonliving): (Vec<&str>, Vec<&str>)
         = things.iter().partition(|name| name.as_bytes()[0] & 1 != 0);
     
@@ -1373,9 +1368,9 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
               B: Default + Extend<Self::Item>,
               F: FnMut(&Self::Item) -> bool;
 \end{minted}
-\texttt{collect}需要返回类型实现了\texttt{FromIterator}，而\texttt{partition}需要\texttt{std::default::Default}（所有的Rust集合都实现了它来返回一个空集合）和\texttt{std::default::Extend}。
+\texttt{collect}要求返回类型实现了\texttt{FromIterator}，而\texttt{partition}要求\texttt{std::default::Default}（所有的Rust集合都实现了它来返回一个空集合）和\texttt{std::default::Extend}。
 
-其他语言提供把一个迭代器分成两个迭代器的\texttt{partition}操作，而不是构建两个集合。但这并不适合Rust：如果要实现分成两个迭代器，那么那些不适合被划分的迭代器产生的item必须被缓存；无论如何，最终都需要在内部构建某种类型的集合。
+其他语言提供把一个迭代器分成两个迭代器的\texttt{partition}操作，而不是构建两个集合。但这并不适合Rust：如果要实现分成两个迭代器，那么那些由底层迭代器产生但还未被分类后的迭代器产生的item必须被缓存；无论如何，最终都需要在内部构建某种类型的集合。
 
 \subsection{\texttt{for\_each}和\texttt{try\_for\_each}}
 \texttt{for\_each}方法简单地对每一个item应用一个闭包：
@@ -1427,7 +1422,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
 
 你可以为自己的类型实现\texttt{IntoIterator}和\texttt{Iterator} trait，这样本章之前展示过的所有适配器和消耗器，还有其他可以和标准库迭代器接口协同工作的库和crate都可以使用。在本节中，我们将展示一个简单的范围类型的迭代器，然后展示一个更复杂的二叉树类型的迭代器。
 
-假设我们有下面的范围类型（标准库的\texttt{std::ops::Range<T>类型的简化}）：
+假设我们有下面的范围类型（标准库的\texttt{std::ops::Range<T>}类型的简化）：
 \begin{minted}{Rust}
     struct I32Range {
         start: i32,
@@ -1496,7 +1491,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
     }
 \end{minted}
 
-当我们创建一个新的\texttt{TreeIter}时，它的初始状态应该是即将产生树中最左边的节点。根据\texttt{unvisited}栈的规则，它的栈顶应该是那个叶节点，再往下就是它的祖先节点：树种左侧边缘上的节点。我们可以从根节点访问左侧边缘一直到叶节点，把遇到的所有节点都入栈，来初始化\texttt{unvisited}，因此我们为\texttt{TreeIter}定义一个方法来实现这个过程：
+当我们创建一个新的\texttt{TreeIter}时，它的初始状态应该是即将产生树中最左边的节点。根据\texttt{unvisited}栈的规则，它的栈顶应该是那个叶节点，再往下就是它的祖先节点：树中左侧边缘上的节点。我们可以从根节点访问左侧边缘一直到叶节点，把遇到的所有节点都入栈，来初始化\texttt{unvisited}，因此我们为\texttt{TreeIter}定义一个方法来实现这个过程：
 \begin{minted}{Rust}
     impl<'a, T: 'a> TreeIter<'a, T> {
         fn push_left_edge(&mut self, mut tree: &'a BinaryTree<T>) {
@@ -1508,7 +1503,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
     }
 \end{minted}
 
-写\texttt{mut tree}让循环可以在遍历左侧边缘的过程中改变\texttt{tree}指向的节点，但因为\texttt{tree}是一个共享引用，所以它不能改变那些节点本身。
+用\texttt{mut tree}可以让循环在遍历左侧边缘的过程中改变\texttt{tree}指向的节点，但因为\texttt{tree}是一个共享引用，所以它不能改变那些节点本身。
 
 有了这个辅助方法，我们可以给\texttt{BinaryTree}一个\texttt{iter}方法来返回一个迭代树的迭代器：
 \begin{minted}{Rust}
@@ -1521,8 +1516,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
     }
 \end{minted}
 
-\texttt{iter}方法先构造了一个\texttt{unvisited}栈为空的\texttt{TreeIter}，然后调用\texttt{push\_left\_edge}来初始化它。按照\\
-\texttt{unvisited}栈的规则，最左侧的节点在栈顶。
+\texttt{iter}方法先构造了一个\texttt{unvisited}栈为空的\texttt{TreeIter}，然后调用\texttt{push\_left\_edge}来初始化它。按照\texttt{unvisited}栈的规则，最左侧的节点在栈顶。
 
 遵循标准库的实践，我们可以为二叉树的引用实现\texttt{IntoIterator}，然后在里面调用\texttt{BinaryTree::iter}：
 \begin{minted}{Rust}
@@ -1558,9 +1552,9 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
     }
 \end{minted}
 
-如果栈为空，就表明迭代结束了。否则，\texttt{node}是现在要访问的节点的引用，这次调用会返回一个它的\texttt{element}字段的引用。但首先，我们必须把迭代器的状态更新到下一个节点。如果这个节点有一个右子树，那么下一个要访问的就是这棵子树中最左侧的节点，我们可以调用\texttt{push\_left\_edge}来添加它和它的未访问的祖先节点到栈里。但如果这个节点没有右子树，那么\texttt{push\_left\_edge}没有效果，这正是我们想要的：这时新的栈顶就是`node`的第一个未被访问的祖先节点。
+如果栈为空，就表明迭代结束了。否则，\texttt{node}是现在要访问的节点的引用，这次调用会返回一个它的\texttt{element}字段的引用。但首先，我们必须把迭代器的状态更新到下一个节点。如果这个节点有一个右子树，那么下一个要访问的就是这棵子树中最左侧的节点，我们可以调用\texttt{push\_left\_edge}来添加它和它的未访问的祖先节点到栈里。但如果这个节点没有右子树，那么\texttt{push\_left\_edge}没有效果，这正是我们想要的：这时新的栈顶就是\texttt{node}的第一个未被访问的祖先节点。
 
-有了\texttt{IntoIterator}和\texttt{Iterator}实现，我们最终可以使用一个\texttt{for}循环来迭代\texttt{BinaryTree}的引用。使用“\nameref{BinaryTree}”中\texttt{BinaryTree}的\texttt{add}方法：
+有了\texttt{IntoIterator}和\texttt{Iterator}实现，我们最终可以使用一个\texttt{for}循环来迭代\texttt{BinaryTree}的引用。这里用到了\nameref{BinaryTree}中\texttt{BinaryTree}的\texttt{add}方法：
 \begin{minted}{Rust}
     // 建造一棵小树。
     let mut tree = BinaryTree::Empty;
@@ -1577,7 +1571,7 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
     assert_eq!(v, ["droid", "Jaeger", "mecha", "robot"]);
 \end{minted}
 
-\autoref{f15-1}展示了当我们遍历这棵树的过程中\texttt{unvisited}栈的行为。在每一次迭代中，下一个要被访问的节点都是栈顶，所有还未访问过的祖先节点都在它之下。
+\hyperref[f15-1]{图15-1}展示了当我们遍历这棵树的过程中\texttt{unvisited}栈的行为。在每一次迭代中，下一个要被访问的节点都是栈顶，所有还未访问过的祖先节点都在它之下。
 
 \begin{figure}[htbp]
     \centering
@@ -1595,4 +1589,4 @@ peekable迭代器让你可以窥视下一个将被产生的item，而不实际�
                     "mega-mecha", "mega-robot"]);
 \end{minted}
 
-迭代器是Rust哲学的体现，即提供强大的、零成本、能提高代码的表现力和可读性的抽象。迭代器并不能完全体贷循环，但它们提供了一种功能强大的原语，同时具有内建的惰性求值和高性能的特点。
+迭代器是Rust哲学的体现，即提供强大的、零成本、能提高代码的表现力和可读性的抽象。迭代器并不能完全替代循环，但它们提供了一种功能强大的原语，同时具有内建的惰性求值和高性能的特点。
