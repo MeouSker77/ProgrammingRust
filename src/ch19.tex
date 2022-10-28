@@ -20,9 +20,9 @@
 
 然后有时你必须调试你自己的多线程代码。
 
-经验会让你怀疑所有的多线程代码是否健康。少数的文章解释了为什么一些明显正确的多线程惯用写法完全不能工作，它们也许会有帮助。（它与“内存模型”有关。）但你最终会找到一种并发的方式，并且你觉得你能实际使用它且不会一直出错。你可能会把很多东西都塞进这种方法中，并且（如果你\emph{真的}很棒）你学会了对添加的复杂性说“不”。
+经验会让你怀疑所有的多线程代码是否健康。少数的文章解释了为什么一些明显正确的多线程惯用写法完全不能工作，它们也许会有帮助。（它与“内存模型”有关。）但你最终会找到一种并发的方式，并且你觉得你能实际使用它且不会一直出错。你可能会把很多东西都塞进这种方法中，并且（如果你\emph{真的}很优秀）你学会了对添加的复杂性说“不”。
 
-当然，有很多种这样的方法。系统级程序员经常使用的方法包括下面这些：
+当然，有很多种这样的方法。系统程序员经常使用的方法包括下面这些：
 \begin{enumerate}
     \item 一个只处理单个任务的\emph{后台线程(background thread)}，周期性地唤醒它执行任务。
     \item 通用的\emph{线程池(worker pool)}，通过\emph{任务队列(task queue)}和客户端交互。
@@ -34,7 +34,7 @@
 
 随着时间的推移，你可能可以使用多种方式并安全地组合在一起。这时，你就是大师。如果没有其他人被允许修改系统，那么一切都会正常运作。正确使用线程的程序充满了不成文的规则。
 
-Rust提供了一种更好的方式来使用并发，它并不强迫所有的程序使用单一的风格（这对系统级程序员来说并不是解决方案），而是安全地支持多种风格。不成文的规则现在被写下来了——就在代码中——并且被编译器强迫遵循。
+Rust提供了一种更好的方式来使用并发，它并不强迫所有的程序使用单一的风格（这对系统程序员来说并不是解决方案），而是安全地支持多种风格。不成文的规则现在被写下来了——就在代码中——并且被编译器强迫遵循。
 
 你可能听说过Rust可以让你编写安全、快速、并发的程序。本章我们将向你展示如何做到这些。我们将介绍三种使用Rust线程的方式：
 \begin{enumerate}
@@ -58,7 +58,7 @@ Rust提供了一种更好的方式来使用并发，它并不强迫所有的程�
     }
 \end{minted}
 
-这个程序的运行情况如\autoref{f19-1}所示：
+这个程序的运行情况如\hyperref[f19-1]{图19-1}所示：
 
 \begin{figure}[htbp]
     \centering
@@ -67,7 +67,7 @@ Rust提供了一种更好的方式来使用并发，它并不强迫所有的程�
     \label{f19-1}
 \end{figure}
 
-因为每一个文档都是被单独处理，所以可以很容易的把所有文档分成几块、每一块在单独的线程中进行处理来加快速度，如\autoref{f19-2}所示。
+因为每一个文档都是被单独处理，所以可以很容易的把所有文档分成几块、每一块在单独的线程中进行处理来加快速度，如\hyperref[f19-2]{图19-2}所示。
 
 \begin{figure}[htbp]
     \centering
@@ -81,8 +81,8 @@ Rust提供了一种更好的方式来使用并发，它并不强迫所有的程�
 fork-join并行的优势主要在以下几个方面：
 \begin{enumerate}
     \item 它太简单了。fork-join非常容易实现，并且Rust能帮你很轻松地保证它正确。
-    \item 它避免了瓶颈。fork-join中没有共享资源的加锁。每个线程唯一要等待的时间就是最后要等待另一个线程结束。同时，每一个线程都可以自由地运行。这有助于保证很低的任务切换开销。
-    \item 性能也非常直观。在最好的情况下，通过启动4个线程，我们可以用$\frac{1}{4}$的时间完成任务。\autoref{f19-2}展示了为什么我们不应该期待这种理想的加速：我们可能不能均匀地把工作分布到所有的线程上。另一个要注意的原因是一些fork-join程序在所有的线程结束之后还要花费一些时间\emph{组合(combine)}所有线程计算出的结果。即，完全分割任务可能要花费一些额外的工作。如果不考虑这两个原因，一个任务可以分割为独立单元的CPU密集的程序可以期待显著的性能提升。
+    \item 它避免了瓶颈。fork-join中没有共享资源的加锁，因此线程等待其他线程的唯一情况就是结束时。同时，每一个线程都可以自由地运行。这有助于保证很低的任务切换开销。
+    \item 性能也非常直观。在最好的情况下，通过启动4个线程，我们可以用$\frac{1}{4}$的时间完成任务。\hyperref[f19-2]{图19-2}展示了为什么我们不应该期待这种理想的加速：我们可能不能均匀地把工作分布到所有的线程上。另一个要注意的原因是一些fork-join程序在所有的线程结束之后还要花费一些时间\emph{组合(combine)}所有线程计算出的结果。即，完全分割任务可能要花费一些额外的工作。如果不考虑这两个原因，一个任务可以分割为独立单元的CPU密集的程序可以期待显著的性能提升。
     \item 很容易推断程序的正确性。只要每个线程真的被隔离，那么一个fork-join程序是\emph{确定性的(deterministic)}，例如曼德勃罗集程序中的计算线程。程序总是会产生相同的结果，和线程速度的变化无关。它是一种没有竞争条件的并发模型。
 \end{enumerate}
 
@@ -141,7 +141,7 @@ fork-join的主要缺点是它需要无关的任务单元。本章稍后我们�
         let worklists = split_vec_into_chunks(filenames, NTHREADS);
 \end{minted}
 
-我们使用了一个工具函数\texttt{split\_vec\_into\_chunks}来分割任务，不过这里没有显示。分割的结果\texttt{worklists}是一个vector的vector。它包含原本的vector \texttt{filenames}均匀分配的8个部分。
+我们使用了一个工具函数\texttt{split\_vec\_into\_chunks}来分割任务，不过这里没有展示。分割的结果\texttt{worklists}是一个vector的vector。它包含原本的vector \texttt{filenames}均匀分配的8个部分。
 
 \begin{minted}{Rust}
         // Fork：创建一个新线程来处理每一个块。
@@ -164,7 +164,7 @@ fork-join的主要缺点是它需要无关的任务单元。本章稍后我们�
 
 这些移动操作开销很小。正如我们在\hyperref[ch04]{第4章}中讨论的\texttt{Vec<String>}的移动一样，\texttt{String}并不会被拷贝。事实上，没有任何东西被分配或者释放。唯一被移动的数据是\texttt{Vec}自己：三个机器字。
 
-你创建的大多数线程都同时需要代码和数据才能运行。Rust闭包可以便捷地包含了你需要的代码和数据。。
+你创建的大多数线程都同时需要代码和数据才能运行。Rust闭包可以便捷地包含你需要的代码和数据。
 
 继续：
 \begin{minted}{Rust}
@@ -192,17 +192,15 @@ fork-join的主要缺点是它需要无关的任务单元。本章稍后我们�
 
 首先，\texttt{handle.join()}返回一个\texttt{std::thread::Result}，\emph{如果子线程panic}那么它的值将是一个错误。这使得Rust中的线程比C++中更健壮。在C++中，一个越界的数组访问是未定义行为，并且没有办法保护系统中的其他部分不受其影响。在Rust中，\hyperref[unwind]{panic是安全的并且以线程为单位}。线程之间的边界充当panic时的防火墙；panic并不会自动从一个线程传播到依赖它的线程。一个线程中的panic在其他线程中作为一个值为错误的\texttt{Result}汇报。整个程序可以不受其影响。
 
-在我们的程序中，我们没有尝试任何panic的处理。我们简单地对返回的\texttt{Result}调用\texttt{.unwrap()}，假定它它是一个\texttt{Ok}的结果而不是\texttt{Err}的结果。如果一个子线程\emph{确实}panic了，那么这个断言会失败，因此父线程也会panic。我们显式地把子线程的panic传播到父线程。
+在我们的程序中，我们没有尝试任何panic的处理。我们简单地对返回的\texttt{Result}调用\texttt{.unwrap()}，假定它一定是一个\texttt{Ok}的结果而不是\texttt{Err}的结果。如果一个子线程\emph{确实}panic了，那么这个断言会失败，因此父线程也会panic。我们显式地把子线程的panic传播到父线程。
 
-其次，\texttt{handle.join()}会把子线程返回的值传递给父线程。我们传递给\texttt{spawn}的闭包的返回类型是\\
-\texttt{io::Result<()>}，因为\texttt{process\_files}返回这个类型。这个返回值不会被丢弃，当子线程结束时，它的返回值会被保存，\texttt{JoinHandle::join()}会把值传递给父线程。
+其次，\texttt{handle.join()}会把子线程返回的值传递给父线程。我们传递给\texttt{spawn}的闭包的返回类型是\texttt{io::Result<()>}，因为\texttt{process\_files}返回这个类型。这个返回值不会被丢弃，当子线程结束时，它的返回值会被保存，\texttt{JoinHandle::join()}会把值传递给父线程。
 
-这个程序中\texttt{handle.join()}返回的完整类型是\texttt{std::thread::Result<std::io::Result<()>>}。\\
-\texttt{thread::Result}是\texttt{spawn/join} API的一部分；\texttt{io::Result}是我们程序的一部分。
+这个程序中\texttt{handle.join()}返回的类型是\texttt{std::thread::Result<std::io::Result<()>>}。\texttt{thread::Result}是\texttt{spawn/join} API的一部分；\texttt{io::Result}是我们程序的一部分。
 
 在我们的例子中，解包了\texttt{thread::Result}之后，我们对\texttt{io::Result}使用了\texttt{?}运算符，显式地把子线程的I/O错误传播给父线程。
 
-整个过程看起来可能很复杂，但这其实也只是一行代码的功能。将它与其它语言比较：Java和C\#中的默认行为是将子线程的异常转储到终端，然后忽略。在C++中，默认行为是终止进程。在Rust中，错误是\texttt{Result}值（数据）而不是异常（控制流）。它们像其他任何值一样在线程之间传递。每一次你使用底层线程的API时，你都必须小心地编写错误处理代码，但考虑到\emph{你必须编写它们}，所以Rust在这一点上做得很好。
+整个过程看起来可能很复杂，但这其实也只是一行代码的功能。将它与其它语言比较：Java和C\#中的默认行为是将子线程的异常转储到终端，然后忽略。在C++中，默认行为是终止进程。在Rust中，错误是\texttt{Result}值（数据）而不是异常（控制流）。它们像其他任何值一样在线程之间传递。每一次使用底层线程的API时，你都必须小心地编写错误处理代码，但考虑到\emph{你必须编写它们}，所以Rust在这一点上做得很好。
 
 \subsection{跨线程共享不可变数据}
 假设我们正在进行的分析需要一个非常大的由英文单词和短语组成的数据库：
@@ -214,7 +212,8 @@ fork-join的主要缺点是它需要无关的任务单元。本章稍后我们�
     fn process_files_in_parallel(filenames: Vec<String>, glossary: &GigabyteMap)
 \end{minted}
 
-\texttt{glossary}可能很大，所以我们通过引用传递它。我们应该如何更新\texttt{process\_files\_in\_parallel}来在多个工作线程间传递词汇表呢？
+\texttt{glossary}可能很大，所以我们通过引用传递它。我们应该如何更新\\
+\texttt{process\_files\_in\_parallel}来在多个工作线程间传递词汇表呢？
 
 显而易见的修改方法并不能工作：
 \begin{minted}{Rust}
@@ -248,13 +247,13 @@ fork-join的主要缺点是它需要无关的任务单元。本章稍后我们�
 
 Rust在抱怨我们传递给\texttt{spawn}的闭包的生命周期，编译器给出的“有帮助的”信息实际上也没有一点帮助。
 
-\texttt{spawn}启动独立的线程。Rust没有办法直到子线程会运行多长时间，因此它假设最坏的情况：它假设子线程会一直保持运行，然而在父线程结束之后父线程里的所有值都会消失。显然，如果子线程要持续很长时间，那么它运行所需要的闭包也应该持续这么长时间。但这个闭包有一个有界的生命周期：它依赖于引用\texttt{glossary}，但引用并不会一直有效。
+\texttt{spawn}启动独立的线程。Rust没有办法知道子线程会运行多长时间，因此它假设最坏的情况：它假设子线程会一直保持运行，然而在父线程结束之后父线程里的所有值都会消失。显然，如果子线程要持续很长时间，那么它运行所需要的闭包也应该持续这么长时间。但这个闭包有一个有界的生命周期：它依赖于引用\texttt{glossary}，但引用并不会一直有效。
 
 注意Rust拒绝这段代码是正确的！按照我们编写这个函数的方式，\emph{有可能}一个线程遇到I/O错误，导致\texttt{process\_files\_in\_parallel}在其他线程结束之前结束。子线程可能会在主线程释放\texttt{glossary}之后仍然尝试使用它。这会导致未定义行为。Rust不允许出现这种情况。
 
-看起来\texttt{spawn}太过开放以至于不能支持跨线程共享引用。事实上，我们已经在“\nameref{StealClosure}”中见到过一个类似于这样的例子。那一次我们的解决方案是使用\texttt{move}闭包把数据的所有权移动到新线程里。但那种方法在这里不能生效，因为我们有很多线程需要使用相同的数据。一个安全的替代方案是为每一个线程\texttt{clone}一份词汇表，但因为它很庞大，我们希望避免这些开销。幸运的是，标准库提供了另一种方案：自动引用计数。
+看起来\texttt{spawn}太过开放以至于不能支持跨线程共享引用。事实上，我们已经在\nameref{StealClosure}中见到过一个类似于这样的例子。那一次我们的解决方案是使用\texttt{move}闭包把数据的所有权移动到新线程里。但那种方法在这里不能生效，因为我们有很多线程需要使用相同的数据。一个安全的替代方案是为每一个线程\texttt{clone}一份词汇表，但因为它很庞大，我们希望避免这些开销。幸运的是，标准库提供了另一种方案：自动引用计数。
 
-我们在“\nameref{rc}”中介绍过\texttt{Arc}。现在正是使用它的时候：
+我们在\nameref{rc}中介绍过\texttt{Arc}。现在正是使用它的时候：
 \begin{minted}{Rust}
     use std::sync::Arc;
 
@@ -283,7 +282,7 @@ Rust在抱怨我们传递给\texttt{spawn}的闭包的生命周期，编译器�
 
 \subsection{Rayon}
 
-标准库的\texttt{spawn}函数是一个重要的原语，但它并不是专为fork-join并行设计的。还有基于它们构建的更好的fork-join API。例如，“\nameref{ch02}”中我们使用了Crossbeam库把一些任务分割给8个进程。Crossbeam的\emph{scoped thread(作用域线程)}非常自然地支持fork-join并行。
+标准库的\texttt{spawn}函数是一个重要的原语，但它并不是专为fork-join并行设计的。还有基于它们构建的更好的fork-join API。例如，\hyperref[ch02]{第2章}中我们使用了Crossbeam库把一些任务分割给8个进程。Crossbeam的\emph{scoped thread(作用域线程)}非常自然地支持fork-join并行。
 
 Niko Matsakis和Josh Stone编写的Rayon库是另外一个例子。它提供两种并发运行任务的方法：
 \begin{minted}{Rust}
@@ -300,7 +299,7 @@ Niko Matsakis和Josh Stone编写的Rayon库是另外一个例子。它提供两�
 
 \texttt{rayon::join(fn1, fn2)}同时调用两个函数并返回两个结果。\texttt{.par\_iter()}方法创建一个\texttt{ParallelIterator}，它有\texttt{map}、\texttt{filter}以及其它的方法，非常像Rust中的\texttt{Iterator}。在这两种情况下，Rayon都会尽可能使用它自己的工作线程池来处理任务。你只需要告诉Rayon什么样的任务\emph{可以}并行完成；Rayon负责管理线程并尽可能好地分发任务。
 
-\autoref{f19-3}展示了有关调用\texttt{giant\_vector().par\_iter().for\_each(...)}的两种思考方式：(a) Rayon为vector中的每个元素创建一个线程。(b) Rayon在幕后维护等同于CPU核数个工作线程，每个工作线程运行在每个CPU核上，这样会更加高效。工作线程池被程序的所有线程共享，当同时有上千个任务到达时，Rayon会划分任务。
+\hyperref[f19-3]{图19-3}展示了有关调用\texttt{giant\_vector().par\_iter().for\_each(...)}的两种思考方式：(a) Rayon为vector中的每个元素创建一个线程。(b) Rayon在幕后维护等同于CPU核数个工作线程，每个工作线程运行在每个CPU核上，这样会更加高效。工作线程池被程序的所有线程共享，当同时有上千个任务到达时，Rayon会划分任务。
 
 \begin{figure}[htbp]
     \centering
@@ -309,7 +308,8 @@ Niko Matsakis和Josh Stone编写的Rayon库是另外一个例子。它提供两�
     \label{f19-3}
 \end{figure}
 
-这里有一个使用Rayon的\texttt{process\_files\_in\_parallel}的版本，并且它要运行的\texttt{process\_file}函数，不再需要\texttt{Vec<String>}，而是需要\texttt{\&str}：
+这里有一个使用Rayon的\texttt{process\_files\_in\_parallel}的版本，并且它要运行的\\
+\texttt{process\_file}函数，不再需要\texttt{Vec<String>}，而是需要\texttt{\&str}：
 \begin{minted}{Rust}
     use rayon::prelude::*;
 
@@ -328,13 +328,15 @@ Niko Matsakis和Josh Stone编写的Rayon库是另外一个例子。它提供两�
 这段代码比使用\texttt{std::thread::spawn}的版本更加简短，也更加容易理解。让我们逐行分析它：
 \begin{enumerate}
     \item 首先，我们使用了\texttt{filenames.par\_iter()}来创建一个并行迭代器。
-    \item 我们使用\texttt{.map()}来对每一个文件名调用\texttt{process\_file}。这会返回一个产生\texttt{io::Result<()>}值的序列的\texttt{ParallelIterator}。
+    \item 我们使用\texttt{.map()}来对每一个文件名调用\texttt{process\_file}。这会返回一个产生\\
+    \texttt{io::Result<()>}值的序列的\texttt{ParallelIterator}。
     \item 我们使用\texttt{.reduce\_with()}来组合结果。这里我们保留了第一个错误并丢弃剩余的内容。如果我们想累计所有的错误，或者打印它们，我们可以在这里完成。
     \item 当你向\texttt{.map()}传递一个在成功时会返回有用值的闭包时，\texttt{.reduce\_with()}方法也非常方便。你可以向\texttt{.reduce\_with()}传递一个知道如何组合两个成功结果的闭包。
-    \item \texttt{reduce\_with}返回一个\texttt{Option}，只有当\texttt{filenames}为空时它是\texttt{None}。我们使用了\texttt{Option}的\texttt{.unwrap\_or()}方法以在这种情况下产生一个\texttt{Ok(())}。
+    \item \texttt{reduce\_with}返回一个\texttt{Option}，只有当\texttt{filenames}为空时它是\texttt{None}。我们使用了\texttt{Option}的\\
+    \texttt{.unwrap\_or()}方法以在这种情况下产生一个\texttt{Ok(())}。
 \end{enumerate}
 
-在幕后，Rayon会使用一种叫做\emph{work-stealing}的技术动态地实现多个线程的负载均衡。通常保持所有CPU核心忙碌比“\nameref{spawn}”中的事先手动划分任务效果会更好。
+在幕后，Rayon会使用一种叫做\emph{work-stealing}的技术动态地实现多个线程的负载均衡。通常保持所有CPU核心忙碌比\nameref{spawn}中的事先手动划分任务效果会更好。
 
 作为奖励，Rayon支持在线程之间共享引用。所有幕后的并行处理都保证在\texttt{reduce\_with}返回之前结束。这解释了为什么我们可以向\texttt{process\_file}传递\texttt{glossary}，即使这个闭包将会在多个线程间调用。
 
@@ -343,7 +345,7 @@ Niko Matsakis和Josh Stone编写的Rayon库是另外一个例子。它提供两�
 \subsection{回顾曼德勃罗集}
 回顾\hyperref[ch02]{第2章}，我们使用了fork-join并发来渲染曼德勃罗集。这让渲染过程变快了四倍——这很有吸引力，但考虑我们是把程序分割为8个工作线程并在一台8核机器上运行它，它似乎还能做得更好。
 
-问题在于我们没有平均分配工作负载。计算图像的一个像素点等同于运行一次循环（见“\nameref{WhatIsMand}”）。事实证明对于图像的淡灰色部分的像素点，循环会快速退出，比渲染那些需要循环255次的黑色部分要快很多。因此尽管我们把区域分成了大小相等的水平条带，实际上我们创建的还是不同等的工作负载，如\autoref{f19-4}所示。
+问题在于我们没有平均分配工作负载。计算图像的一个像素点等同于运行一次循环（见\nameref{WhatIsMand}）。事实证明对于图像的淡灰色部分的像素点，循环会快速退出，比渲染那些需要循环255次的黑色部分要快很多。因此尽管我们把区域分成了大小相等的水平条带，实际上我们创建的还是不同等的工作负载，如\hyperref[f19-4]{图19-4}所示。
 
 \begin{figure}[htbp]
     \centering
@@ -354,7 +356,7 @@ Niko Matsakis和Josh Stone编写的Rayon库是另外一个例子。它提供两�
 
 使用Rayon可以很容易地解决这个问题。我们可以简单地为输出中的每一行启动一个并行任务。这会创建几百个任务，Rayon可以把它们分配给不同的线程。得益于work-stealing，不同任务的大小不同并不会导致问题。Rayon会在运行时均衡任务。
 
-这里是代码。第一行和最后一行是我们在“\nameref{mandelbrot}”展示过的\texttt{main}函数的一部分，但我们修改了中间的渲染部分代码：
+这里是代码。第一行和最后一行是我们在\nameref{mandelbrot}展示过的\texttt{main}函数的一部分，但我们修改了中间的渲染部分代码：
 \begin{minted}{Rust}
     let mut pixels = vec![0; bounds.0 * bounds.1];
 
@@ -380,7 +382,7 @@ Niko Matsakis和Josh Stone编写的Rayon库是另外一个例子。它提供两�
     write_image(&args[1], &pixels, bounds).expect("error writing PNG file");
 \end{minted}
 
-首先我们创建了\texttt{bands}，它是我们要传递给Rayon的任务的集合。每一个任务都只是一个类型为\texttt{(usize, \&mut [u8])}的元组：行号，因为计算时需要它，以及要填充的\texttt{pixels}的切片。我们使用了\texttt{chunks\_mut}方法把图像缓冲区分割成很多行，\texttt{enumerate}来给每一行附加一个行号，使用\texttt{collect}来把所有行号-切片对收集成vector。（我们需要vector是因为Rayon只能根据数组和vector创建并行迭代器。）
+首先我们创建了\texttt{bands}，它是我们要传递给Rayon的任务的集合。每一个任务都只是一个类型为\texttt{(usize, \&mut [u8])}的元组：行号（计算时要用到它）以及要填充的\texttt{pixels}的切片。我们使用了\texttt{chunks\_mut}方法把图像缓冲区分割成很多行，\texttt{enumerate}来给每一行附加一个行号，使用\texttt{collect}来把所有行号-切片对收集成vector。（我们需要vector是因为Rayon只能根据数组和vector创建并行迭代器。）
 
 接下来，我们把\texttt{bands}变为一个并行迭代器，使用\texttt{.for\_each()}方法来告诉\texttt{Rayon}我们想要做什么工作。
 
@@ -394,12 +396,12 @@ Niko Matsakis和Josh Stone编写的Rayon库是另外一个例子。它提供两�
     rayon = "1"
 \end{minted}
 
-有了这些修改，这个程序现在在8核机器上大概使用了7.75个核。它比之前手动分隔复杂快了75\%。代码也短了一些，这反映出让crate完成一些工作（负载分发）比我们自己来做的优势。
+有了这些修改，这个程序现在在8核机器上大概使用了7.75个核。它比之前手动分割任务快了75\%，代码也短了一些，这反映出让crate完成一些工作（负载分发）比我们自己来做的优势。
 
 \section{通道}
 \emph{通道(channel)}是一种从一个线程向另一个线程发送数据的管道。换句话说，它是一个线程安全的队列。
 
-\autoref{f19-5}展示了通道应该怎么使用。它们和Unix管道有些像：一端发送数据，另一端接收。两端通常被两个不同的线程持有。但Unix管道用来发送字节，通道用来发送Rust值。\texttt{sender.send(item)}把一个值放入通道中；\texttt{receiver.recv()}从通道中移除一个值。所有权从发送线程移动到接收线程。如果通道是空的，\texttt{receiver.recv()}会阻塞，直到有一个值被发送。
+\hyperref[f19-5]{图19-5}展示了通道应该怎么使用。它们和Unix管道有些像：一端发送数据，另一端接收。两端通常被两个不同的线程持有。但Unix管道用来发送字节，通道用来发送Rust值。\texttt{sender.send(item)}把一个值放入通道中；\texttt{receiver.recv()}从通道中移除一个值。所有权从发送线程移动到接收线程。如果通道是空的，\texttt{receiver.recv()}会阻塞，直到有一个值被发送。
 
 \begin{figure}[htbp]
     \centering
