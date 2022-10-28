@@ -1,4 +1,4 @@
-\chapter{工具trait}\label{ch13}
+\chapter{实用trait}\label{ch13}
 
 \emph{Science is nothing else than the search to discover unity in the wild variety of nature—or, more exactly, in the variety of our experience. Poetry, painting, the arts are the same search, in Coleridge’s phrase, for unity in variety.}
 
@@ -6,22 +6,22 @@
     ——Jacob Bronowski
 \end{flushright}
 
-这一章将介绍Rust中的“工具” trait，它们是标准库中能够显著影响到编写Rust代码的方式的trait，因此你需要熟悉它们才能写出惯用的代码并设计出你的用户会觉得是“Rustic”的crate接口。它们可以分为三大类：
+这一章将介绍Rust中的“实用” trait，它们是标准库中能够显著影响到编写Rust代码的方式的trait，因此你需要熟悉它们才能写出惯用的代码并设计出你的用户会觉得是“Rustic”的crate接口。它们可以分为三大类：
 
 \codeentry{语言扩展trait}
 \hangparagraph{正如我们上一章介绍的运算符重载trait可以让你对自己的类型使用Rust的表达式运算符，还有几个其他的标准库trait充当Rust的扩展，让你可以把自己的类型更紧密地集成到语言中。这一类包括\texttt{Drop}、\texttt{Deref}和\texttt{DerefMut}，以及转换用的trait \texttt{From}和\texttt{Into}。我们将在本章介绍所有这些trait。}
 
 \codeentry{标记trait}
-\hangparagraph{有几个trait通常用于约束泛型类型变量来表达一些特殊的约束。这一类包括\texttt{Sized}和\texttt{Copy}。}
+\hangparagraph{有几个trait通常用于约束泛型参数来表达一些特殊的约束。这一类包括\texttt{Sized}和\texttt{Copy}。}
 
 \codeentry{公开的词汇表trait}
-\hangparagraph{这些trait并没有神秘的编译器集成，你可以在自己的代码中定义等价的trait。但它们服务于为常见问题制定常规解决方案的重要目标。这些trait在crate和模块之间的公共接口中特别有价值：通过减少不必要的变化，它们让接口更容易理解，它们还增加了不同crate的特性可以简单地集成在一起的可能性，并且无需样板或自定义的粘合代码。这一类包括\texttt{Default}、引用借用trait \texttt{AsRef}、\texttt{AsMut}、\texttt{Borrow}、\texttt{BorrowMut}，可能失败的转换 trait\texttt{TryFrom}和\texttt{TryInto}，以及\texttt{ToOwned} trait，它是\texttt{Clone}的泛化。}
+\hangparagraph{这些trait并没有神秘的编译器集成，你可以在自己的代码中定义等价的trait。但它们服务于为常见问题制定常规解决方案的重要目标。这些trait在crate和模块之间的公共接口中特别有价值：通过减少不必要的变化，它们让接口更容易理解，它们还增加了不同crate的特性可以简单地集成在一起的可能性，并且无需样板或自定义的粘合代码。这一类包括\texttt{Default}、引用借用trait \texttt{AsRef}、\texttt{AsMut}、\texttt{Borrow}、\texttt{BorrowMut}，可能失败的转换 trait \texttt{TryFrom}和\texttt{TryInto}，以及\texttt{ToOwned} trait，它是\texttt{Clone}的泛化。}
 
 \hyperref[t13-1]{表13-1}是对它们的总结。
 
 \begin{table}[htbp]
     \centering
-    \caption{工具trait汇总}
+    \caption{实用trait汇总}
     \label{t13-1}
     \begin{tabular}{p{0.2\textwidth}p{0.7\textwidth}}
         \hline
@@ -47,13 +47,13 @@
     \end{tabular}
 \end{table}
 
-还有一些其它重要的标准库trait。我们将在\hyperref[ch15]{第15章}中介绍\texttt{Iterator}和\texttt{IntoIterator}。用于计算哈希值的\texttt{Hash} trait，将在\hyperref[ch16]{第16章}中介绍。还有一对标记线程安全类型的trait，\texttt{Send}和\texttt{Sync}，将在\hyperref[ch19]{第19章}中介绍。
+还有一些其它重要的标准库trait。我们将在\hyperref[ch15]{第15章}中介绍\texttt{Iterator}和\texttt{IntoIterator}。用于计算哈希值的\texttt{Hash} trait将在\hyperref[ch16]{第16章}中介绍。还有一对标记线程安全类型的trait \texttt{Send}和\texttt{Sync}，将在\hyperref[ch19]{第19章}中介绍。
 
 \section{\texttt{Drop}}\label{drop}
 
 当一个值的所有者消失时，我们说Rust \emph{drop}了这个值。drop一个值意味着释放这个值拥有的所有其他值、堆上的存储空间和系统资源。drop会在各种情况下发生：当变量离开作用域时、处于表达式语句的末尾时、截断vector时从尾部移除元素时，等等。
 
-在大多数情况下，Rust自动为你处理drop过程。例如，假设你定义了下面的类型：
+在大多数情况下，Rust会自动为你处理drop过程。例如，假设你定义了下面的类型：
 \begin{minted}{Rust}
     struct Appellation {
         name: String,
@@ -61,7 +61,7 @@
     }
 \end{minted}
 
-\texttt{Appellation}拥有为字符串内容和vector的元素缓冲区分配的堆上的空间。当一个\texttt{Appellation}被drop时，Rust会清理所有这些内容，你不需要编写任何代码。然而，如果你想的话，你可以通过实现\texttt{std::ops::Drop} trait来自定义Rust如何drop你的类型的值：
+字符串的内容和vector的元素缓冲区都在堆上分配了空间，\texttt{Appellation}拥有这些空间。当一个\texttt{Appellation}被drop时，Rust会清理所有这些内容，你不需要编写任何代码。然而，如果你想的话，你可以通过实现\texttt{std::ops::Drop} trait来自定义Rust如何drop你的类型的值：
 \begin{minted}{Rust}
     trait Drop {
         fn drop(&mut self);
@@ -106,7 +106,7 @@
     Dropping Hera
 \end{minted}
 
-因为我们的\texttt{Appellation}的\texttt{std::ops::Drop}实现只打印了一条消息，那么它的内存到底是怎么被精确地清理掉的？\texttt{Vec}类型也实现了\texttt{Drop}，drop它的每个元素，然后释放在堆上分配的缓冲区。一个\texttt{String}在内部使用\texttt{Vec<u8>}来保存文本，因此\texttt{String}自身没有实现\texttt{Drop}，它让它的\texttt{Vec}来清理字符。同样的规则也适用于\texttt{Appellation}值：当一个值被drop时，它的\texttt{Vec}的\texttt{Drop}实现负责清理每一个字符串的内容，并最终释放存储元素的缓冲区。保存\texttt{Appellation}值的内存本身也有一个拥有者，可能是一个局部变量或者一些数据结构，它们负责释放它。
+既然我们的\texttt{Appellation}的\texttt{std::ops::Drop}实现只打印了一条消息，那么它的内存到底是怎么被精确地清理掉的？\texttt{Vec}类型也实现了\texttt{Drop}，drop它的每个元素，然后释放在堆上分配的缓冲区。一个\texttt{String}在内部使用\texttt{Vec<u8>}来保存文本，因此\texttt{String}自身没有实现\texttt{Drop}，它让它的\texttt{Vec}来清理字符。同样的规则也适用于\texttt{Appellation}值：当一个值被drop时，它的\texttt{Vec}的\texttt{Drop}实现负责清理每一个字符串的内容，并最终释放存储元素的缓冲区。保存\texttt{Appellation}值的内存本身也有一个拥有者，可能是一个局部变量或者一些数据结构，它们负责释放它。
 
 如果一个变量的值被移动走，导致当它离开作用域时是未初始化的状态，那么Rust会避免drop这个变量：它里面没有值可以drop。即使按照控制流一个变量的值可能被移动走、也可能没有的情况下，这个原则也会生效。Rust会使用一个不可见的标记来追踪变量的状态，它指示变量的值是否需要被drop：
 \begin{minted}{Rust}
@@ -122,7 +122,8 @@
     println!("Sproing! What was that?");
 \end{minted}
 
-根据\texttt{complicated\_condition}返回\texttt{true}还是\texttt{false}，\texttt{p}或者\texttt{q}最后将会拥有这个\texttt{Appellation}，另一个变为未初始化。这个值最终落在哪个变量里决定了它会在\texttt{println!}之前还是之后被drop。因为\texttt{q}在\texttt{println!}之前离开作用域，而\texttt{p}在之后。尽管一个值可能会被移来移去，但Rust只会drop它一次。
+根据\texttt{complicated\_condition}返回\texttt{true}还是\texttt{false}，\texttt{p}或者\texttt{q}最后将会拥有这个\\
+\texttt{Appellation}，另一个变为未初始化。这个值最终落在哪个变量里决定了它会在\texttt{println!}之前还是之后被drop。因为\texttt{q}在\texttt{println!}之前离开作用域，而\texttt{p}在之后。尽管一个值可能会被移来移去，但Rust只会drop它一次。
 
 你通常不需要实现\texttt{std::ops::Drop}，除非你想定义一个拥有一些Rust不知道的资源的类型。例如，在Unix系统上，Rust的标准库内部使用下面的类型来表示一个操作系统文件描述符：
 \begin{minted}{Rust}
@@ -131,7 +132,8 @@
     }
 \end{minted}
 
-\texttt{FileDesc}的\texttt{fd}字段就是当程序使用完它之后应该被关闭的文件描述符的序号。\texttt{c\_int}是\texttt{i32}的一个别名。标准库中按照如下方式为\texttt{FileDesc}实现了\texttt{Drop}：
+\texttt{FileDesc}的\texttt{fd}字段就是当程序使用完它之后应该被关闭的文件描述符的序号。\texttt{c\_int}是\\
+\texttt{i32}的一个别名。标准库中按照如下方式为\texttt{FileDesc}实现了\texttt{Drop}：
 \begin{minted}{Rust}
     impl Drop for FileDesc {
         fn drop(&mut self) {
@@ -153,11 +155,11 @@
 
 \section{\texttt{Sized}}\label{sized}
 
-\emph{固定大小的类型(sized type)}是指那些所有实例值都占用相同大小的内存空间的类型。Rust中几乎所有的类型都是固定大小的：每一个\texttt{u64}都是8字节，每一个\texttt{(f32, f32, f32)}类型的值都占12个字节。即使枚举也是固定大小的：不管它当前实际的variant是哪一个，一个枚举总是占用能存下最大的variant的空间。即使\texttt{Vec<T>}拥有一个大小可变的堆上缓冲区，\texttt{Vec}值本身的大小就是一个缓冲区的指针，加上容量，加上长度。因此\texttt{Vec<T>}是一个固定大小的类型。
+\emph{固定大小的类型(sized type)}是指那些所有实例值都占用相同大小的内存空间的类型。Rust中几乎所有的类型都是固定大小的：每一个\texttt{u64}都是8字节，每一个\texttt{(f32, f32, f32)}类型的值都占12个字节。即使枚举也是固定大小的：不管它当前实际的variant是哪一个，一个枚举总是占用能存下最大的variant的空间。即使\texttt{Vec<T>}拥有一个大小可变的堆上缓冲区，\texttt{Vec}值本身的大小就是一个缓冲区的指针，加上容量和长度。因此\texttt{Vec<T>}是一个固定大小的类型。
 
 所有的固定大小的类型都实现了\texttt{std::marker::Sized} trait，它没有任何方法或关联类型。Rust为所有适合的类型自动实现它，你不能自己实现它。\texttt{Sized}唯一的用途是作为类型参数的约束：一个类似\texttt{T: Sized}的约束要求\texttt{T}是一个大小在编译期已知的类型。这种类型的trait被称为\emph{标记trait(marker trait)}，因为Rust语言本身使用它们来标记有特定特点的类型。
 
-然而，Rust还有少量\emph{大小不固定的类型(unsized type)}，它们的值的大小并不相同。例如，字符串切片类型\texttt{str}（注意，没有\&）就是大小不固定的。字符串\texttt{"diminutive"}和\texttt{"big"}分别是占用了10个和3个字节的\texttt{str}切片的引用。如\hyperref[f13-1]{图13-1}所示。数组切片类型例如\texttt{[T]}（再次注意，这里也没有\&）也是大小不固定的：一个共享引用例如\texttt{\&[u8]}可以指向一个任意大小的\texttt{[u8]}切片。因为\texttt{str}和\texttt{[T]}类型表示不同大小的值的集合，因此它们是大小不固定的类型。
+然而，Rust还有少量\emph{大小不固定的类型(unsized type)}，它们的值的大小并不相同。例如，字符串切片类型\texttt{str}（注意，没有\texttt{\&}）就是大小不固定的。字符串\texttt{"diminutive"}和\texttt{"big"}分别是占用了10个和3个字节的\texttt{str}切片的引用。如\hyperref[f13-1]{图13-1}所示。数组切片类型例如\texttt{[T]}（再次注意，这里也没有\texttt{\&}）也是大小不固定的：一个共享引用例如\texttt{\&[u8]}可以指向一个任意大小的\texttt{[u8]}切片。因为\texttt{str}和\texttt{[T]}类型表示不同大小的值的集合，因此它们是大小不固定的类型。
 
 \begin{figure}[htbp]
     \centering
@@ -166,17 +168,17 @@
     \label{f13-1}
 \end{figure}
 
-Rust中另一种常见的大小不固定类型是\texttt{dyn}类型，它是trait对象引用的目标。正如我们在“\nameref{traitobject}”中解释的一样，一个trait对象是一个指向实现了给定trait的值的指针。例如，类型\texttt{\&dyn std::io::Write}和\texttt{Box<dyn std::io::Write>}是指向实现了\texttt{Write} trait的值的指针。被引用的目标可能是一个文件或者网络套接字，或者是实现了\texttt{Write}的自定义类型。因为实现了\texttt{Write}的类型的集合是开放的，所以\texttt{dyn Write}也是大小不固定的类型：它的值可能有任意的大小。
+Rust中另一种常见的大小不固定类型是\texttt{dyn}类型，它是trait对象引用的目标。正如我们在\nameref{traitobject}中解释的一样，一个trait对象是一个指向实现了给定trait的值的指针。例如，类型\texttt{\&dyn std::io::Write}和\texttt{Box<dyn std::io::Write>}是指向实现了\texttt{Write} trait的值的指针。被引用的目标可能是一个文件或者网络套接字，或者是实现了\texttt{Write}的自定义类型。因为实现了\texttt{Write}的类型的集合是开放的，所以\texttt{dyn Write}也是大小不固定的类型：它的值可能有任意的大小。
 
-Rust不能在变量中存储大小不固定的值或者将它们传递为参数。你只能通过指针例如\texttt{\&str}或\texttt{Box<dyn Write>}来处理它们，指针本身是固定大小的。正如\hyperref[f13-1]{表13-1}所示，一个指向大小不固定的值的指针总是一个\emph{胖指针(fat pointer)}，占用两个字节：一个指向切片的指针加上切片的长度、一个trait对象加上一个指向方法实现的vtable的指针。
+Rust不能在变量中存储大小不固定的值或者将它们传递为参数。你只能通过指针例如\texttt{\&str}或\texttt{Box<dyn Write>}来处理它们，指针本身是固定大小的。正如\hyperref[f13-1]{图13-1}所示，一个指向大小不固定的值的指针总是一个\emph{胖指针(fat pointer)}，占用两个字节：一个指向切片的指针加上切片的长度、一个trait对象加上一个指向方法实现的vtable的指针。
 
 trait对象和切片的指针是对称的。在这两种情况下，都缺乏相应的类型信息：你不能在不知道\texttt{[u8]}长度的情况下索引它，也不能在不知道被指向的值的具体\texttt{Write}实现的情况下调用\texttt{Box<dyn Write>}的方法。在这两种情况下，胖指针填充了类型缺失的信息，加上了一个长度或者vtable的指针。被省略的静态信息被替换为了动态信息。
 
-因为大小不固定的类型限制太多，所以大多数泛型类型参数都被限制为\texttt{Sized}类型。事实上，它几乎总是必须的，因此在Rust中它是默认的：如果你写\texttt{struct S<T> \{ ... \}}，Rust认为你的意思是\texttt{struct S<T: Sized> \{ ... \}}。如果你不让\texttt{T}有这个约束，你必须显式写出来，即\texttt{struct S<T: ?Sized> \{ ... \}}。\texttt{?Sized}语法专门用于这种场景，含义是“不需要是\texttt{Sized}”。例如，如果你写了\texttt{struct S<T: ?Sized> \{ b: Box<T> \}}，那么Rust将允许你写\texttt{S<Str>}和\texttt{S<dyn Write>}，这时\texttt{b}将是一个胖指针；而\texttt{S<i32>}和\texttt{S<String>}中，\texttt{b}是一个普通指针。
+因为大小不固定的类型限制太多，所以大多数泛型类型参数都被限制为\texttt{Sized}类型。事实上，它几乎总是必须的，因此在Rust中它是默认的：如果你写\texttt{struct S<T> \{ ... \}}，Rust认为你的意思是\texttt{struct S<T: Sized> \{ ... \}}。如果你不想让\texttt{T}有这个约束，你必须显式写出来，即\texttt{struct S<T: ?Sized> \{ ... \}}。\texttt{?Sized}语法专门用于这种场景，含义是“不需要是\texttt{Sized}”。例如，如果你写了\texttt{struct S<T: ?Sized> \{ b: Box<T> \}}，那么Rust将允许你写\texttt{S<Str>}和\texttt{S<dyn Write>}，这时\texttt{b}将是一个胖指针；而\texttt{S<i32>}和\texttt{S<String>}中，\texttt{b}是一个普通指针。
 
 抛开它们的限制不谈，大小不固定的类型让Rust的类型系统工作得更加顺畅。如果阅读标准库的文档，你偶尔会看到类型参数中的\texttt{?Sized}约束，这几乎总是意味着给定的类型只能被指向，同时允许相关的代码既能处理普通类型、又能处理切片和trait对象。当一个类型参数有\texttt{?Sized}约束时，人们通常会说它是\emph{可能大小不固定(questionably sized)}：它可能是\texttt{Sized}，也可能不是。
 
-除了切片和trait对象之外，还有另一种大小不固定的类型。一个结构体的最后一个字段（也只有最后一个字段）可能是大小不固定的，那么这个结构体本身也是大小不固定的。例如，\texttt{Rc<T>}引用计数指针内部被实现为私有类型\texttt{RcBox<T>}的指针，它存储了\texttt{T}和引用计数。这里有一个\texttt{RcBox}的简化版的定义：
+除了切片和trait对象之外，还有另一种大小不固定的类型。一个结构体的最后一个字段（也只有最后一个字段）可能是大小不固定的，此时这个结构体本身也是大小不固定的。例如，\texttt{Rc<T>}引用计数指针内部被实现为私有类型\texttt{RcBox<T>}的指针，它存储了\texttt{T}和引用计数。这里有一个\texttt{RcBox}的简化版的定义：
 \begin{minted}{Rust}
     struct RcBox<T: ?Sized> {
         ref_count: usize,
@@ -184,7 +186,8 @@ trait对象和切片的指针是对称的。在这两种情况下，都缺乏相
     }
 \end{minted}
 
-\texttt{value}字段就是\texttt{Rc<T>}引用的\texttt{T}值，\texttt{Rc<T>}解引用之后就是一个这个字段的指针。\texttt{ref\_count}字段保存引用计数。
+\texttt{value}字段就是\texttt{Rc<T>}引用的\texttt{T}值，\texttt{Rc<T>}解引用之后就是一个这个字段的指针。\texttt{ref\_count}\\
+字段保存引用计数。
 
 真正的\texttt{RcBox}是标准库的实现细节，不能用于公开使用。但假设我们在处理一个上面的定义。你可以将\texttt{RcBox}和固定大小的类型一起使用，例如\texttt{RcBox<String>}，结果将是一个固定大小的结构体类型。或者你可以将它和大小不固定的类型一起使用，例如\texttt{RcBox<dyn std::fmt::Display>}（其中\texttt{Display}表示可以被\texttt{println!}以及类似的宏格式化的类型），\texttt{RcBox<dyn Display>}是一个大小不固定的结构体类型。
 
@@ -229,7 +232,7 @@ trait对象和切片的指针是对称的。在这两种情况下，都缺乏相
 
 拷贝一个值通常意味着拷贝它拥有的所有内容，因此\texttt{clone}可能在时间和内存上的开销都比较大。例如，克隆一个\texttt{Vec<String>}不止要拷贝vector，还要拷贝它的每一个\texttt{String}元素。这就是为什么Rust不会自动拷贝值，而是要求你显式地调用方法来拷贝。引用计数指针例如\texttt{Rc<T>}和\texttt{Arc<T>}是例外：拷贝它们只会简单地递增引用计数并返回给你一个新的指针。
 
-\texttt{clone\_from}方法将\texttt{self}修改为\texttt{source}的拷贝。\texttt{clone\_from}的默认实现简单地拷贝\texttt{source}，然后将它移动进\texttt{*self}。这总是能正确工作，当对于某些类型，还有更快的方法达成相同的效果。例如，假设\texttt{s}和\texttt{t}都是\texttt{String}。语句\texttt{s = t.clone();}必须先克隆\texttt{t}，drop掉\texttt{s}的旧值，然后将克隆的值移动进\texttt{s}，因此这里面有一次堆分配和堆释放。但如果\texttt{s}原本的堆缓冲区有足够的容量存下\texttt{t}的内容，那么没有必要进行释放和分配操作：可以简单地将\texttt{t}的文本拷贝进\texttt{s}的缓冲区，然后调整它的长度。在泛型代码中，你应该使用\texttt{clone\_from}，这样可以充分利用优化过的实现的优势。
+\texttt{clone\_from}方法将\texttt{self}修改为\texttt{source}的拷贝。\texttt{clone\_from}的默认实现简单地拷贝\texttt{source}，然后将它移动进\texttt{*self}。这总是能正确工作，但对于某些类型，还有更快的方法达成相同的效果。例如，假设\texttt{s}和\texttt{t}都是\texttt{String}。语句\texttt{s = t.clone();}必须先克隆\texttt{t}，drop掉\texttt{s}的旧值，然后将克隆的值移动进\texttt{s}，因此这里面有一次堆分配和堆释放。但如果\texttt{s}原本的堆缓冲区有足够的容量存下\texttt{t}的内容，那么没有必要进行释放和分配操作：可以简单地将\texttt{t}的文本拷贝进\texttt{s}的缓冲区，然后调整它的长度。在泛型代码中，你应该使用\texttt{clone\_from}，这样可以充分利用优化过的实现的优势。
 
 如果你的类型的\texttt{Clone}实现只是简单地调用每一个字段或者元素的\texttt{clone}方法，然后利用这些克隆的值构造一个新的值，那么\texttt{clone\_from}的默认定义就已经够了，Rust将会为你实现它：只要在类型的定义上方加上\texttt{\#[derive(Clone)]}。
 
@@ -237,7 +240,7 @@ trait对象和切片的指针是对称的。在这两种情况下，都缺乏相
 
 \section{\texttt{Copy}}\label{Copy}
 
-在\hyperref[ch04]{第4章}中，我们解释过，对于大多数类型，赋值操作会移动它的值，而不是拷贝它们。移动值让我们可以更容易地追踪它们拥有的资源。但在“\nameref{copy}”中，我们指出了例外情况：不持有任何资源的简单类型可以是\texttt{Copy}类型，这种类型的赋值操作会拷贝源值，而不是移动值并把源值设为未初始化。
+在\hyperref[ch04]{第4章}中，我们解释过，对于大多数类型，赋值操作会移动它的值，而不是拷贝它们。移动值让我们可以更容易地追踪它们拥有的资源。但在\nameref{copy}中，我们指出了例外情况：不持有任何资源的简单类型可以是\texttt{Copy}类型，这种类型的赋值操作会拷贝源值，而不是移动值并把源值设为未初始化。
 
 那个时候，我们并没有确切地说明\texttt{Copy}到底是什么，但现在我们可以告诉你：如果一个类型实现了\texttt{std::marker::Copy}标记trait，那么它就是\texttt{Copy}的，\texttt{Copy}的定义如下：
 \begin{minted}{Rust}
@@ -255,12 +258,12 @@ trait对象和切片的指针是对称的。在这两种情况下，都缺乏相
 
 和\texttt{Clone}一样，你可以使用\texttt{\#[derive(Copy)]}来让Rsut为你实现\texttt{Copy}。你通常能一次性看到它们两个，即\texttt{\#[derive(Copy, Clone)]}。
 
-在将类型变为\texttt{Copy}之前请仔细思考。尽管这样做会让类型更容易使用，但却对类型本身的实现添加了很大的限制。而且隐式的拷贝可能会有很大的开销。我们已经在“\nameref{copy}”中详细解释了这些因素。
+在将类型变为\texttt{Copy}之前请仔细思考。尽管这样做会让类型更容易使用，但却对类型本身的实现添加了很大的限制。而且隐式的拷贝可能会有很大的开销。我们已经在\nameref{copy}中详细解释了这些因素。
 
 \section{\texttt{Deref}与\texttt{DerefMut}}\label{deref}
 
-你可以通过实现\texttt{std::ops::Deref}和\texttt{std::ops::DerefMut} trait来指定解引用运算符\texttt{*}和\texttt{.}的行为。像\texttt{Box<T>}\\
-和\texttt{Rc<T>}这样的指针类型都实现了这些triat，因此它们的行为可以和Rust内建的指针类型一样。例如，如果你有一个\texttt{Box<Complex>}类型的值\texttt{b}，那么\texttt{*b}就是\texttt{b}指向的\texttt{Complex}值，\texttt{b.re}就是它的实部。如果上下文赋值给被引用的对象，或者借用了被引用对象的可变引用，那么Rust会自动使用\texttt{DerefMut}（“可变地解引用”）trait；否则，只读的访问就已经足够了，所以它会使用\texttt{Deref}。
+你可以通过实现\texttt{std::ops::Deref}和\texttt{std::ops::DerefMut} trait来指定解引用运算符\texttt{*}和\texttt{.}\\
+的行为。像\texttt{Box<T>}和\texttt{Rc<T>}这样的指针类型都实现了这些triat，因此它们的行为可以和Rust内建的指针类型一样。例如，如果你有一个\texttt{Box<Complex>}类型的值\texttt{b}，那么\texttt{*b}就是\texttt{b}指向的\texttt{Complex}值，\texttt{b.re}就是它的实部。如果上下文赋值给被引用的对象，或者借用了被引用对象的可变引用，那么Rust会自动使用\texttt{DerefMut}（“可变地解引用”）trait；否则，只读的访问就已经足够了，所以它会使用\texttt{Deref}。
 
 这个trait的定义类似于这样：
 \begin{minted}{Rust}
@@ -274,7 +277,7 @@ trait对象和切片的指针是对称的。在这两种情况下，都缺乏相
     }
 \end{minted}
 
-\texttt{deref}和\texttt{deref\_mut}方法以\texttt{Self}的引用为参数，并返回\texttt{Self::Target}的引用。\texttt{Target}应该是\texttt{Self}包含、有用或指向的东西：对于\texttt{Box<Complex>}，\texttt{Target}类型就是\texttt{Complex}。注意\texttt{DerefMut}扩展了\texttt{Deref}：如果你可以解引用某个值并修改它，那么你当然也应该能借用它的共享引用。因为方法返回一个和\texttt{\&self}生命周期相同的引用，只要返回的引用还存在，\texttt{self}就会保持被借用的状态。
+\texttt{deref}和\texttt{deref\_mut}方法以\texttt{Self}的引用为参数，并返回\texttt{Self::Target}的引用。\texttt{Target}应该是\texttt{Self}包含、拥有或指向的东西：对于\texttt{Box<Complex>}，\texttt{Target}类型就是\texttt{Complex}。注意\texttt{DerefMut}扩展了\texttt{Deref}：如果你可以解引用某个值并修改它，那么你当然也应该能借用它的共享引用。因为方法返回一个和\texttt{\&self}生命周期相同的引用，只要返回的引用还存在，\texttt{self}就会保持被借用的状态。
 
 \texttt{Deref}和\texttt{DerefMut} trait还扮演着另一个角色。因为\texttt{deref}以\texttt{Self}的引用作为参数并返回\texttt{Self::Target}的引用，所以Rust会自动把前者的类型转换为后者。换句话说，如果插入一个\texttt{deref}方法调用可以让类型变得匹配，那么Rust就会自动插入。实现\texttt{DerefMut}允许可变引用的相应转换。这些被称为\emph{强制解引用(deref coercions)}：一个类型被“强迫”表现得和另一个类型一样。
 
@@ -282,7 +285,7 @@ trait对象和切片的指针是对称的。在这两种情况下，都缺乏相
 \begin{itemize}
     \item 如果你有一个\texttt{Rc<String>}的值\texttt{r}，并想用它调用\texttt{String::find}，你可以简单地写\\
     \texttt{r.find('?')}来代替\texttt{(*r).find('?')}：这个方法调用隐式地借用\texttt{r}，\texttt{\&Rc<String>}被强迫为\texttt{\&String}，因为\texttt{Rc<T>}实现了\texttt{Deref<Target=T>}。
-    \item 你可以对\texttt{String}值使用类似\texttt{split\_at}的方法，即使\texttt{split\_at}是\texttt{str}切片类型的方法。因为\texttt{String}实现了\texttt{Deref<Target=str>}。没有必要让\texttt{String}重新实现\texttt{str}的所有方法，因为你可以把一个\texttt{\&String}强迫为一个\texttt{\&str}。
+    \item 你可以对\texttt{String}值调用类似\texttt{split\_at}的方法，即使它原本是\texttt{str}切片类型的方法，这是因为\texttt{String}实现了\texttt{Deref<Target=str>}。没有必要让\texttt{String}重新实现\texttt{str}的所有方法，因为你可以把一个\texttt{\&String}强迫为一个\texttt{\&str}。
     \item 如果你有一个字节的vector \texttt{v}，然后你想把它传递给一个接受\texttt{\&[u8]}字节序列的函数，那你只需要传递\texttt{\&v}作为参数，因为\texttt{Vec<T>}实现了\texttt{Deref<Target=[T]>}。
 \end{itemize}
 
@@ -318,7 +321,7 @@ trait对象和切片的指针是对称的。在这两种情况下，都缺乏相
     }
 \end{minted}
 
-有了上面的视线之后，你可以像这样使用一个\texttt{Selector}：
+有了上面的实现之后，你可以像这样使用一个\texttt{Selector}：
 \begin{minted}{Rust}
     let mut s = Selector { elements: vec!['x', 'y', 'z'],
                            current: 2 };
@@ -346,7 +349,8 @@ trait对象和切片的指针是对称的。在这两种情况下，都缺乏相
     show_it(&s);
 \end{minted}
 
-在调用\texttt{show\_it(\&s)}中，Rust看到了一个\texttt{\&Selector<\&str>}类型的实参，和一个\texttt{\&str}类型的形参，然后它发现了\texttt{Deref<Target=str>}实现，并根据需要把调用重写为\texttt{show\_it(s.deref())}。
+在调用\texttt{show\_it(\&s)}中，Rust看到了一个\texttt{\&Selector<\&str>}类型的实参，和一个\texttt{\&str}类型的形参，然后它发现了\texttt{Deref<Target=str>}实现，并根据需要把调用重写为\\
+\texttt{show\_it(s.deref())}。
 
 然而，如果你把\texttt{show\_it}改为一个泛型函数，Rust突然变得不配合了：
 \begin{minted}{Rust}
@@ -373,8 +377,7 @@ Rust会报错：
 
 这可能看起来非常奇怪：为什么把函数改为泛型的就会导致这么一个错误？事实上，\texttt{Selector<\&str>}自身没有实现\texttt{Display}，但它可以解引用成\texttt{\&str}，后者实现了。
 
-因为你传递了一个\texttt{\&Selector<\&str>}类型的参数，而函数的形参类型是\texttt{\&T}，因此类型参数\texttt{T}必须是\\
-\texttt{Selector<\&str>}。然后，Rust会检查\texttt{T: Display}约束是否满足：因为Rust不会使用强制解引用来满足类型参数的约束，所以检查会失败。
+因为你传递了一个\texttt{\&Selector<\&str>}类型的参数，而函数的形参类型是\texttt{\&T}，因此类型参数\texttt{T}必须是\texttt{Selector<\&str>}。然后，Rust会检查\texttt{T: Display}约束是否满足：因为Rust不会使用强制解引用来满足类型参数的约束，所以检查会失败。
 
 为了解决这个问题，你可以使用\texttt{as}运算符显式转换：
 \begin{minted}{Rust}
@@ -388,7 +391,7 @@ Rust会报错：
 
 \section{\texttt{Default}}\label{default}
 
-一些类型会有一些有意义的默认值：vecotr或string的默认值就是空，默认的数字是0，默认的\texttt{Option}是\texttt{None}，等等。这样的类型可以实现\texttt{std::default::Default} trait：
+一些类型会有一些有意义的默认值：vector或string的默认值就是空，默认的数字是0，默认的\texttt{Option}是\texttt{None}，等等。这样的类型可以实现\texttt{std::default::Default} trait：
 \begin{minted}{Rust}
     trait Default {
         fn default() -> Self;
@@ -404,7 +407,8 @@ Rust会报错：
     }    
 \end{minted}
 
-Rust的所有集合类型——\texttt{Vec, HashMap, BinaryHeap}等都实现了\texttt{Default}，它们的\texttt{default()}方法都返回一个空的集合。当你需要创建一个集合来存储一些值，但你希望代码的调用者来决定创建什么类型的集合时这会非常有用。例如，\texttt{Iterator} trait的\texttt{partition}方法把迭代器产生的值划分为两个集合，使用一个闭包来决定每个值被分到哪个集合：
+Rust的所有集合类型——\texttt{Vec, HashMap, BinaryHeap}等都实现了\texttt{Default}，它们的\\
+\texttt{default()}方法都返回一个空集合。当你需要创建一个集合来存储一些值，但你希望代码的调用者来决定创建什么类型的集合时这会非常有用。例如，\texttt{Iterator} trait的\texttt{partition}方法把迭代器产生的值划分为两个集合，使用一个闭包来决定每个值被分到哪个集合：
 \begin{minted}{Rust}
     use std::collections::HashSet;
     let squares = [4, 9, 16, 25, 36, 49, 64];
@@ -415,8 +419,7 @@ Rust的所有集合类型——\texttt{Vec, HashMap, BinaryHeap}等都实现了\
     assert_eq!(impure.len(), 4);
 \end{minted}
 
-闭包\texttt{|\&n| n \& (n-1) == 0}使用了位操作来分辨一个数字是不是2的幂，\texttt{partition}使用它来产生两个\texttt{HashSet}。当然，\texttt{partition}并不是只能用于\texttt{HashSet}，你可以用它产生任何类型的集合，只要这个集合实现了\texttt{Default}来创建空的集合，以及\texttt{Extend<T>}来像集合中添加一个\texttt{T}类型的值。\texttt{String}实现了\texttt{Default}和\\
-\texttt{Extend<char>}，所以你可以写：
+闭包\texttt{|\&n| n \& (n-1) == 0}使用了位操作来分辨一个数字是不是2的幂，\texttt{partition}使用它来产生两个\texttt{HashSet}。当然，\texttt{partition}并不是只能用于\texttt{HashSet}，你可以用它产生任何类型的集合，只要这个集合实现了\texttt{Default}来创建空的集合，以及\texttt{Extend<T>}来向集合中添加一个\texttt{T}类型的值。\texttt{String}实现了\texttt{Default}和\texttt{Extend<char>}，所以你可以写：
 \begin{minted}{Rust}
     let (upper, lower): (String, String)
         = "Great Teacher Onizuka".chars().partition(|&c| c.is_uppercase());
@@ -435,8 +438,7 @@ Rust的所有集合类型——\texttt{Vec, HashMap, BinaryHeap}等都实现了\
     target.draw(..., &params).unwrap();
 \end{minted}
 
-\texttt{Default::default()}调用创建了一个\texttt{DrawParameters}的默认值，然后使用\texttt{..}语法创建一个新的只有\\
-\texttt{line\_width}和\texttt{point\_size}字段改变了的新值，最后把它传给\texttt{target.draw}。
+\texttt{Default::default()}调用创建了一个\texttt{DrawParameters}的默认值，然后使用\texttt{..}语法创建一个新的只有\texttt{line\_width}和\texttt{point\_size}字段改变了的新值，最后把它传给\texttt{target.draw}。
 
 如果一个类型\texttt{T}实现了\texttt{Default}，那么标准库会自动为\texttt{Rc<T>}、\texttt{Arc<T>}、\texttt{Box<T>}、\texttt{Cell<T>}、\texttt{RefCell<T>}、\texttt{Cow<T>}、\texttt{Mutex<T>}、\texttt{RwLock<T>}实现\texttt{Default}。例如，\texttt{Rc<T>}类型的默认值，是一个类型\texttt{T}的默认值的\texttt{Rc}指针。
 
@@ -471,7 +473,7 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
 
 标准库中所有的文件系统函数都用这种方式接受路径参数。对于调用者来说，它的作用就像是C++中重载的函数一样，尽管Rust用了不同的方法来表示可以接受哪些类型的参数。
 
-但只有这些还不够。一个字符串字面量是一个\texttt{\&str}，但实现了\texttt{AsRef<Path>}的类型是\texttt{str}，没有\texttt{\&}。正如我们在“\nameref{deref}”一节中解释的一样，Rust不会尝试通过强制解引用来满足类型参数的约束，因此它们也不能解决这个问题。
+但只有这些还不够。字符串字面量是\texttt{\&str}，但实现了\texttt{AsRef<Path>}的类型是\texttt{str}，没有\texttt{\&}。正如我们在\nameref{deref}一节中解释的一样，Rust不会尝试通过强制解引用来满足类型参数的约束，因此它们也不能解决这个问题。
 
 幸运的是，标准库中包含了全面的实现：
 \begin{minted}{Rust}
@@ -529,7 +531,7 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
 
 这显然很离谱：它在堆上分配了一个\texttt{String}的缓冲区并把文本拷贝进去，然后借用它得到一个\texttt{\&String}，传给\texttt{get}之后再drop掉。
 
-如果可以传递任何可以被哈希或者可以与key比较的类型，那么显然会更好。例如，例如，一个\texttt{\&str}完美满足条件。因此这是最终的版本，你可以在标准库中找到它：
+如果可以传递任何可以被哈希或者可以与key比较的类型，那么显然会更好。例如，一个\texttt{\&str}完美满足条件。因此这是最终的版本，你可以在标准库中找到它：
 \begin{minted}{Rust}
     impl<K, V> HashMap<K, V> where K: Eq + Hash
     {
@@ -540,7 +542,7 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
     }
 \end{minted}
 
-换句话说，如果你可以将一个表项的key借用为一个\texttt{\&Q}，并且引用的哈希值和比较结果就和用key本身所得的结果一样，那么\texttt{\&Q}就是一个可以接受的key类型。因此\texttt{String}实现了\texttt{Borrow<str>}和\texttt{Borrow<String>}，\texttt{get}的最终版本允许你传递\texttt{\&String}或者\texttt{\&str}作为key。
+换句话说，如果你可以将一个表项的key借用为一个\texttt{\&Q}，并且引用的哈希值和比较结果就和用key本身所得的结果一样，那么\texttt{\&Q}就是一个可以接受的key类型。因为\texttt{String}实现了\texttt{Borrow<str>}和\texttt{Borrow<String>}，所以\texttt{get}的最终版本可以传递\texttt{\&String}或者\texttt{\&str}作为key。
 
 \texttt{Vec<T>}和\texttt{[T; N]}实现了\texttt{Borrow<[T]>}。每一个类似字符串的类型都允许借用相应的切片类型：\texttt{String}实现了\texttt{Borrow<str>}，\texttt{PathBuf}实现了\texttt{Borrow<Path>}，等等。所有标准库的关联集合类型都使用了\texttt{Borrow}来决定哪些类型可以被传入查找函数。
 
@@ -596,7 +598,7 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
     println!("{:?}", ping(0xd076eb94_u32));                 // 传递一个u32
 \end{minted}
 
-\texttt{From} trait则扮演不同的角色。\texttt{from}方法充当泛型的构造函数，从别的值构造一个该类型的实例。例如，\texttt{Ipv4Addr}简单地实现了\texttt{From<[u8;4]>}和\texttt{From<u32>}，而不是定义两个名叫\texttt{from\_array}和\texttt{from\_u32}的方法：
+\texttt{From} trait则扮演不同的角色。\texttt{from}方法充当泛型的构造函数，从别的值构造一个该类型的实例。例如，\texttt{Ipv4Addr}简单地实现了\texttt{From<[u8; 4]>}和\texttt{From<u32>}，而不是定义两个名叫\texttt{from\_array}和\texttt{from\_u32}的方法：
 \begin{minted}{Rust}
     let addr1 = Ipv4Addr::from([66, 146, 219, 98]);
     let addr2 = Ipv4Addr::from(0xd076eb94_u32);
@@ -616,12 +618,12 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
 
 这些转换还提供了一种很好的方式来放松类型的约束，灵活的同时又没有减弱被约束类型的保证。例如，一个\texttt{String}保证它的内容总是有效的UTF-8；它的方法都有很谨慎的限制，来保证你不能引入无效的UTF-8。但这个例子高效地把一个\texttt{String}转换成了一个普通的字节块，你可以对它做任何事：也许你准备压缩它，或者将它和其他不是UTF-8的二进制数据混合。因为\texttt{into}会获取参数的所有权，转换之后\texttt{text}将变为未初始化，这意味着我们可以自由地访问之前的\texttt{String}的缓冲区，而不需要破坏任何现有的\texttt{String}。
 
-然而，低开销的转换并不是\texttt{Into}和\texttt{From}的约定的一部分。与\texttt{AsRef}和\texttt{AsMut}被期望开销很小不同，\texttt{From}和\\
-\texttt{Into}转换可能会分配、赋值、或者处理值的内容。例如，String实现了\texttt{From<\&str>}，它把字符串切片拷贝到\texttt{String}分配的新的堆上的缓冲区。还有\texttt{std::collections::BinaryHeap<T>}实现了\texttt{From<Vec<T>>}，它根据算法的要求对元素进行比较和重新排序。
+然而，低开销的转换并不是\texttt{Into}和\texttt{From}的约定的一部分。与\texttt{AsRef}和\texttt{AsMut}被期望开销很小不同，\texttt{From}和\texttt{Into}转换可能会分配、赋值、或者处理值的内容。例如，String实现了\texttt{From<\&str>}，它把字符串切片拷贝到\texttt{String}分配的新的堆上的缓冲区。还有\\
+\texttt{std::collections::BinaryHeap<T>}实现了\texttt{From<Vec<T>>}，它根据算法的要求对元素进行比较和重新排序。
 
 \texttt{?}运算符使用\texttt{From}和\texttt{Into}通过按需将特定的错误类型自动转换为通用的错误类型来帮忙处理函数中可能会失败的代码。
 
-例如，想象一个系统需要读取二进制数据并把其中一部分被写作UTF-8文本的10进制数字转换回数字。这意味着要使用\texttt{std::str::from\_utf8}和\texttt{i32}的\texttt{FromStr}实现，它们可能会返回不同类型错误。假设我们使用了在\hyperref[ch07]{第7章}中定义的\texttt{GenericError}和\texttt{GenericResult}类型，那么\texttt{?}运算符将会为我们做这个转换：
+例如，想象一个系统需要读取二进制数据并把其中一部分被写作UTF-8文本的10进制数字转换回数字。这意味着要使用\texttt{std::str::from\_utf8}和\texttt{i32}的\texttt{FromStr}实现，它们可能会返回不同类型的错误。假设我们使用了在\hyperref[ch07]{第7章}中定义的\texttt{GenericError}和\texttt{GenericResult}类型，那么\texttt{?}运算符将会为我们做这个转换：
 \begin{minted}{Rust}
     type GenericError = Box<dyn std::error::Error + Send + Sync + 'static>;
     type GenericResult<T> = Result<T, GenericError>;
@@ -643,9 +645,10 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
 
 它将原本需要两个\texttt{match}语句的复杂函数转变为只需要一行。
 
-在\texttt{From}和\texttt{Into}被添加进标准库中之前，Rust代码中充满了单独的转换trait和构造方法，每一个都用于单个类型。\texttt{From}提供了标准的转换方式，你可以使用他们来让你的类型更加易于使用，因为你的用户已经对它们很熟悉了。其他的库和语言本身也可以使用这些trait作为约定的、标准的方式来处理转换。
+在\texttt{From}和\texttt{Into}被添加进标准库中之前，Rust代码中充满了单独的转换trait和构造方法，每一个都用于单个类型。\texttt{From}提供了标准的转换方式，你可以使用它们来让你的类型更加易于使用，因为你的用户已经对它们很熟悉了。其他的库和语言本身也可以使用这些trait作为约定的、标准的方式来处理转换。
 
-\texttt{From}和\texttt{Into}是不可失败的trait——它们的API要求转换不能失败。不幸的是，很多转换更加复杂。例如，大整数例如\texttt{i64}可以存储比\texttt{i32}大很多的数字，将一个类似\texttt{2\_000\_000\_000\_000i64}这样的数字转换为\texttt{i32}没有意义。如果直接把前32位丢掉，那么并不会总是返回我们期望的结果：
+\texttt{From}和\texttt{Into}是不可失败的trait——它们的API要求转换不能失败。不幸的是，很多转换更加复杂。例如，大整数例如\texttt{i64}可以存储比\texttt{i32}大很多的数字，将一个类似\\
+\texttt{2\_000\_000\_000\_000i64}这样的数字转换为\texttt{i32}没有意义。如果直接把前32位丢掉，那么并不会总是返回我们期望的结果：
 \begin{minted}{Rust}
     let huge = 2_000_000_000_000i64;
     let smaller = huge as i32;
@@ -689,7 +692,7 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
     });
 \end{minted}
 
-为你自己的类型实现可能失败的转换也非常简单。\texttt{Error}类型可以简单，也可以像某个应用的需求一样复杂。这里标准库使用了一个空的结构体，没有提供转换失败的原因相关的信息，因为唯一可能失败的原因就是溢出。另一方面，在更复杂的类型之间转换可能会需要返回更多的信息：
+为你自己的类型实现可能失败的转换也非常简单。\texttt{Error}类型既可以很简单，也可以像某个应用的需求一样复杂。这里标准库使用了一个空的结构体，没有提供转换失败的原因相关的信息，因为唯一可能失败的原因就是溢出。另一方面，在更复杂的类型之间转换可能会需要返回更多的信息：
 \begin{minted}{Rust}
     impl TryInto<LinearShift> for Transform {
         type Error = TransformError;
@@ -703,7 +706,7 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
     }
 \end{minted}
 
-\texttt{From}和\texttt{Into}将只需要简单的转换的类型联系起来，\texttt{TryFrom}和\texttt{TryInto}用\texttt{Rusult}的强大的错误处理能力扩展了\texttt{From}和\texttt{Into}的简单转换。这四个trait可以一起使用来联系一个crate中的多种类型。
+\texttt{From}和\texttt{Into}将只需要简单的转换的类型联系起来，\texttt{TryFrom}和\texttt{TryInto}用\texttt{Result}的强大的错误处理能力扩展了\texttt{From}和\texttt{Into}的简单转换。这四个trait可以一起使用来联系一个crate中的多种类型。
 
 \section{\texttt{ToOwned}}\label{toowned}
 
@@ -717,7 +720,7 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
     }
 \end{minted}
 
-与\texttt{clone}必须返回\texttt{Self}不同，\texttt{to\_owned}可以返回任何你可能借用一个\texttt{\&Self}的对象：\texttt{Owned}类型必须实现了\texttt{Borrow<Self>}。你可以从\texttt{Vec<T>}借用一个\texttt{\&[T]}，所以\texttt{[T]}可以实现\texttt{ToOwned<Owned=Vec<T>>}，只要\texttt{T}实现了\texttt{Clone}，因此我们可以把切片的元素拷贝进vector中。类似的，\texttt{str}实现了\texttt{ToOwned<Owned=String>}，\texttt{Path}实现了\texttt{ToOwned<Owned=PathBuf}，等等。
+与\texttt{clone}必须返回\texttt{Self}不同，\texttt{to\_owned}可以返回任何你可能借用一个\texttt{\&Self}的对象：\texttt{Owned}类型必须实现了\texttt{Borrow<Self>}。你可以从\texttt{Vec<T>}借用一个\texttt{\&[T]}，所以\texttt{[T]}可以实现\texttt{ToOwned<Owned=Vec<T>>}，只要\texttt{T}实现了\texttt{Clone}，因此我们可以把切片的元素拷贝进vector中。类似的，\texttt{str}实现了\texttt{ToOwned<Owned=String>}，\texttt{Path}实现了\texttt{ToOwned<Owned=PathBuf>}，等等。
 
 \section{\texttt{Borrow}和\texttt{ToOwned}的配合：\texttt{Cow}}\label{Cow}
 
@@ -735,12 +738,11 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
 
 一个\texttt{Cow<B>}可能是一个\texttt{B}的一个共享引用，也可能拥有一个我们可以借用到这样一个引用的值。因为\texttt{Cow}实现了\texttt{Deref}，你可以将它当做\texttt{B}的共享引用来调用方法；如果它是\texttt{Owned}，它会借用一个拥有的值的共享引用；如果它是\texttt{Borrowed}，它直接使用它存储的引用。
 
-你也可以通过调用\texttt{to\_mut}方法来获取一个\texttt{Cow}值的共享引用，它会返回一个\texttt{\&mut B}。如果\texttt{Cow}恰巧是\texttt{Cow::Borrowed}，\texttt{to\_mut}简单地调用\texttt{to\_owned}方法来获取它引用的值的拷贝，然后把\texttt{Cow}修改为\texttt{Cow::Owned}，然后借用新的拥有的值的可变引用。这是这个类型的名字表示的“写时克隆”的行为。
+你也可以通过调用\texttt{to\_mut}方法来获取一个\texttt{Cow}值的可变引用，它会返回一个\texttt{\&mut B}。如果\texttt{Cow}恰巧是\texttt{Cow::Borrowed}，\texttt{to\_mut}简单地调用\texttt{to\_owned}方法来获取它引用的值的拷贝，然后把\texttt{Cow}修改为\texttt{Cow::Owned}，然后借用新的拥有的值的可变引用。这是这个类型的名字表示的“写时克隆”的行为。
 
 类似的，\texttt{Cow}还有一个\texttt{into\_owned}方法，如果需要的话它会通过引用拷贝一个值，然后返回它，把所有权移动给调用者，然后在这个过程中消耗掉\texttt{Cow}。
 
-
-\texttt{Cow}的一个常见用途是返回一个静态分配的字符串常量或者一个计算之后得到的字符串。例如，假设你需要把一个表示错误的枚举转换为消息。大多数variatn都用固定的字符串来处理，但其中的一些有一些额外的应该被包含在消息里的数据。你可以返回一个\texttt{Cow<'static str>}：
+\texttt{Cow}的一个常见用途是返回一个静态分配的字符串常量或者一个计算之后得到的字符串。例如，假设你需要把一个表示错误的枚举转换为消息，其中大多数variant都用固定的字符串来处理，但有些variant应该在消息里包含一些数据。你可以返回一个\texttt{Cow<'static str>}：
 \begin{minted}{Rust}
     use std::path::PathBuf;
     use std::borrow::Cow;
@@ -764,7 +766,7 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
     println!("Disaster has struct: {}", describe(&error));
 \end{minted}
 
-需要一个拥有所有权的值的调用者可以产生一个：
+如果调用者需要一个拥有所有权的值，那么它可以产生一个：
 \begin{minted}{Rust}
     let mut log: Vec<String> = Vec::new();
     ...
