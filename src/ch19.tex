@@ -401,7 +401,7 @@ Niko Matsakis和Josh Stone编写的Rayon库是另外一个例子。它提供两�
 \section{通道}
 \emph{通道(channel)}是一种从一个线程向另一个线程发送数据的管道。换句话说，它是一个线程安全的队列。
 
-\hyperref[f19-5]{图19-5}展示了通道应该怎么使用。它们和Unix管道有些像：一端发送数据，另一端接收。两端通常被两个不同的线程持有。但Unix管道用来发送字节，通道用来发送Rust值。\texttt{sender.send(item)}把一个值放入通道中；\texttt{receiver.recv()}从通道中移除一个值。所有权从发送线程移动到接收线程。如果通道是空的，\texttt{receiver.recv()}会阻塞，直到有一个值被发送。
+\hyperref[f19-5]{图19-5}展示了通道应该怎么使用。它们和Unix管道有些像：一端发送数据，另一端接收。两端通常被两个不同的线程持有。但Unix管道用来发送字节，通道用来发送Rust值。\texttt{sender.send(item)}把一个值放入通道中；\texttt{receiver.recv()}从通道中取出一个值。所有权从发送线程移动到接收线程。如果通道是空的，\texttt{receiver.recv()}会阻塞，直到有一个值被发送。
 
 \begin{figure}[htbp]
     \centering
@@ -412,7 +412,7 @@ Niko Matsakis和Josh Stone编写的Rayon库是另外一个例子。它提供两�
 
 有了通道，不同的线程可以通过传递值来进行通信。这是一种非常简单的让线程在没有锁或共享内存的情况下协同工作的方法。
 
-这并不是一种新技术。Erlang有隔离进程和消息传递已经30年了。Unix的管道大概已经50年了。我们更倾向于管道是一种提供灵活性和组合性的机制，而不是并发的机制，但事实上，它可以完成所有这些功能。Unix管道的一个示例如\autoref{f19-6}所示。显然三个程序同时工作是可能的。
+这并不是一种新技术。Erlang有隔离进程和消息传递已经30年了。Unix的管道大概已经50年了。我们更倾向于管道是一种提供灵活性和组合性的机制，而不是并发的机制，但事实上，它可以完成所有这些功能。Unix管道的一个示例如\hyperref[f19-6]{图19-6}所示。显然三个程序同时工作是可能的。
 
 Rust的通道比Unix的管道更快。发送一个值只是移动它而不是拷贝它，并且即使你要移动一个包含很多MB的数据结构也很快速。
 
@@ -428,7 +428,7 @@ Rust的通道比Unix的管道更快。发送一个值只是移动它而不是拷
 
 我们将展示使用线程和通道的部分代码，\href{https://github.com/ProgrammingRust/fingertips}{完整的程序}很短，总共只有大约1千行。
 
-我们的程序被组织为流水线架构，如\autoref{f19-7}所示。流水线只是使用通道的很多方式中的一种——我们之后将会讨论少数其他的方式——但它们是一种直观地把并发引入现有的单线程程序的方式。
+我们的程序被组织为流水线架构，如\hyperref[f19-7]{图19-7}所示。流水线只是使用通道的很多方式中的一种——我们之后将会讨论少数其他的方式——但它们是一种直观地把并发引入现有的单线程程序的方式。
 
 \begin{figure}[htbp]
     \centering
@@ -486,12 +486,11 @@ Rust的通道比Unix的管道更快。发送一个值只是移动它而不是拷
         }
 \end{minted}
 
-\texttt{sender.send(text)}把值\texttt{text}移动到通道里。最后，它被移动到接收值的县城里。不管\texttt{text}包含10行还是10MB文本，这个操作都只会拷贝三个机器字（一个\texttt{String}结构体的大小），相应的\texttt{receiver.recv()}调用也会拷贝三个机器字。
+\texttt{sender.send(text)}把值\texttt{text}移动到通道里。最后，它被移动到接收值的线程里。不管\texttt{text}包含10行还是10MB文本，这个操作都只会拷贝三个机器字（一个\texttt{String}结构体的大小），相应的\texttt{receiver.recv()}调用也会拷贝三个机器字。
 
-\texttt{send}和\texttt{recv}方法都返回\texttt{Result}，但这些方法只在通道的另一端被drop的情况下才会失败。如果\texttt{Receiver}被drop了，\texttt{send}调用会失败，因为如果不这么做，这个值将会永远留在通道中：没有了\texttt{Receiver}，就没有办法让任何线程接收它。类似的，如果通道中没有值并且\texttt{Sender}被\\
-drop了，\texttt{recv}调用会失败，因为如果不这么做，\texttt{recv}将会永远等待下去：没有了\texttt{Sender}，就没有方法让任何线程发送下一个值。drop通道的一端是通常的“挂断”方式，当你使用完它时用这种方法关闭连接。
+\texttt{send}和\texttt{recv}方法都返回\texttt{Result}，但这些方法只在通道的另一端被drop的情况下才会失败。如果\texttt{Receiver}被drop了，\texttt{send}调用会失败，因为如果不这么做，这个值将会永远留在通道中：没有了\texttt{Receiver}，就没有办法让任何线程接收它。类似的，如果通道中没有值并且\texttt{Sender}被drop了，\texttt{recv}调用会失败，因为如果不这么做，\texttt{recv}将会永远等待下去：没有了\texttt{Sender}，就没有方法让任何线程发送下一个值。drop通道的一端是通常的“挂断”方式，当你使用完它时用这种方法关闭连接。
 
-在我们的代码中，只有当receiver的线程提前退出，\texttt{sender.send(text)}才会失败。这是使用通道的代码的典型情况。不管这是故意的还是因为错误，我们的reader线程退出都是没有问题的。
+在我们的代码中，只有当receiver的线程提前退出，\texttt{sender.send(text)}才会失败。这是使用通道的代码的典型情况。不管这是故意的还是因为错误，我们的reader线程直接退出都是没有问题的。
 
 当这种情况发生时，或者线程读取完所有文档后，它会返回\texttt{Ok(())}：
 \begin{minted}{Rust}
@@ -499,9 +498,9 @@ drop了，\texttt{recv}调用会失败，因为如果不这么做，\texttt{recv
     });
 \end{minted}
 
-注意这个闭包返回一个\texttt{Result}。如果这个线程遇到了一个I/O错误，它会立即退出，并且错误会被存储在该线程的\texttt{JoniHandle}中。
+注意这个闭包返回一个\texttt{Result}。如果这个线程遇到了一个I/O错误，它会立即退出，并且错误会被存储在该线程的\texttt{JoinHandle}中。
 
-当然，和其他编程语言一样，Rust在错误处理方面允许很多其他的可能性。当错误发生时，我们可以简单地使用\texttt{println!}打印出它，然后继续下一个文件。我们可以通过正在用来传递数据的通道传递这个错误，只需要将它改成\texttt{Result}的通道——或者为错误创建第二个通道。我们在这里选择的方式既轻量又负责：我们使用了\texttt{?}操作符，因此不会有很多样板代码，或者一个你可能会在Java中见到的显式的\texttt{try/catch}，并且错误不会被悄悄地忽略。
+当然，和其他编程语言一样，Rust在错误处理方面允许很多其他的可能性。当错误发生时，我们可以简单地使用\texttt{println!}打印出它，然后继续下一个文件。我们可以通过正在用来传递数据的通道传递这个错误，只需要将它改成\texttt{Result}的通道——或者为错误创建第二个通道。我们在这里选择的方式既轻量又负责：我们使用了\texttt{?}操作符，因此不会有很多样板代码，也不会有你可能会在Java中见到的显式的\texttt{try/catch}，并且错误不会被悄悄地忽略。
 
 为了方便，我们的程序把这些代码包装为了一个返回\texttt{receiver}（我们还没有使用过它）和新线程的\texttt{JoinHandle}的函数：
 \begin{minted}{Rust}
@@ -535,7 +534,7 @@ drop了，\texttt{recv}调用会失败，因为如果不这么做，\texttt{recv
     }
 \end{minted}
 
-这两个循环是等价的。不管用哪种方式写，如果当控制流到达循环时通道恰好为空，那么receiver线程会阻塞直到其他线程发送了值。当通道为空并且\texttt{Sender}被drop时loop循环会正常退出。在我们的程序中，当reader线程退出时就会很自然的变为这种情况。正在运行闭包的线程拥有变量\texttt{sender}；当闭包退出时，\texttt{sender}会被drop。
+这两个循环是等价的。不管用哪种方式写，如果当控制流到达循环时通道恰好为空，那么receiver线程会阻塞直到其他线程发送了值。当通道为空并且\texttt{Sender}被drop时循环会正常退出。在我们的程序中，当reader线程退出时就会很自然地变为这种情况。正在运行闭包的线程拥有变量\texttt{sender}；当闭包退出时，\texttt{sender}会被drop。
 
 现在我们可以编写流水线的第二个阶段：
 \begin{minted}{Rust}
@@ -557,11 +556,10 @@ drop了，\texttt{recv}调用会失败，因为如果不这么做，\texttt{recv
     }
 \end{minted}
 
-这个函数创建一个从另一个线程接收\texttt{String}值(\texttt{text})并且向另一个通道发送\texttt{InMemoryIndex}值的线程。这个线程的任务是接收第一个阶段加载的文件内容，并把每一个文档转换成一些内存中的倒排索引。
+这个函数创建一个从其他线程接收\texttt{String}值(\texttt{text})然后向另一个通道发送\texttt{InMemoryIndex}\\
+值的线程。这个线程的任务是接收第一个阶段加载的文件内容，并把每一个文档转换成一些内存中的倒排索引。
 
-这个线程的主循环很直观。所有索引文档的工作都由函数\texttt{InMemoryIndex::from\_single\_document}完成。我们并没有在这里展示它的代码，但它把输入的字符串切分为单词，并产生一个单词到其出现位置的映射。
-
-这个阶段没有I/O操作，因此它不需要处理\texttt{io::Error}。所以它返回\texttt{()}而不是\texttt{io::Result<()>}。
+这个线程的主循环很直观。\texttt{InMemoryIndex::from\_single\_document}函数负责完成所有索引文档的工作。我们并没有在这里展示它的代码，但它把输入的字符串切分为单词，并产生一个单词到其出现位置的映射。这个阶段没有I/O操作，因此它不需要处理\texttt{io::Error}。所以它返回\texttt{()}而不是\texttt{io::Result<()>}。
 
 \subsection{运行流水线}
 剩余的三个阶段在设计上很相似，每个阶段都消耗上一个阶段创建的\texttt{Receiver}。流水线剩余部分的目标是把所有小索引合并成一个更大的索引，并保存为磁盘上的文件。我们发现最快的方式是以三个阶段来实现它。我们没有在这里给出代码，只是给出了这三个函数的签名。完整的代码可以在线获得。
@@ -617,14 +615,15 @@ drop了，\texttt{recv}调用会失败，因为如果不这么做，\texttt{recv
 
 这个流水线比单线程的实现快了40\%。一下午的时间能做到做一点已经不错了，不过如果和我们之前在曼德勃罗集中取得的675\%的加速相比，我们显然没有充分利用系统的I/O性能或者CPU核心。这是为什么呢？
 
-流水线就像生产工厂中的装配线：整体的性能受限于最慢的阶段的吞吐量。在我们的例子中，测量结果表示第二个阶段是瓶颈。我们的索引线程使用了\texttt{.to\_lowercase()}和\texttt{.is\_alphanumeric()}，因此它需要很长时间在Unicode表中查找。其他的后续阶段把大部分时间浪费在\texttt{Receiver::recv}等待输入上。
+流水线就像生产工厂中的装配线：整体的性能受限于最慢的阶段的吞吐量。在我们的例子中，测量结果表示第二个阶段是瓶颈。我们的索引线程使用了\texttt{.to\_lowercase()}和\\
+\texttt{.is\_alphanumeric()}，因此它需要很长时间在Unicode表中查找。其他的后续阶段把大部分时间浪费在\texttt{Receiver::recv}等待输入上。
 
 这意味着我们应该能更快。因为我们定位到了瓶颈，因此并行度还可以提高。现在你已经知道了如何使用通道，我们的程序由很多独立的代码片段组成，很容易找到解决这个瓶颈的方法。我们可以优化第二个阶段，就像其他代码一样：把它的工作划分为两个或更多的阶段，或者同时运行多个文件索引线程。
 
 \subsection{通道的特性和性能}
-\texttt{std::sync::mpsc}中的\texttt{mpsc}代表着\emph{多生产者，单消费者(multiproducer, single-consumer)}，简洁地描述了Rust的通道提供的这种通信方式。
+\texttt{std::sync::mpsc}中的\texttt{mpsc}代表着\emph{多生产者，单消费者(multi-producer, single-consumer)}，简洁地描述了Rust的通道提供的这种通信方式。
 
-我们的示例程序中的通道将值从单个发送者移动到单个接收者。这是非常常见的情况。但是Rust的通道还支持多个发送者的情况，即用单个线程处理来自多个客户端线程的请求，如\autoref{f19-8}所示。
+我们的示例程序中的通道将值从单个发送者移动到单个接收者。这是非常常见的情况。但是Rust的通道还支持多个发送者的情况，即用单个线程处理来自多个客户端线程的请求，如\hyperref[f19-8]{图19-8}所示。
 
 \begin{figure}[htbp]
     \centering
@@ -653,7 +652,7 @@ Rust的通道被精心优化过。当通道第一次创建时，Rust使用了一
 同步通道实际上就是普通的通道，除了当你创建它时可以指定它可以存储多少值。对于一个同步通道，\texttt{sender.send(value)}是一个阻塞操作。毕竟，设计它的idea是阻塞并不是一件坏事。在我们的示例程序中，将\texttt{start\_file\_reader\_thread}中的\texttt{channel}修改为能存储32个值的\texttt{sync\_channel}可以在保证吞吐量不变的情况下减少$\frac{2}{3}$的内存占用。
 
 \subsection{线程安全：\texttt{Send}和\texttt{Sync}}\label{threadsafe}
-到目前为止我们操作的所有值都可以自由地在线程间移动和共享。大部分情况都是这样，但Rust的完整的线程安全取决于两个内建的trait：\texttt{std::marker::Send}和\texttt{std::marker::Sync}。
+目前为止我们操作的所有值都可以自由地在线程间移动和共享。大部分情况都是这样，但Rust的完整的线程安全取决于两个内建的trait：\texttt{std::marker::Send}和\texttt{std::marker::Sync}。
 
 \begin{enumerate}
     \item 实现了\texttt{Send}的类型可以安全地以值传递到另一个线程。它们可以在线程之间移动。
@@ -662,11 +661,11 @@ Rust的通道被精心优化过。当通道第一次创建时，Rust使用了一
 
 这里的\emph{安全(safe)}指的是我们通常所说的含义：没有数据竞争和其它未定义行为。
 
-例如，在\texttt{process\_files\_in\_parallel}示例中，我们使用了一个闭包来从父线程给每一个子线程传递一个\texttt{Vec<String>}。我们当时并没有指出，但这意味着vector和它的字符串都是在父线程中分配，但却在子线程中释放。事实是\texttt{Vec<String>}实现了\texttt{Send}，它是一种承诺这样做没问题的API：\texttt{Vec}和\texttt{String}内部使用的分配器是线程安全的。
+例如，在\texttt{process\_files\_in\_parallel}示例中，我们使用了一个闭包来从父线程给每个子线程传递一个\texttt{Vec<String>}。我们当时并没有指出，但这意味着vector和它的字符串都是在父线程中分配，但却在子线程中释放。事实是\texttt{Vec<String>}实现了\texttt{Send}，它是一种承诺这样做没问题的API：\texttt{Vec}和\texttt{String}内部使用的分配器是线程安全的。
 
 （如果你想基于更快但不是线程安全的分配器实现你自己的\texttt{Vec}和\texttt{String}类型，你可能需要使用不是\texttt{Send}的类型来实现它们，例如unsafe指针。然后Rust会推断出你的\texttt{NonThreadSafeVec}和\texttt{NonThreadSafeString}类型不是\texttt{Send}，并限制它们只能在单线程中使用。但这种情况很少见。）
 
-如\autoref{f19-9}所示，大多数类型都是\texttt{Send}和\texttt{Sync}。你甚至不需要使用\texttt{\#[derive]}来为你的结构体和枚举实现它们。Rust会自动实现。如果结构体或枚举的所有字段都是\texttt{Send}/\texttt{Sync}，那么它们也是\texttt{Send}/\texttt{Sync}。
+如\hyperref[f19-9]{图19-9}所示，大多数类型都是\texttt{Send}和\texttt{Sync}。你甚至不需要使用\texttt{\#[derive]}来为你的结构体和枚举实现它们。Rust会自动实现。如果结构体或枚举的所有字段都是\texttt{Send}/\texttt{Sync}，那么它们也是\texttt{Send}/\texttt{Sync}。
 
 \begin{figure}[htbp]
     \centering
@@ -677,9 +676,9 @@ Rust的通道被精心优化过。当通道第一次创建时，Rust使用了一
 
 一些类型是\texttt{Send}，但不是\texttt{Sync}。这通常是故意的，就像\texttt{mpsc::Receiver}的例子中，它保证\texttt{mpsc}通道的接收端同时只能被一个线程使用。
 
-那些少数既不是\texttt{Send}又不是\texttt{Sync}的类型通常是那些以线程不安全的方式实现可变性的类型。例如\texttt{std::rc::Rc<T>}，它是引用计数的智能指针类型。
+那些少数既不是\texttt{Send}又不是\texttt{Sync}的类型通常是以线程不安全的方式实现可变性的类型。例如\texttt{std::rc::Rc<T>}，它是引用计数的智能指针类型。
 
-如果\texttt{Rc<String>}是\texttt{Sync}、允许多个线程给通过共享引用共享一个\texttt{Rc}会发生什么？如果有多个线程恰好同时克隆\texttt{Rc}，如\autoref{f19-10}所示，就会出现数据竞争，因为有多个线程同时想递增引用计数。引用计数就可能变得不精确，进而导致之后出现释放后使用或两次释放——即未定义行为。
+如果\texttt{Rc<String>}是\texttt{Sync}、允许多个线程通过共享引用共享一个\texttt{Rc}会发生什么？如果有多个线程恰好同时克隆\texttt{Rc}，如\hyperref[f19-10]{图19-10}所示，就会出现数据竞争，因为有多个线程同时想递增引用计数。引用计数就可能变得不精确，进而导致之后出现释放后使用或两次释放——即未定义行为。
 
 \begin{figure}[htbp]
     \centering
@@ -771,7 +770,7 @@ trait允许我们给标准库类型添加方法，所以我们确实可以做到
     }
 \end{minted}
 
-这段代码中的\texttt{where}子句是通过类似于我们在“\nameref{RevBound}”中描述过的方式决定的。一开始，我们只写了：
+这段代码中的\texttt{where}子句是通过类似于我们在\nameref{RevBound}中描述过的方式决定的。一开始，我们只写了：
 \begin{minted}{Rust}
     impl<T> OffThreadExt for T
 \end{minted}
@@ -783,7 +782,7 @@ trait允许我们给标准库类型添加方法，所以我们确实可以做到
 \subsection{超越流水线}
 在这一节中，我们使用了流水线作为示例程序，因为流水线是一种非常nice的使用通道的方式。每个人都可以理解它们。它们是具体的、实用的、确定性的。通道不仅仅在流水线中非常有用。它们还是一种快速、方便地为同一个进程中的其他线程提供任何异步服务的方式。
 
-例如，假设在\autoref{f19-8}中你想在专门的线程中进行日志工作。其他的线程可以通过一个通道给日志线程发送日志消息；因为你可以克隆通道的\texttt{Sender}，所以很多客户端线程可以持有发送到同一个日志线程的sender。
+例如，假设在\hyperref[f19-8]{图19-8}中你想在专门的线程中进行日志工作。其他的线程可以通过一个通道给日志线程发送日志消息；因为你可以克隆通道的\texttt{Sender}，所以很多客户端线程可以持有发送到同一个日志线程的sender。
 
 在单独的线程中运行类似日志这样的服务有很多优势。日志线程可以在需要时轮换日志文件。它不需要和其他线程进行任何的协调，那些线程也不会被阻塞。消息将在通道中无害地累积一段时间，直到日志线程返回来处理。
 
@@ -799,7 +798,7 @@ trait允许我们给标准库类型添加方法，所以我们确实可以做到
 
 你可以创建一个新线程来专门管理这个列表，其他线程都通过通道和它通信，这确实可以解决问题。但是当然，这会多一个线程，会有一些操作系统的开销。
 
-另一种选择是使用Rust提供的用于安全的共享可变数据的工具。这样的工具确实存在，它们是一些底层的原语，任何曾经使用过线程的系统程序员应该都很熟悉。在这一节中，我们将介绍自旋锁(mutex)，读/写锁(read/write lock)，条件变量(condition variable)，和原子整数(atomic integer)。最后，我们将展示如何在Rust中实现全局的可变变量。
+另一种选择是使用Rust提供的用于安全的共享可变数据的工具。这样的工具确实存在，它们是一些底层的原语，任何曾经使用过线程的系统程序员应该都很熟悉。在这一节中，我们将介绍互斥锁(mutex)，读/写锁(read/write lock)，条件变量(condition variable)，和原子整数(atomic integer)。最后，我们将展示如何在Rust中实现全局的可变变量。
 
 \subsection{互斥锁是什么？}
 
@@ -827,7 +826,8 @@ trait允许我们给标准库类型添加方法，所以我们确实可以做到
 
 互斥锁有以下作用：
 \begin{enumerate}
-    \item 它们阻止了\emph{数据竞争(data race)}，即多个竞争线程同时读写相同的内存地址。在C++和Go中数据竞争是未定义行为。托管语言例如Java和C\#保证不会崩溃，但数据竞争的结果（总的来说）仍然是无意义的。
+    \item 它们阻止了\emph{数据竞争(data race)}，即多个竞争线程同时读写相同的内存地址。在C++和\\
+    Go中数据竞争是未定义行为。托管语言例如Java和C\#保证不会崩溃，但数据竞争的结果（总的来说）仍然是无意义的。
     \item 即使没有数据竞争，即使所有的读写都恰好按照顺序一个一个来，如果没有互斥锁，不同线程的操作也可能会以任意方式交错。想象尝试编写一段即使其他线程修改了它的数据也能工作的代码。想象尝试调试它。就像你的程序正在闹鬼一样。
     \item 互斥锁支持使用\emph{不变量(invariant)}进行编程，它是一种有关受保护数据的规则，在您构造数据时它为真，并在每个临界区结束后都保持为真。 
 \end{enumerate}
@@ -916,12 +916,13 @@ trait允许我们给标准库类型添加方法，所以我们确实可以做到
     let mut guard = self.waiting_list.lock().unwrap();
 \end{minted}
 
-\texttt{self.waiting\_list.lock()}会阻塞，直到获取到互斥锁。这个方法返回的\texttt{MutexGuard<WaitingList>}是一个\texttt{\&mut WaitingList}的简单包装。得益于强制解引用，我们可以直接对guard调用\texttt{WaitingList}方法：
+\texttt{self.waiting\_list.lock()}会阻塞，直到获取到互斥锁。这个方法返回的\\
+\texttt{MutexGuard<WaitingList>}是一个\texttt{\&mut WaitingList}的简单包装。得益于强制解引用，我们可以直接对\texttt{guard}调用\texttt{WaitingList}方法：
 \begin{minted}{Rust}
     guard.push(player);
 \end{minted}
 
-guard甚至允许我们借用底层数据的直接引用。Rust的生命周期系统会保证这些引用的生命周期不能超过guard本身。在不获取锁的情况下，没有任何方法获取\texttt{Mutex}内的数据。
+\texttt{guard}甚至允许我们借用底层数据的直接引用。Rust的生命周期系统会保证这些引用的生命周期不能超过\texttt{guard}本身。在不获取锁的情况下，没有任何方法获取\texttt{Mutex}内的数据。
 
 当\texttt{guard}被drop时，锁会被释放。一般会发生在块的结尾，不过你也可以手动drop它：
 \begin{minted}{Rust}
@@ -933,7 +934,7 @@ guard甚至允许我们借用底层数据的直接引用。Rust的生命周期�
 \end{minted}
 
 \subsection{\texttt{mut}和\texttt{Mutex}}\label{MutAndMutex}
-有一件事可能很奇怪——第一眼看去确实会觉得很奇怪——就是我们的\texttt{join\_waiting\_list}方法并不是以\texttt{mut}引用获取\texttt{self}参数。它的类型签名是：
+有一件事可能很奇怪（第一眼看去确实会觉得很奇怪），就是我们的\texttt{join\_waiting\_list}方法并不是以\texttt{mut}引用获取\texttt{self}参数。它的类型签名是：
 \begin{minted}{Rust}
     fn join_waiting_list(&self, player: PlayerId)
 \end{minted}
@@ -953,7 +954,8 @@ guard甚至允许我们借用底层数据的直接引用。Rust的生命周期�
 
 Rust的类型系统告诉了我们\texttt{Mutex}做了什么。它动态地强制独占性访问，而这一点通常是由Rust的编译器在编译期静态完成的。
 
-（你可能会回想起来\texttt{std::cell::RefCell}做了同样的事，除了并不支持多线程。\texttt{Mutex}和\texttt{RefCell}都是我们之前介绍过的内部可变性的体现。）
+（你可能会回想起来\texttt{std::cell::RefCell}做了同样的事，除了并不支持多线程。\texttt{Mutex}和\\
+\texttt{RefCell}都是我们之前介绍过的内部可变性的体现。）
 
 \subsection{为什么有时互斥锁不是好方案}
 在我们开始互斥锁之前，我们提到过一些并发的方法，如果你是从C++过来的那你可能会感觉它们很容易正确使用。这并非巧合：这些方法旨在为并发编程中最令人困惑的方面提供强有力的保证。只使用fork-join并行的程序是确定性的，不可能死锁。只使用通道来实现流水线的程序，例如我们的索引构建器，也是确定性的：消息传递的时机可能不同，但并不会影响输出。多线程程序的安全保证非常nice！
@@ -964,12 +966,12 @@ Rust的\texttt{Mutex}的设计几乎肯定会让你比以往更系统、更明�
 
 然而，使用互斥锁的线程可能还会遇到一些其他Rust无法解决的问题：
 \begin{enumerate}
-    \item 有效的Rust程序不可能有数据竞争，但仍然可能有其他的\emph{竞争条件(race condition)}——程序的行为依赖于多个线程的执行顺序，并且因此导致每一次运行结果都不同。一些竞争条件是良性的，另一些可能是非常难修复的bug。以非结构化的方式使用互斥锁会引发竞争条件。你需要确保它们是良星的。
+    \item 有效的Rust程序不可能有数据竞争，但仍然可能有其他的\emph{竞争条件(race condition)}——程序的行为依赖于多个线程的执行顺序，并且因此导致每一次运行结果都不同。一些竞争条件是良性的，另一些可能是非常难修复的bug。以非结构化的方式使用互斥锁会引发竞争条件。你需要确保它们是良性的。
     \item 共享的可变状态也会影响程序的设计。通道作为代码中的抽象边界，让你更容易的隔离开不同的组件。而互斥锁鼓励“just-add-a-method”的工作方式，这可能导致相关的代码变成一个大块。
     \item 最后，互斥锁并不像它第一眼看上去那么简单，正如接下来两节所示。
 \end{enumerate}
 
-这些问题都是互斥锁工具固有的。如果可以就使用更加结构化的方式，只有当必要时才使用\texttt{Mutex}。
+这些问题都是互斥锁工具固有的。如果可以的话请使用更加结构化的方式，只有当必要时才使用\texttt{Mutex}。
 
 \subsection{死锁}
 如果一个线程尝试获取一个已经持有的锁，那么可能会导致死锁：
@@ -982,23 +984,24 @@ Rust的\texttt{Mutex}的设计几乎肯定会让你比以往更系统、更明�
 
 换句话说，\texttt{Mutex}里的锁不是可递归的锁。
 
-这个bug很明显。在真实的程序中，两个\texttt{lock()}调用可能发生在两个不同的方法中，其中一个调用另外一个。每一个方法单独看起来都没什么问题。这就是另外一种导致死锁的方式：在有多个线程的情况下，每个线程一次获取多个互斥锁。Rust的借用系统并不能帮助你避免死锁。最好的防护方法就是就是让临界区尽可能小：进入、做工作、然后离开。
+这个bug很明显。在真实的程序中，两个\texttt{lock()}调用可能发生在两个不同的方法中，其中一个调用另外一个。每一个方法单独看起来都没什么问题。还有一些别的导致死锁的方式：在有多个线程的情况下，每个线程一次获取多个互斥锁。Rust的借用系统并不能帮助你避免死锁。最好的防护方法就是就是让临界区尽可能小：进入、做工作、然后离开。
 
 使用通道也可能导致死锁。例如，两个线程可能阻塞住，因为它们都在等待从另一个线程中接收消息。然而，好的程序设计可以确保不会发生死锁。在流水线中数据流是非循环的，例如我们的倒排索引构造器。死锁不太可能出现在这样的程序中，正如Unix shell管道一样。
 
 \subsection{中毒的互斥锁}
-\texttt{Mutex::lock()}返回一个\texttt{Result}，原因和\texttt{JoinHandle::join()}返回\texttt{Result}是一样的：如果另一个线程panic就正常失败。当我们写\texttt{handle.join().unwrap()}时，我们是在告诉Rust把panic从一个线程传播到另一个线程。\texttt{mutex.lodck().unwrap()}也类似。
+\texttt{Mutex::lock()}返回一个\texttt{Result}，原因和\texttt{JoinHandle::join()}返回\texttt{Result}是一样的：如果另一个线程panic就正常失败。当我们写\texttt{handle.join().unwrap()}时，我们是在告诉Rust把\\
+panic从一个线程传播到另一个线程。\texttt{mutex.lock().unwrap()}也类似。
 
 如果一个线程在持有一个\texttt{Mutex}的时候panic，Rust会标记这个\texttt{Mutex}\emph{中毒了(poisoned)}。任何后续尝试\texttt{lock}中毒的\texttt{Mutex}的操作都会得到错误的结果。我们的\texttt{.unwrap()}调用告诉Rust如果发生了这种情况，就把panic从另一个线程传播到这个线程。
 
 中毒的互斥锁有多糟糕？中毒听起来是致命的，但实际上这种情况不一定是致命的。正如我们在\hyperref[ch07]{第7章}所说，panic是安全的。就算有一个线程panic程序的其他部分仍然处于安全的状态。
 
-互斥锁在panic时候中毒的原因，并不是为了防止未定义行为。相反，真正担心的是您可能一直在使用不变量进行编程。 因为你的程序panic了并且导致某个临界区内并没有完成正在做的工作，可能已经更新了被保护数据的一部分字段，但另一部分还没有更新，这可能会破坏不变量。Rust让互斥锁中毒是为了防止其他线程不知不觉中陷入这种错误的情况然后让情况变得更糟。通过完全强制互斥，你仍然\emph{可以}锁住一个中毒的互斥锁，并访问里面的数据，见\texttt{PoisonError::into\_inner()}的文档。但你不可能意外的做到这一点。
+互斥锁在panic时候中毒的原因，并不是为了防止未定义行为。相反，真正担心的是您可能一直在使用不变量进行编程。 因为你的程序panic了并且导致某个临界区内并没有完成正在做的工作，可能已经更新了被保护数据的一部分字段，但另一部分还没有更新，这可能会破坏不变量。Rust让互斥锁中毒是为了防止其他线程不知不觉中陷入这种错误的情况然后让情况变得更糟。通过完全强制互斥，你仍然\emph{可以}锁住一个中毒的互斥锁，并访问里面的数据，见\texttt{PoisonError::into\_inner()}的文档。但你不可能无意中做到这一点。
 
 \subsection{使用互斥锁的多消费者通道}
 我们之前提到过Rust的通道是多生产者，单消费者。或者更精确地说，一个通道只能有一个\texttt{Receiver}。我们不能创建一个线程池，并用单个\texttt{mpsc}通道作为共享的工作队列。
 
-然而，事实证明就算只使用标准库的组件，也可以很简单的解决这个问题。我们可以给\texttt{Receiver}包装上一个\texttt{Mutex}并且随意共享它。这里有一个这么多的模块：
+然而，事实证明就算只使用标准库的组件，也可以很简单的解决这个问题。我们可以给\texttt{Receiver}包装上一个\texttt{Mutex}并且随意共享它。这里有一个这么做的模块：
 \begin{minted}{Rust}
     pub mod shared_channel {
         use std::sync::{Arc, Mutex};
@@ -1028,7 +1031,7 @@ Rust的\texttt{Mutex}的设计几乎肯定会让你比以往更系统、更明�
     }
 \end{minted}
 
-我们正在使用一个\texttt{Arc<Mutex<Receiver<T>>>}。泛型嵌套的有点多。这种情况Rust中比在C++中出现的更频繁。看起来这可能会让人困惑，不过通常情况下，就和这里一样，只需要阅读这些名字就可以解释它到底是什么，如\autoref{f19-11}所示。
+我们正在使用一个\texttt{Arc<Mutex<Receiver<T>>>}。泛型嵌套的有点多。这种情况Rust中比在C++中出现的更频繁。看起来这可能会让人困惑，不过通常情况下，就和这里一样，只需要阅读这些名字就可以解释它到底是什么，如\hyperref[f19-11]{图19-11}所示。
 
 \begin{figure}[htbp]
     \centering
@@ -1084,7 +1087,8 @@ Rust的\texttt{Mutex}的设计几乎肯定会让你比以往更系统、更明�
     \item 一个实现了分布式共识协议的进程可能需要等待法定人数的peer响应。
 \end{enumerate}
 
-有时，有一些方便的阻塞API可以用于某些我们需要等待的精确条件，例如\texttt{JoinHandle::join}可以用于服务器关机的例子。在其他情况中，没有内建的阻塞API。程序可以使用\emph{条件变量(condition variable)}来构建自己的API。在Rust中，\texttt{std::sync::Condvar}类型实现了条件变量。一个\texttt{Condvar}有\texttt{.wait()}和\texttt{.notify\_all()}方法；\texttt{.wait()}会阻塞直到某些其他线程调用了\texttt{.notify\_all()}。
+有时，有一些方便的阻塞API可以用于某些我们需要等待的精确条件，例如\\
+\texttt{JoinHandle::join}可以用于服务器关机的例子。在其他情况中，没有内建的阻塞API。程序可以使用\emph{条件变量(condition variable)}来构建自己的API。在Rust中，\texttt{std::sync::Condvar}类型实现了条件变量。一个\texttt{Condvar}有\texttt{.wait()}和\texttt{.notify\_all()}方法；\texttt{.wait()}会阻塞直到某些其他线程调用了\texttt{.notify\_all()}。
 
 真实的情况还要更复杂一些，因为条件变量总是与某个特定的\texttt{Mutex}保护的某些数据相关的条件。因此\texttt{Mutex}和\texttt{Condvar}是相关的。我们没有足够的篇幅进行完整的解释，但为了之前使用过条件变量的程序员，我们将展示代码中的两个关键部分。
 
@@ -1100,10 +1104,10 @@ Rust的\texttt{Mutex}的设计几乎肯定会让你比以往更系统、更明�
     }
 \end{minted}
 
-\texttt{while}循环是一种使用条件变量的标准写法。然而，\texttt{Condvar::wait}的签名并不寻常。它以值获取一个\texttt{MutexGuard}，消耗它，并在成功时返回一个新的\texttt{MutexGuard}。这捕获了\texttt{wait}方法释放互斥锁然后在返回之前重新获取它的直觉。以值传递\texttt{MutexGuard}是在说“我授予你.wait()方法，这是我释放互斥锁的独占性权限”。
+\texttt{while}循环是一种使用条件变量的标准写法。然而，\texttt{Condvar::wait}的签名并不寻常。它以值获取一个\texttt{MutexGuard}，消耗它，并在成功时返回一个新的\texttt{MutexGuard}。这隐含着\texttt{wait}方法先释放互斥锁然后在返回之前重新获取它。以值传递\texttt{MutexGuard}像是在说“我把我释放互斥锁的独占性权限赋予你——\texttt{.wait()}方法”。
 
 \subsection{原子量}\label{atomic}
-\texttt{std::sync::atomic}模块包含用于无锁并发编程的原子类型。这些类似基本和标准的C++原子类型相同，加上一些额外的类型：
+\texttt{std::sync::atomic}模块包含用于无锁并发编程的原子类型。这些类型基本和标准的C++原子类型相同，加上一些额外的类型：
 \begin{enumerate}
     \item \texttt{AtomicIsize}和\texttt{AtomicUsize}是和单线程的\texttt{isize}和\texttt{usize}类型相对应的共享整数类型。
     \item \texttt{AtomicI8, AtomicI16, AtomicI32, Atomic64}以及它们的无符号变体例如\texttt{AtomicU8}是和单线程的\texttt{i8, i16}等相对应的共享整数类型。
@@ -1134,7 +1138,8 @@ Rust的\texttt{Mutex}的设计几乎肯定会让你比以往更系统、更明�
     let worker_cancel_flag = cancel_flag.clone();
 \end{minted}
 
-这段代码创建了两个\texttt{Arc<AtomicBool>}智能指针，它们指向同一个在堆上分配的\texttt{AtomicBool}，它的初始值是\texttt{false}。第一个命名为\texttt{cancel\_flag}，它会留在主线程。第二个\texttt{worker\_cancel\_flag}，将会被移动到工作线程。
+这段代码创建了两个\texttt{Arc<AtomicBool>}智能指针，它们指向同一个在堆上分配的\texttt{AtomicBool}，它的初始值是\texttt{false}。第一个命名为\texttt{cancel\_flag}，它会留在主线程。第二个命名为\\
+\texttt{worker\_cancel\_flag}，将会被移动到工作线程。
 
 这里是工作线程的代码：
 \begin{minted}{Rust}
@@ -1229,7 +1234,7 @@ Rust尽其所能阻止全局可变状态。使用\texttt{const}声明的变量�
 
 不幸的是，虽然\texttt{AtomicUsize::new()}和\texttt{String::new()}是\texttt{const fn}，但\texttt{Mutex::new()}不是。为了绕开这些限制，我们需要使用\texttt{lazy\_static} crate。
 
-我们在“\nameref{LazyRegex}”中介绍过\texttt{lazy\_static} crate。使用\texttt{lazy\_static!}宏定义静态变量时，你可以使用任何表达式进行初始化；表达式会在变量第一次解引用时运行，值会被存储在变量中以便后续使用。
+我们在\nameref{LazyRegex}中介绍过\texttt{lazy\_static} crate。使用\texttt{lazy\_static!}宏定义静态变量时，你可以使用任何表达式进行初始化；表达式会在变量第一次解引用时运行，值会被存储在变量中以便后续使用。
 
 我们可以使用\texttt{lazy\_static}声明一个全局的\texttt{Mutex}控制的\texttt{HashMap}：
 \begin{minted}{Rust}
@@ -1244,11 +1249,11 @@ Rust尽其所能阻止全局可变状态。使用\texttt{const}声明的变量�
 
 同样的技术还可以用于其他的复杂数据结构例如\texttt{HashMap}和\texttt{Deque}。当静态变量不需要可变，但需要非平凡的初始化的时候，它非常有用。
 
-使用\texttt{lazy\_static!}会导致每次访问静态数据有微小的性能开销。它的实现里使用了\texttt{std::sync::Once}，它是一种用于一次性初始化的底层同步原语。在幕后，每一次访问一个惰性静态变量时，程序都会执行一个原子load指令来检查是否已经初始化过。（\texttt{Once}的用途很特殊，因此我们不会在这里详细介绍它。使用\texttt{lazy\_static!}通常更加方便。然而，它可以用于初始化非Rust库，一个示例见“\nameref{SafeInter}”。）
+使用\texttt{lazy\_static!}会导致每次访问静态数据有微小的性能开销。它的实现里使用了\texttt{std::sync::Once}，它是一种用于一次性初始化的底层同步原语。在幕后，每一次访问一个惰性静态变量时，程序都会执行一个原子load指令来检查是否已经初始化过。（\texttt{Once}的用途很特殊，因此我们不会在这里详细介绍它。使用\texttt{lazy\_static!}通常更加方便。它还可以用于方便地初始化非Rust库，一个示例见\nameref{SafeInter}。）
 
 \section{Rust中的hacking并发代码是什么样的}
 
-我们已经展示了Rust中使用线程的三种技术：fork-join并行，通道，和有锁的共享可变状态。我们的目的是提供一个Rust提供的工具的引导，主要聚焦于它们如何组合用于实际的程序中。
+我们已经展示了Rust中使用线程的三种技术：fork-join并行，通道和有锁的共享可变状态。我们的目的是提供一个Rust提供的工具的引导，主要聚焦于它们如何组合用于实际的程序中。
 
 Rust坚持安全性，因此当你决定编写一个多线程程序的时候开始，重点就是构建安全、结构化的通信方式。让线程保持最大限度的隔离是一种说服Rust你正在做安全的事的好方法。恰好这种隔离性也能保证你正在做的事是正确和可维护的。再重复一次，Rust引导你实现好的程序。
 
