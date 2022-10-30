@@ -5,18 +5,18 @@
     ——William Gibson, \emph{Neuromancer}
 \end{flushright}
 
-不幸的是，不是世界上每个程序都是用Rust编写的。我们可能想在我们的Rust程序中使用很多用其他语言实现的优秀的库和接口。Rust的\emph{外部语言接口（foreign function interface(FFI)）}让Rust代码能调用C编写的函数，和一部分C++编写的函数。因为大多数操作系统提供C接口，Rust的外部函数接口允许直接访问任何类型的底层设施。
+不幸的是，世界上不是每个程序都是用Rust编写的。我们可能想在我们的Rust程序中使用很多用其他语言实现的优秀的库和接口。Rust的\emph{外部语言接口（foreign function interface(FFI)）}让Rust代码能调用C编写的函数和一部分C++编写的函数。因为大多数操作系统提供C接口，Rust的外部函数接口允许直接访问任何类型的底层设施。
 
-在本章中，我们将编写一个链接到\texttt{libgit2}的程序，它是一个用于Git版本控制系统的C库。首先，我们将展示怎么直接在Rust中使用C函数，就使用我们上一章中介绍的unsafe特性。然后，我们将展示如何构建\texttt{liggit2}的safe接口，借助开源的\texttt{git2-rs} crate的灵感，这个crate正好实现了这一点。
+在本章中，我们将编写一个链接到\texttt{libgit2}的程序，它是一个用于Git版本控制系统的C库。首先，我们将展示怎么直接在Rust中使用C函数，就使用我们上一章中介绍的unsafe特性。然后，我们将展示如何构建\texttt{libgit2}的safe接口，借助开源的\texttt{git2-rs} crate的灵感，这个crate正好实现了这一点。
 
 我们将假设你熟悉C语言和编译链接C程序的机制。处理C++也相差不多。我们还假设你熟悉Git版本控制系统。
 
 确实有Rust crate用于和很多其他语言例如Python、JavaScript、Lua和Java交互。我们没有足够的篇幅来介绍它们，但所有这些接口最终都是使用C外部函数接口实现的，因此无论你想和什么语言交互，这一章都能给你一个开头。
 
 \section{寻找公共的数据表示}\label{repr}
-Rust和C的公共基础是机器语言，因此为了预测Rust的值在C代码中看起来是什么样的，或者反过来，你需要考虑它们的机器级表示。在整本书中，我们一直着重展示一个值在内存中的实际表示，因此你可能已经注意到了C和Rust的数据世界有很多共通之处：例如一个Rust的\texttt{usize}和C的\texttt{size\_t}是相同的，两门语言中的结构体也基本相同。为了建立起Rust和C中相应类型的关系，我们将从基本类型开始，并逐渐扩展到更复杂的类型。
+Rust和C的公共基础是机器语言，因此为了预测Rust的值在C代码中看起来是什么样的，或者反过来，你需要考虑它们的机器级表示。在整本书中，我们一直着重展示一个值在内存中的实际表示，因此你可能已经注意到了C和Rust的数据世界有很多共通之处：例如Rust的\texttt{usize}和C的\texttt{size\_t}是相同的，两门语言中的结构体也基本相同。为了建立起Rust和C中相应类型的关系，我们将从基本类型开始，并逐渐扩展到更复杂的类型。
 
-鉴于C主要用作系统编程，C中类型的表示总是令人惊讶的宽松：例如一个\texttt{int}通常是32位，但可能会更长，或者短到16位；一个C的\texttt{char}可能是有符号的也可能是无符号的。为了应对这种可变性，Rust的\texttt{std::os::raw}模块定义了一些Rust的类型，这些类型保证和相应的C类型有完全相同的表示（\autoref{t23-1}）。其中包括基本的整数和字符类型。
+鉴于C主要用作系统编程，C中类型的表示总是令人惊讶的宽松：例如一个\texttt{int}通常是32位，但可能会更长，或者短到16位；一个C的\texttt{char}可能是有符号的也可能是无符号的。为了应对这种可变性，Rust的\texttt{std::os::raw}模块定义了一些Rust的类型，这些类型保证和相应的C类型有完全相同的表示（\hyperref[t23-1]{表23-1}）。其中包括基本的整数和字符类型。
 
 \begin{table}[htbp]
     \centering
@@ -49,9 +49,10 @@ Rust和C的公共基础是机器语言，因此为了预测Rust的值在C代码�
     \end{tabular}
 \end{table}
 
-有关\autoref{t23-1}的注意事项：
+有关\hyperref[t23-1]{表23-1}的注意事项：
 \begin{enumerate}
-    \item 除了\texttt{c\_void}之外，这里所有的Rust类型都是某些基本Rust类型的别名：例如\texttt{c\_char}是\texttt{i8}或者\texttt{u8}。
+    \item 除了\texttt{c\_void}之外，这里所有的Rust类型都是某些基本Rust类型的别名：例如\texttt{c\_char}是\\
+    \texttt{i8}或者\texttt{u8}。
     \item Rust的\texttt{bool}等价于C或C++的\texttt{bool}。
     \item Rust的32位\texttt{char}类型并不等同于\texttt{wchar\_t}，后者的宽度和编码取决于具体实现。C的\texttt{char32\_t}倒是更接近一点，但它的编码仍然并不保证是Unicode。
     \item Rust的基础\texttt{usize}和\texttt{isize}类型和C的\texttt{size\_t}和\texttt{ptrdiff\_t}有相同的表示。
@@ -97,7 +98,8 @@ Rust和C的公共基础是机器语言，因此为了预测Rust的值在C代码�
 
 通常情况下，Rust在选择如何表示enum时会使用各种技巧。例如，我们提到过Rust在一个单字中存储\texttt{Option<\&T>}（如果\texttt{T}是sized）。如果没有\texttt{\#[repr(C)]}，Rust会使用单个字节来表示\texttt{git\_error\_code} enum；有了\texttt{\#[repr(C)]}之后，Rust会和C一样用一个C \texttt{int}一样大的值来存储。
 
-你可以要求Rust使用和某些整数相同的表示来存储enum。上面的定义如果以\texttt{\#[repr(i16)]}开头，将会得到一个和下面C++ enum相同的16位的表示：
+你可以要求Rust使用和某些整数相同的表示来存储enum。上面的定义如果以\texttt{\#[repr(i16)]}\\
+开头，将会得到一个和下面C++ enum相同的16位的表示：
 \begin{minted}{C++}
     #include <stdint.h>
 
@@ -168,8 +170,7 @@ Rust可以通过对enum、struct和union类型都应用\texttt{\#[repr(C)]}来�
 
 这意味着你不能借用一个Rust字符串来当做C字符串：如果你传给C代码一个Rust字符串的指针，它可能错误地把内容中一个空字符当做字符串的结尾，或者越界去查找一个不存在的结尾空字符。从另一个方向考虑，你也许可以借用一个C字符串作为一个Rust的\texttt{\&str}，只要它的内容是有效的UTF-8。
 
-这种情况强迫Rust必须把C的字符串看做和\texttt{String}、\texttt{\&str}完全不同的类型。在\texttt{std::ffi}模块中，\texttt{CString}和\\
-\texttt{CStr}类型表示拥有所有权的和借用的空字符结尾的字节数组。和\texttt{String}、\texttt{str}比起来，\texttt{CString}和\texttt{CStr}的方法非常有限，基本只有构建自身和转换成其他类型的方法。我们将在下一节中用实例展示这些类型。
+这种情况强迫Rust必须把C的字符串看做和\texttt{String}、\texttt{\&str}完全不同的类型。在\texttt{std::ffi}模块中，\texttt{CString}和\texttt{CStr}类型表示拥有所有权的和借用的空字符结尾的字节数组。和\texttt{String}、\texttt{str}比起来，\texttt{CString}和\texttt{CStr}的方法非常有限，基本只有构建自身和转换成其他类型的方法。我们将在下一节中用实例展示这些类型。
 
 \section{声明外部函数和变量}
 用\texttt{extern}块来声明其他库中定义的函数和变量，最终的Rust编译出的可执行文件会链接到这些库。例如，在大多数平台上，每个Rust程序都会链接到标准的C库，因此我们可以像这样告诉Rust C库里的\texttt{strlen}函数：
@@ -185,7 +186,7 @@ Rust可以通过对enum、struct和union类型都应用\texttt{\#[repr(C)]}来�
 
 Rust假设在\texttt{extern}块中声明的函数使用C语言的惯例来传递参数和接受返回值。它们被定义为\texttt{unsafe}函数。对\texttt{strlen}来说，这是正确的选择：它实际上是一个C函数，它的C规范要求你传入一个有效的以空字符结尾的字符串指针，而这是一个Rust无法强制的合约。（几乎任何接受原始指针作为参数的函数都必须是\texttt{unsafe}的：safe Rust可以从任何整数构造原始指针，但解引用这样的指针可能会导致未定义行为。）
 
-有了这个\texttt{extern}块，我们可以像任何其他Rust函数一样调用\texttt{strlen}，尽管它的类型：
+有了这个\texttt{extern}块，我们可以像任何其他Rust函数一样调用\texttt{strlen}，尽管它的类型显示了它是别的语言中定义的函数：
 \begin{minted}{Rust}
     use std::ffi::CString;
 
@@ -198,7 +199,7 @@ Rust假设在\texttt{extern}块中声明的函数使用C语言的惯例来传递
 
 \texttt{CString::new}函数构建出一个空字符结尾的C字符串。它首先检查它的内容里是否有空字符，因为如果有空字符就不能用C字符串来表示它，如果找到了空字符就返回一个error（因此需要调用\texttt{unwrap}）。否则，它向结尾添加一个空字符并返回一个\texttt{CString}，这个\texttt{CString}持有最后的字符的所有权。
 
-\texttt{CString::new}的开销取决于你传给它什么类型的参数。它接受任何实现了\texttt{Into<Vec<u8>>}的类型，传递一个\texttt{\&str}需要一次内存分配和拷贝，因为它到\texttt{Vec<u8>}的转换需要在堆上构建一份字符串的拷贝，这样vector才能拥有字符串的所有权。但以值传递一个\texttt{String}简单地消耗掉这个字符串并获取它的缓冲区的所有权，因此除非向缓冲区中添加一个空字符需要扩大缓冲区，否则这个转换完全不需要拷贝文本或内存分配。
+\texttt{CString::new}的开销取决于参数的类型。它接受任何实现了\texttt{Into<Vec<u8>>}的类型，传递一个\texttt{\&str}需要一次内存分配和拷贝，因为它到\texttt{Vec<u8>}的转换需要在堆上构建一份字符串的拷贝，这样vector才能拥有字符串的所有权。但以值传递一个\texttt{String}简单地消耗掉这个字符串并获取它的缓冲区的所有权，因此除非向缓冲区中添加一个空字符需要扩大缓冲区，否则这个转换完全不需要拷贝文本或内存分配。
 
 \texttt{CString}解引用到\texttt{CStr}，后者的\texttt{as\_ptr}方法返回一个\texttt{*const c\_char}指向字符串的头部。这正是\texttt{strlen}期望的类型。在这个例子中，\texttt{strlen}遍历字符串，寻找\texttt{CString::new}添加的空字符，然后返回字符串的长度，即字节数。
 
@@ -249,7 +250,7 @@ Rust假设在\texttt{extern}块中声明的函数使用C语言的惯例来传递
     }
 \end{minted}
 
-\texttt{extern}和之前一样声明了外部函数。\texttt{\#[link(name = "git2")]}属性会要求当Rust创建最终的可执行文件或者共享库时，它应该链接到\texttt{git2}库。Rust使用系统的链接器来构建可执行文件：在Unix上，它会向链接器的命令行传递\texttt{-lgit2}参数；在Windows上，他会传递\texttt{git2.LIB}参数。
+\texttt{extern}和之前一样声明了外部函数。\texttt{\#[link(name = "git2")]}属性会要求当Rust创建最终的可执行文件或者共享库时，它应该链接到\texttt{git2}库。Rust使用系统的链接器来构建可执行文件：在Unix上，它会向链接器的命令行传递\texttt{-lgit2}参数；在Windows上，它会传递\texttt{git2.LIB}参数。
 
 \texttt{\#[link]}属性在库crate中也可以工作。当你构建一个依赖其他crate的程序时，Cargo会从整个依赖图中抓取所有链接项并在最后的链接中全部加进去。
 
@@ -285,7 +286,7 @@ Rust假设在\texttt{extern}块中声明的函数使用C语言的惯例来传递
 \end{minted}
 
 复制我们之前展示的代码并粘贴到\emph{src/main.rs}里。当然，如果你尝试构建，Rust会不知道在哪查找你构建的\texttt{libgit2}库：
-\begin{minted}{bash}
+\begin{minted}{text}
     $ cd git-toy
     $ cargo run
        Compiling git-toy v0.1.0 (/home/jimb/git-toy)
@@ -310,10 +311,11 @@ Rust假设在\texttt{extern}块中声明的函数使用C语言的惯例来传递
     }
 \end{minted}
 
-这是Linux上的正确路径；在Windows上，你应该把\texttt{native=}之后的路径替换为\texttt{C:\textbackslash{}Users\textbackslash{}JimB\textbackslash{}liggit2-0.25.1\textbackslash{}build\textbackslash{}Debug}。（我们忽略了一些细节来保证这个例子的简洁；在一个真实的应用中，你应该避免在构建脚本中使用绝对路径。我们在本节结尾给出了如何正确实现这一点的文档。）
+这是Linux上的正确路径；在Windows上，你应该把\texttt{native=}之后的路径替换为\\
+\emph{C:\textbackslash{}Users\textbackslash{}JimB\textbackslash{}liggit2-0.25.1\textbackslash{}build\textbackslash{}Debug}。（我们忽略了一些细节来保证这个例子的简洁；在一个真实的应用中，你应该避免在构建脚本中使用绝对路径。我们在本节结尾给出了如何正确实现这一点的文档。）
 
 现在你基本上可以运行这个程序了。在macOS上它可能可以立即工作；但在Linux系统上你可能会看到类似这样的输出：
-\begin{minted}{bash}
+\begin{minted}{text}
     $ cargo run
        Compiling git-toy v0.1.0 (/tmp/rustbook-transcript-tests/git-toy)
         Finished dev [unoptimized + debuginfo] target(s)
@@ -343,9 +345,9 @@ Rust假设在\texttt{extern}块中声明的函数使用C语言的惯例来传递
 
 当然，在一个要部署的应用中你可能想避免只为了寻找你的库而修改环境变量。一种替代方案是把C库静态链接到你的crate里。这会把库的目标文件拷贝到crate的\emph{.rlib}文件里，和这个crate中的Rust代码生成的目标文件和元数据放在一起。然后这整个集合会参与最终的链接。
 
-Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}，其中\texttt{LIB}是C库的名称。一个\texttt{-sys} crate应该只包含静态链接的库和包含\texttt{extern}块和类型定义的Rust模块。更高层的接口应该应该在依赖\texttt{-sys} crate的crate中实现。这允许多个上游的crate依赖同一个\texttt{-sys} crate，假设有一个版本的\texttt{-sys} crate可以满足每个上游的需要。
+Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}，其中\texttt{LIB}是C库的名称。一个\texttt{-sys} crate应该只包含静态链接的库和包含\texttt{extern}块和类型定义的Rust模块。更高层的接口应该应该在依赖\texttt{-sys} crate的crate中实现。这允许多个上游的crate依赖同一个\texttt{-sys} crate，假设有一个版本的\texttt{-sys} crate可以满足每个上游的需要的话。
 
-有关Cargo的构建脚本和与系统库的链接的完整文档见\href{https://doc.rust-lang.org/cargo/reference/build-scripts.html}{在线Cargo文档}。它展示了如何在构建脚本中避免绝对路径、控制编译选项、使用例如\texttt{pkg-config}的工具，等等。\texttt{git2-rs} crate也提供了模仿的好例子：它的构建脚本处理了一些很复杂的情况。
+有关Cargo的构建脚本和与系统库的链接的完整文档见\href{https://doc.rust-lang.org/cargo/reference/build-scripts.html}{在线Cargo文档}。它展示了如何在构建脚本中避免绝对路径、控制编译选项、使用例如\texttt{pkg-config}的工具，等等。\texttt{git2-rs} crate也提供了模仿的好例子，它的构建脚本处理了一些很复杂的情况。
 
 \section{一个libgit2的原始接口}
 如何正确地使用\texttt{libgit2}可以分解为两个问题：
@@ -354,9 +356,9 @@ Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}�
     \item 如何通过它们构建一个safe Rust的接口？
 \end{enumerate}
 
-我们将逐一解决这两个问题。在本节中，我们将编写一个程序，它基本上是一个巨大的\texttt{unsafe}块，充满了不规范的Rust代码，它反映了类型系统和惯例的冲突，这也是混合语言编程所固有的特点。我们称其为\emph{原始（raw）}接口。它的代码可能有些凌乱，但它能展出出Rust代码使用\texttt{libgit2}时必须的所有步骤。
+我们将逐一解决这两个问题。在本节中，我们将编写一个程序，它基本上是一个巨大的\texttt{unsafe}块，充满了不规范的Rust代码，它反映了类型系统和惯例的冲突，这也是混合语言编程所固有的特点。我们称其为\emph{原始(raw)}接口。它的代码可能有些凌乱，但它能展示出Rust代码使用\texttt{libgit2}时必须的所有步骤。
 
-然后，在下一节中，我们将构建一个\texttt{libgit2}的safe接口，它使用Rust的类型来强迫\emph{libgit2}对使用者隐含的要求。幸运的是，\texttt{libgit2}是一个设计的非常好的C库，因此Rust的安全性要求的问题都有很好的答案，并且我们可以构建出没有\texttt{unsafe}函数的规范的Rust接口。
+然后，在下一节中，我们将构建一个\texttt{libgit2}的safe接口，它使用Rust的类型来强迫\emph{libgit2}对使用者隐含的要求。幸运的是，\texttt{libgit2}是一个设计得非常好的C库，因此Rust的安全性要求的问题都有很好的答案，并且我们可以构建出没有\texttt{unsafe}函数的规范的Rust接口。
 
 我们要写的程序非常简单：它以命令行参数的形式接受一个路径，打开那里的Git仓库，然后打印出head commit的信息。但这足以用来展示构建safe和规范的Rust接口的关键策略。
 
@@ -422,7 +424,8 @@ Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}�
     }
 \end{minted}
 
-其中每一项都是根据\texttt{libgit2}的头文件来声明的。例如\emph{libgit2-0.25.1/include/git2/repository.h}包含这个声明：
+其中每一项都是根据\texttt{libgit2}的头文件来声明的。例如\\
+\emph{libgit2-0.25.1/include/git2/repository.h}中包含这个声明：
 \begin{minted}{C}
     extern int git_repository_open(git_repository **out, const char *path);
 \end{minted}
@@ -438,7 +441,8 @@ Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}�
     typedef struct git_repository git_repository;
 \end{minted}
 
-因为这个类型的详情是private的，因此public的头文件中并没有定义\texttt{struct git\_repository}，以确保库的使用者永远不能自己构造这个类型的实例。在Rust中一种可行的定义不完全的struct类型的方法是：
+因为这个类型的详情是private的，因此public的头文件中并没有定义\\
+\texttt{struct git\_repository}，以确保库的使用者永远不能自己构造这个类型的实例。在Rust中一种可行的定义不完全的struct类型的方法是：
 \begin{minted}{Rust}
     #[repr(C)] pub struct git_repository { _private: [u8; 0] }
 \end{minted}
@@ -452,7 +456,7 @@ Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}�
     mod raw;
 \end{minted}
 
-根据\texttt{libgit2}的惯例，可能失败的函数返回一个整数码，成功时整数码为正数或者0，失败时整数码为负数。如果有错误发生，\texttt{giterr\_last}函数将会返回一个\texttt{git\_error}结构体的指针，这个结构体会提供更多有关错误的细节。\texttt{libgit2}持有这个结构体，所以我们不需要自己free它，但它可能被后续的调用覆盖。一个恰当的Rust接口应该使用\texttt{Result}，但是在原始的版本中，我们将按照\texttt{libgit2}的方式使用它的函数，因此我们将编写我们自己的函数来处理错误：
+根据\texttt{libgit2}的惯例，可能失败的函数会返回一个整数码，成功时整数码为正数或者0，失败时整数码为负数。如果有错误发生，\texttt{giterr\_last}函数将会返回一个\texttt{git\_error}结构体的指针，这个结构体会提供更多有关错误的细节。\texttt{libgit2}持有这个结构体，所以我们不需要自己free它，但它可能被后续的调用覆盖。一个恰当的Rust接口应该使用\texttt{Result}，但是在原始的版本中，我们将按照\texttt{libgit2}的方式使用它的函数，因此我们将编写我们自己的函数来处理错误：
 \begin{minted}{Rust}
     use std::ffi::CStr;
     use std::os::raw::c_int;
@@ -492,7 +496,8 @@ Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}�
     }
 \end{minted}
 
-给定一个\texttt{git\_commit}的指针，\texttt{show\_commit}会调用\texttt{git\_commit\_author}和\texttt{git\_commit\_message}来获取它需要的信息。这两个函数遵循了\texttt{libgit2}在文档中解释了的一个惯例：
+给定一个\texttt{git\_commit}的指针，\texttt{show\_commit}会调用\texttt{git\_commit\_author}和\\
+\texttt{git\_commit\_message}来获取它需要的信息。这两个函数遵循了\texttt{libgit2}在文档中解释的一个惯例：
 
 \emph{如果一个函数返回一个对象作为返回值，那个这个函数是一个getter，并且对象的生命周期被绑定到父对象上。}
 
@@ -574,7 +579,8 @@ Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}�
 
 要求Rust给我们未初始化的内存是可行的，但因为在任何时刻读取未初始化的内存都是未定义行为，因此Rust提供了一个抽象\texttt{MaybeUninit}来方便使用。\texttt{MaybeUninit<T>}告诉编译器为你的类型\texttt{T}分配足够的内存空间，但并不能访问这块空间，直到你声明现在已经可以安全地访问了。当这块内存的所有权属于\texttt{MaybeUninit}时，编译器也可以避免一些可能会导致未定义行为的特殊优化，否则即使你没有在代码中显式地访问未初始化的内存，这些优化也可能导致未定义行为。
 
-\texttt{MaybeUninit}提供了一个方法\texttt{as\_mut\_ptr()}，它产生一个指向它持有的未初始化内存的\texttt{*mut T}指针。把这个指针传给用于初始化内存的外部函数，然后调用\texttt{MaybeUninit}的unsafe的\texttt{assume\_init}方法来产生一个完全初始化过的\texttt{T}。这样既不会有先初始化后立刻重新初始化的开销，也可以避免未定义行为。\texttt{assume\_init}是unsafe的，因为如果在并没有正确初始化的内存上调用它会立刻导致未定义行为。
+\texttt{MaybeUninit}提供了一个方法\texttt{as\_mut\_ptr()}，它产生一个指向它持有的未初始化内存的\texttt{*mut T}指针。把这个指针传给用于初始化内存的外部函数，然后调用\texttt{MaybeUninit}的unsafe\\
+的\texttt{assume\_init}方法来产生一个完全初始化过的\texttt{T}。这样既不会有先初始化后立刻重新初始化的开销，也可以避免未定义行为。\texttt{assume\_init}是unsafe的，因为如果在并没有正确初始化的内存上调用它会立刻导致未定义行为。
 
 在这个例子中是安全的，因为\texttt{git\_reference\_name\_to\_id}会初始化\texttt{MaybeUninit}拥有的内存。我们也可以将\texttt{MaybeUninit}用于\texttt{repo}和\texttt{commit}变量，但因为它们只是单个字，所以我们只是直接将它们初始化为空：
 \begin{minted}{Rust}
@@ -588,7 +594,7 @@ Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}�
 \texttt{main}函数的其他部分应该是不言自明的。它调用了之前定义的\texttt{show\_commit}函数，然后释放了commit和repository对象，最后关闭了库。
 
 现在我们可以在任何Git仓库上尝试我们的程序：
-\begin{minted}{bash}
+\begin{minted}{text}
     $ cargo run /home/jimb/rbattle
         Finished dev [unoptimized + debuginfo] target(s) in 0.0 secs
          Running `target/debug/git-toy /home/jimb/rbattle`
@@ -598,11 +604,12 @@ Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}�
 \end{minted}
 
 \section{一个libgit2的安全接口}\label{SafeInter}
-\texttt{libgit2}的原始接口是一个unsafe特性的完美示例：它完全可以被正确的使用（正如我们在这里所做的一样），但Rust不能强迫这些你必须遵守的规则。为一个类似这样的库设置一个safe的API的主要问题是识别所有这些规则，然后将所有违反规则的行为转换为违反借用后检查的错误。
+\texttt{libgit2}的原始接口是一个unsafe特性的完美示例：它完全可以被正确地使用（正如我们在这里所做的一样），但Rust不能强迫这些你必须遵守的规则。为一个类似这样的库设置一个safe的API的主要问题是识别所有这些规则，然后将所有违反规则的行为转换为违反借用后检查的错误。
 
 这里是程序使用到的\texttt{libgit2}的特性的规则：
 \begin{enumerate}
-    \item 在调用库中任何其他函数之前，你必须先调用\texttt{git\_libgit2\_init}。在调用\texttt{git\_libgit2\_shutdown}之后你不能再调用库中任何一个函数。
+    \item 在调用库中任何其他函数之前，你必须先调用\texttt{git\_libgit2\_init}。在调用\\
+    \texttt{git\_libgit2\_shutdown}之后你不能再调用库中任何一个函数。
     \item 除了输出参数之外，传递给\texttt{libgit2}函数的所有值必须是必须是完全初始化的。
     \item 当一次调用失败时，用来存储调用结果的输出参数仍然保持未初始化，你绝对不能使用它的值。
     \item 一个\texttt{git\_commit}对象引用了派生它的\texttt{git\_repository}对象，因此前者的生命周期绝对不能比后者长。（这一点并没有在\texttt{libgit2}的文档中说明；我们根据接口中的某些函数的存在推断出这一点，并通过阅读源码证实了它。）
@@ -618,13 +625,13 @@ Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}�
 整个源码树看起来像这样：
 \begin{minted}{text}
     git-toy/
-    |—— Cargo.toml
-    |—— build.rs
-    |—— src/
-        |—— main.rs
-        |—— git/
-            |—— mod.rs
-            |—— raw.rs
+    |-- Cargo.toml
+    |-- build.rs
+    |-- src/
+        |-- main.rs
+        |-- git/
+            |-- mod.rs
+            |-- raw.rs
 \end{minted}
 
 按照我们在\nameref{ModInFile}中介绍过的规则，\texttt{git}模块的源码应该在\emph{git/mod.rs}，\texttt{git::raw}子模块的源码应该在\emph{git/raw.rs}。
@@ -725,7 +732,8 @@ Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}�
     }
 \end{minted}
 
-\texttt{Repository}的\texttt{raw}字段并不是public的。因为只有这个模块中的代码可以访问\texttt{raw::git\_repository}指针，所以保证这个模块是正确的就可以保证指针总是被正确地使用。
+\texttt{Repository}的\texttt{raw}字段并不是public的。因为只有这个模块中的代码可以访问\\
+\texttt{raw::git\_repository}指针，所以保证这个模块是正确的就可以保证指针总是被正确地使用。
 
 如果创建一个\texttt{Repository}的唯一方法就是成功打开一个新的Git仓库，那么将能确保每个\texttt{Repository}都指向一个不同的\texttt{git\_repository}对象：
 \begin{minted}{Rust}
@@ -777,7 +785,7 @@ Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}�
 
 在\nameref{unwind}中，我们提到过跨语言边界的panic是未定义行为。从\texttt{atexit}到\texttt{shutdown}的调用就是这样一个边界，因此\texttt{shutdown}不能panic。这就是为什么\texttt{shutdown}没有简单地使用\texttt{.expect}来处理\texttt{raw::git\_libgit2\_shutdown}返回的错误，而是手动汇报错误并中断进程。POSIX禁止在\texttt{atexit}里调用\texttt{exit}，因此\texttt{shutdown}调用了\texttt{std::process::abort}来突然终止程序。
 
-更早地调用\texttt{git\_libgit2\_shutdown}也是可行的——即，在最后一个\texttt{Repository}值被drop的时候调用。但无论如何，调用\texttt{git\_libgit2\_shutdown}必须是safe API的责任。在调用它时，任何现存的\texttt{libgti2}对象都会变为不能再使用的状态，因此一个safe API绝对不能直接暴露这个函数。
+更早地调用\texttt{git\_libgit2\_shutdown}也是可行的，即在最后一个\texttt{Repository}值被drop的时候调用。但无论如何，调用\texttt{git\_libgit2\_shutdown}必须是safe API的责任。在调用它时，任何现存的\texttt{libgit2}对象都会变为不能再使用的状态，因此一个safe API绝对不能直接暴露这个函数。
 
 一个\texttt{Repository}的原始指针必须总是指向一个还在生存的\texttt{git\_repository}对象。这隐含了关闭一个仓库的唯一方法是drop掉拥有它的\texttt{Repository}：
 \begin{minted}{Rust}
@@ -790,7 +798,8 @@ Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}�
     }
 \end{minted}
 
-通过在指向\texttt{raw::git\_repository}的指针即将销毁时调用\texttt{git\_repository\_free}，\texttt{Repository}还可以保证这个指针永远不会在free掉之后再被使用。
+通过在指向\texttt{raw::git\_repository}的指针即将销毁时调用\texttt{git\_repository\_free}，\\
+\texttt{Repository}类型还可以保证这个指针永远不会在free掉之后再被使用。
 
 \texttt{Repository::open}方法使用了一个叫做\texttt{path\_to\_cstring}的private函数，它有两个定义——一个用于类Unix系统，一个用于Windows：
 \begin{minted}{Rust}
@@ -883,9 +892,11 @@ Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}�
     }
 \end{minted}
 
-正如我们之前提到的一样，一个\texttt{git\_commit}对象的生命周期必须不长于它引用的\texttt{git\_repository}对象。Rust的生命周期可以让代码精准地捕获这个规则。
+正如我们之前提到的一样，一个\texttt{git\_commit}对象的生命周期必须不长于它引用的\\
+\texttt{git\_repository}对象。Rust的生命周期可以让代码精准地捕获这个规则。
 
-本章之前的\texttt{RefWithFlag}例子使用了一个\texttt{PhantomData}字段来告诉Rust在对待一个类型时，把它看成持有一个给定生命周期的引用，即使这个类型显然并不持有这样的引用。\texttt{Commit}类型需要类似的操作。在这个例子中，\texttt{\_marker}字段的类型是\texttt{PhantomData<\&'repo Repository>}，它告诉Rust应该把\texttt{Commit<'repo>}看成好像持有一个生命周期是\texttt{'repo}的\texttt{Repository}的引用。
+本章之前的\texttt{RefWithFlag}例子使用了一个\texttt{PhantomData}字段来告诉Rust在对待一个类型时，把它看成持有一个给定生命周期的引用，即使这个类型显然并不持有这样的引用。\texttt{Commit}类型需要类似的操作。在这个例子中，\texttt{\_marker}字段的类型是\texttt{PhantomData<\&'repo Repository>}，它告诉Rust应该把\texttt{Commit<'repo>}看成好像持有一个生命周期是\texttt{'repo}\\
+的\texttt{Repository}的引用。
 
 查找一个commit的方法如下：
 \begin{minted}{Rust}
@@ -948,7 +959,7 @@ Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}�
     }
 \end{minted}
 
-一个\texttt{git\_signature}对象总是从其他地方借用内容；具体来说，\texttt{git\_commit\_author}返回的签名从\texttt{git\_commit}借用文本。因此我们的safe \texttt{Signature}类型包含一个\texttt{PhantomData<\&'text str>}来告诉Rust把它看做好像持有一个生命周期是\texttt{'text}的\texttt{\&str}。和之前一样，不需要我们写任何内容，\texttt{Commit::author}也可以正确地把它返回\texttt{Signature}的\texttt{'text}生命周期连接到那个\texttt{Commit}的生命周期。\texttt{Commit::message}方法对持有commit message的\texttt{Option<\&str>}也实现了相同的效果。
+一个\texttt{git\_signature}对象总是从其他地方借用内容；具体来说，\texttt{git\_commit\_author}返回的签名从\texttt{git\_commit}借用文本。因此我们的safe \texttt{Signature}类型包含一个\texttt{PhantomData<\&'text str>}来告诉Rust把它看做好像持有一个生命周期是\texttt{'text}的\texttt{\&str}。和之前一样，不需要我们写任何内容，\texttt{Commit::author}也可以正确地把它返回的\texttt{Signature}的\texttt{'text}生命周期关联到那个\texttt{Commit}的生命周期。\texttt{Commit::message}方法对持有commit message的\texttt{Option<\&str>}也实现了相同的效果。
 
 一个\texttt{Signature}包含一些获取author的name和email地址的方法：
 \begin{minted}{Rust}
@@ -994,11 +1005,11 @@ Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}�
         -> Option<&'o str>
 \end{minted}
 
-\texttt{CStr::from\_ptr}函数会返回一个生命周期不受限的\texttt{\&CStr}，因为它是从原始指针借用的。不受限的生命周期几乎总是不好的，因此应该尽可能地约束它们。包含\texttt{\_owner}参数会导致Rust把它的生命周期赋给返回值，因此调用者可以得到一个更加精确地约束的引用。
+\texttt{CStr::from\_ptr}函数会返回一个生命周期不受限的\texttt{\&CStr}，因为它是从原始指针借用的。不受限的生命周期几乎总是不好的，因此应该尽可能地约束它们。包含\texttt{\_owner}参数会导致Rust把它的生命周期赋给返回值，因此调用者可以得到一个被更加精确地约束的引用。
 
 尽管\texttt{libgit2}的文档相当不错，但它并没有说清楚\texttt{git\_signature}的\texttt{email}和\texttt{author}是否可以为空。我们在源代码套索掘了一段时间，但无法说服自己它一定不为空，最后决定让\texttt{char\_ptr\_to\_str}最好为空指针做准备，以防万一。在Rust中，这种问题可以通过类型快速回答：如果是\texttt{\&str}，那你可以确信一定有一个字符串；如果是\texttt{Option<\&str>}，那就可能为空。
 
-最后，我们为我们所需的所有功能提供了safe的接口。\emph{src/main.rs}中的新\texttt{main}函数就简单很多，并且看起来更像真正的Rust代码了：
+最后，我们为所需的所有功能提供了safe的接口。\emph{src/main.rs}中的新\texttt{main}函数就简单很多，并且看起来更像真正的Rust代码了：
 \begin{minted}{Rust}
     fn main() {
         let path = std::env::args_os().skip(1).next()
@@ -1022,7 +1033,7 @@ Cargo的一个惯例是提供C库访问的crate应该命名为\texttt{LIB-sys}�
     }
 \end{minted}
 
-在本章中，我们从最简单的不提供很多安全性保证的接口开始，到通过以内部的unsafe API为基础，把任何对合约的违反都转换成Rust的类型错误来构建出safe的API。最后得到的结果是一个Rust可以保证你正确使用的接口。在大多数情况下，我们让Rust强迫的规则都是C和C++程序自己隐式遵守的那些规则。Rust之所以感觉起来比C和C++严格得多，并不是因为这些规则很陌生，而是因为这种规则被机械地、全面地强制。
+在本章中，我们从最简单的不提供很多安全性保证的接口开始，到通过以内部的unsafe API为基础，把任何对合约的违反都转换成Rust的类型错误来构建出safe的API。最后得到的结果是一个Rust可以保证被正确使用的接口。在大多数情况下，我们让Rust强迫的规则都是C和C++程序自己隐式遵守的那些规则。Rust之所以感觉起来比C和C++严格得多，并不是因为这些规则很陌生，而是因为这种规则被机械地、全面地强制。
 
 \section{总结}
 Rust并不是一门简单的语言。它的目标横跨了两个不同的世界。它是一门现代化的编程语言，以安全为设计原则，同时还有像闭包和迭代器这样的便利设施，但它的目标是让你能以最小的运行时开销来控制机器的原始能力。
