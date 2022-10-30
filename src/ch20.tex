@@ -74,18 +74,18 @@
     }
 \end{minted}
 
-这会打开一个到web服务器的TCP连接，以过时的协议向它发送一个简单的HTTP请求\footnote{如果你真的需要一个HTTP客户端，考虑使用一些非常优秀的crate例如\texttt{surf}或\texttt{reqwest}，它们会正确并且异步地完成任务。这个客户端基本只是设法获得HTTPS重定向。}，然后读取响应。\autoref{f20-1}展示了这个函数的执行过程随时间的变化。
+这会打开一个到web服务器的TCP连接，以过时的协议向它发送一个简单的HTTP请求\footnote{如果你真的需要一个HTTP客户端，考虑使用一些非常优秀的crate例如\texttt{surf}或\texttt{reqwest}，它们会正确并且异步地完成任务。这个客户端基本只是设法获得HTTPS重定向。}，然后读取响应。\hyperref[f20-1]{图20-1}展示了这个函数的执行过程随时间的变化。
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.8\textwidth]{../img/f20-1.png}
-    \caption{一个同步HTTP请求的过程（深颜色的区域标识等待操作系统）}
+    \caption{一个同步HTTP请求的过程（深颜色的区域表示等待操作系统）}
     \label{f20-1}
 \end{figure}
 
 图中展示了从左到右随着时间的推移，函数的调用栈的变化。每一个函数调用都是一个方块，位于它的调用者上面。显然，\texttt{cheapo\_request}函数贯穿整个执行过程。它调用了Rust标准库里的函数例如\texttt{TcpStream::connect}和\texttt{TcpStream}的\texttt{write\_all}和\texttt{read\_to\_string}实现。这些对其他函数的调用依次进行，但最终程序会进行\emph{系统调用}，请求操作系统完成真正的工作，例如打开TCP连接，或者读写一些数据。
 
-深灰色的区域表示程序正在等待操作系统完成系统调用。我们并没有按比例绘制这些时间。因为加入我们按比例绘制，整个图都将是深灰色：在实践中，这个函数把几乎所有时间都用在等待操作系统上。上面代码的执行时间将是系统调用之间的窄条。
+深灰色的区域表示程序正在等待操作系统完成系统调用。我们并没有按比例绘制这些时间。因为假如我们按比例绘制，整个图都将是深灰色：在实践中，这个函数把几乎所有时间都用在等待操作系统上。上面代码的执行时间将是系统调用之间的窄条。
 
 当函数等待系统调用返回时，它所在的线程会阻塞住：它不能做任何事，直到系统调用结束。一个线程的栈达到几百或几千字节并不罕见，因此如果这是一个更大的系统的一部分，并且有很多线程做类似的任务，锁住这些线程的资源但除了等待什么也不做的代价是非常昂贵的。
 
@@ -94,14 +94,14 @@
     fn read_to_string(&mut self, buf: &mut String) -> std::io::Result<usize>;
 \end{minted}
 
-它的类型表明了：这个函数直到工作完成或者出错时才会返回。这个函数是\emph{同步的}：当操作完成时调用者才恢复。如果我们想在操作系统进行工作的同时用我们的线程去做别的任务，那么我们需要一个新的提供这个函数的\emph{异步}版本的I/O库。
+它的类型表明了：这个函数直到工作完成或者出错时才会返回。这个函数是\emph{同步的}：当操作完成时调用者才会恢复执行。如果我们想在操作系统进行工作的同时用我们的线程去做别的任务，那么我们需要一个新的提供这个函数的\emph{异步}版本的I/O库。
 
 \subsection{\texttt{Future}}
-Rust支持异步操作的方法是引入一个trait：\texttt{std::future::Future}：
+Rust支持异步操作的方法是引入一个trait \texttt{std::future::Future}：
 \begin{minted}{Rust}
     trait Future {
         type Output;
-        // 现在，把`Pin<&mut Self>`看作`&mut Self`就好了。
+        // 现在可以先把`Pin<&mut Self>`看作`&mut Self`。
         fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output>;
     }
 
@@ -113,8 +113,7 @@ Rust支持异步操作的方法是引入一个trait：\texttt{std::future::Futur
 
 一个\texttt{Future}代表一个可以测试是否完成的操作。一个future的\texttt{poll}方法从来不会等待操作完成：它总是立即返回。如果操作完成了，\texttt{poll}会返回\texttt{Poll::Ready(output)}，其中\texttt{output}是最后的结果。否则，它会返回\texttt{Pending}。当且仅当future值得再次poll时，它会通过调用一个\emph{waker}来通知我们，这是一个由\texttt{Context}提供的回调函数。我们称之为异步编程的“piñata 模型” ：你唯一能对future做的就是使用\texttt{poll}敲打它，直到有一个值掉出来。
 
-所有现代的操作系统都包含一些系统调用的变体，我们可以用它们来实现这种poll接口。例如在Unix和\\
-Windows上，如果你把网络套接字设置为非阻塞模式，那么如果它们正在阻塞时进行read和write会返回错误，你必须稍后再试。
+所有现代的操作系统都包含一些系统调用的变体，我们可以用它们来实现这种poll接口。例如在Unix和Windows上，如果你把网络套接字设置为非阻塞模式，那么如果read和write会阻塞，它就会返回一个错误，你必须稍后再试。
 
 因此\texttt{read\_to\_string}的一个异步版本的签名大概是这样：
 \begin{minted}{Rust}
@@ -122,10 +121,10 @@ Windows上，如果你把网络套接字设置为非阻塞模式，那么如果�
         -> impl Future<Output = Result<usize>;
 \end{minted}
 
-除了返回类型之外，这和我们之前展示的签名一样：异步的版本返回\emph{一个\texttt{Result<usize>}的future}。你需要poll这个future，直到从它得到一个\texttt{Ready(result)}。每次它被poll时，都会尽可能地继续读取。最后的\texttt{result}给你成功的值或者错误的值，就像普通的I/O操作一样。这是通常的模式：异步版本的任何函数和同步版本的函数获取相同的参数，但返回类型有一个\texttt{Future}包装。
+除了返回类型之外，这和我们之前展示的签名一样：异步的版本返回一个\texttt{Result<usize>}的\\
+\emph{future}。你需要poll这个future，直到从它得到一个\texttt{Ready(result)}。每次它被poll时，都会尽可能地继续读取。最后的\texttt{result}给你成功的值或者错误的值，就像普通的I/O操作一样。这是通常的模式：异步版本的任何函数和同步版本的函数获取相同的参数，但返回类型有一个\texttt{Future}包装。
 
-调用这个版本的\texttt{read\_to\_string}并不会真的读取任何内容；它所有的任务就是构造并返回一个future，这个future会在被poll时进行真正的工作。这个future必须包含处理请求所需的所有信息。例如，这个\\
-\texttt{read\_to\_string}返回的future必须记住调用它的输入流，和它需要写入数据的\texttt{String}。事实上，因为这个future持有了\texttt{self}和\texttt{buf}的引用，因此这个\texttt{read\_to\_string}的真正的签名必须是：
+调用这个版本的\texttt{read\_to\_string}并不会真的读取任何内容；它所有的任务就是构造并返回一个future，这个future会在被poll时进行真正的工作。这个future必须包含处理请求所需的所有信息。例如，这个\texttt{read\_to\_string}返回的future必须记住调用它的输入流，和它需要写入数据的\texttt{String}。事实上，因为这个future持有了\texttt{self}和\texttt{buf}的引用，因此这个\texttt{read\_to\_string}的真正的签名必须是：
 \begin{minted}{Rust}
     fn read_to_string<'a>(&'a mut self, buf: &'a mut String)
         -> impl Future<Output = Result<usize>> + 'a;
@@ -135,9 +134,9 @@ Windows上，如果你把网络套接字设置为非阻塞模式，那么如果�
 
 \texttt{async-std} crate提供了\texttt{std}的所有I/O设施的异步版本，包括一个有\texttt{read\_to\_string}方法的异步\texttt{Read} trait。\texttt{async-std}密切地遵循了\texttt{std}的设计，尽可能地在自己的接口中重用\texttt{std}的类型，因此这两个世界中的错误、结果、网络地址、和其他大多数相关的数据都是兼容的。熟悉\texttt{std}有助于使用\texttt{async-std}，反之亦然。
 
-\texttt{Future} trait的一个规则是，一旦一个future返回了\texttt{Poll::Ready}，它会假设它决不会再次被poll。一些future在自己被overpoll时简单地永远返回\texttt{Poll::Pending}；其它的可能panic或者挂起。（它们绝不能违反内存或线程安全性，或者导致未定义行为）\texttt{Future} trait的\texttt{fuse}适配器将任何future转换成overpoll时永远返回\texttt{Poll::Pending}。但通常消费future的方法都遵循这个规则，因此\texttt{fuse}通常不是必须的。
+\texttt{Future} trait的一个规则是，一旦一个future返回了\texttt{Poll::Ready}，它会假设它决不会再次被poll。一些future在自己被overpoll时简单地永远返回\texttt{Poll::Pending}；其它的可能panic或者挂起。（它们绝不能违反内存或线程安全性，或者导致未定义行为。）\texttt{Future} trait的\texttt{fuse}适配器将任何future转换成overpoll时永远返回\texttt{Poll::Pending}。但通常消费future的方法都遵循这个规则，因此\texttt{fuse}通常不是必须的。
 
-如果poll听起来效率底下，请不必担心。Rust的异步架构是精心设计的，所以只要你的基本I/O函数例如\texttt{read\_to\_string}是正确实现的，那么你只会在值的时poll一个future。每一次\texttt{poll}被调用时，某个东西应该返回\texttt{Ready}，或者至少向目标前进一步。我们将在“\nameref{WhenPoll}”中解释这是如何工作的。
+如果poll听起来效率低下，请不必担心。Rust的异步架构是精心设计的，所以只要你的基本I/O函数例如\texttt{read\_to\_string}是正确实现的，那么只会在值得poll时才会poll一个future。每一次\texttt{poll}被调用时，某个东西应该返回\texttt{Ready}，或者至少向目标前进一步。我们将在\nameref{WhenPoll}中解释这是如何工作的。
 
 但使用future看起来有一个挑战：当你poll时，如果你得到了\texttt{Poll::Pending}那你应该怎么做？你将不得不四处寻找这个线程暂时可以做的其他工作，并记住一段时间之后返回到这个future，然后再次poll。你的整个系统将因为持续追踪谁正在pending和当它们完成时应该做什么而变得杂乱无章。我们的\texttt{cheapo\_request}函数的简洁性会被破坏。
 
@@ -167,8 +166,9 @@ Windows上，如果你把网络套接字设置为非阻塞模式，那么如果�
 
 这和之前的版本基本相同，除了：
 \begin{itemize}
-    \item 函数以\texttt{async}代替\texttt{fn}开头。
-    \item 它使用了\texttt{async\_std} crate里的异步版本的\texttt{TcpStream::connect, write\_all, read\_to\_string}。它们都返回结果的future（本节中的示例使用了\texttt{async\_std}的1.7版本）。
+    \item 函数以\texttt{async fn}代替\texttt{fn}开头。
+    \item 它使用了\texttt{async\_std} crate里的异步版本的\texttt{TcpStream::connect}, \texttt{write\_all}, \\
+    \texttt{read\_to\_string}。它们都返回结果的future（本节中的示例使用了\texttt{async\_std}的1.7版本）。
     \item 每一次调用返回future的函数之后，代码都会加上\texttt{.await}。尽管这看起来像是访问一个结构体的\texttt{await}字段，但它实际上是语言内置的一个特殊语法，它会等待一个future直到它准备好。\texttt{await}表达式会求出future的最终值。这个函数正是通过它获取\texttt{connect, write\_all, read\_to\_string}的结果。
 \end{itemize}
 
@@ -183,9 +183,7 @@ Windows上，如果你把网络套接字设置为非阻塞模式，那么如果�
 
 future的具体类型由编译器根据函数体和参数自动生成。这个类型并没有名称；你只知道它实现了\texttt{Future<Output=R>}，其中\texttt{R}是异步函数的返回类型。从这一点来看，异步函数的future类似于闭包：闭包也有匿名类型、也是由编译器生成并且实现了\texttt{FnOnce}、\texttt{Fn}和\texttt{FnMut} trait。
 
-当你第一次poll \texttt{cheapo\_request}返回的future时，将会从函数体的尾部开始运行到第一个由\\
-\texttt{TcpStream::connect}返回的future的\texttt{await}。这个\texttt{await}表达式会poll \texttt{connect} future，如果它还没准备好，那么它会向调用者返回\texttt{Poll::Pending}：直到\texttt{TcpStream::connect}的future返回\texttt{Poll::Ready}时，对\texttt{cheapo\_request}的\\
-future的poll才能继续通过第一个\texttt{await}。因此表达式\texttt{TcpStream::connect(...).await}的一个大概等价的写法是：
+当你第一次poll \texttt{cheapo\_request}返回的future时，将会从函数体的开头开始运行到第一个由\texttt{TcpStream::connect}返回的future的\texttt{await}。这个\texttt{await}表达式会poll \texttt{connect} future，如果它还没准备好，那么它会向调用者返回\texttt{Poll::Pending}：直到\texttt{TcpStream::connect}的future返回\texttt{Poll::Ready}时，对\texttt{cheapo\_request}的future的poll才能通过第一个\texttt{await}继续执行。因此表达式\texttt{TcpStream::connect(...).await}的一个大概等价的写法是：
 \begin{minted}{Rust}
     {
         // 注意：这是伪代码，不是有效的Rust代码
@@ -203,15 +201,15 @@ future的poll才能继续通过第一个\texttt{await}。因此表达式\texttt{
     }
 \end{minted}
 
-一个\texttt{await}表达式会获取future的所有权然后poll它。如果它已经准备好，那么future的最终值就是\texttt{await}表达式的值，并且会继续往下执行。否则，它向调用者返回\texttt{Poll::Pending}。
+\texttt{await}表达式会获取future的所有权然后poll它。如果它已经准备好，那么future的最终值就是\texttt{await}表达式的值，并且会继续往下执行。否则，它向调用者返回\texttt{Poll::Pending}。
 
 但关键的是，下一次poll \texttt{cheapo\_request}的future时将不会再次从函数的首部开始：相反，它从poll \texttt{connect\_future}的地方开始\emph{恢复(resume)}执行。直到future准备好之后我们才会继续执行这个异步函数的其他部分。
 
-随着\texttt{cheapo\_request}的future继续被poll，它会从函数体里的一个\texttt{await}开始执行到下一个，只有当它正在等待的子future ready时才会继续。因此，\texttt{cheapo\_request}的future将会被poll多少次取决于子future的行为和函数本身的控制流。\texttt{cheapo\_request}的future会追踪下一次\texttt{poll}时的恢复点和所有的局部状态——变量、参数、临时值——恢复需要这些。
+随着\texttt{cheapo\_request}的future继续被poll，它会从函数体里的一个\texttt{await}开始执行到下一个\texttt{await}，并且只有当它正在等待的子future ready时才会继续。因此，\texttt{cheapo\_request}的future将会被poll多少次取决于子future的行为和函数本身的控制流。\texttt{cheapo\_request}的future会追踪下一次\texttt{poll}时的恢复点和所有的局部状态——变量、参数、临时值——恢复需要这些。
 
 在函数中间挂起并稍后恢复执行的能力是异步函数独有的。当普通函数返回时，它的栈帧就消失了。因为\texttt{await}表达式依赖于恢复执行的能力，所以你只能在异步函数里使用它们。
 
-在撰写本书时，Rust还不允许trait有异步方法。只有自由函数和特定类型固有的方法才可以是异步的。取消这个限制需要对语言进行一些修改。与此同时，如果你需要定义包含异步函数的trait，可以考虑使用\texttt{async-trait} crate，它提供了一个基于宏的解决方案。
+在撰写本书时，Rust还不允许trait有异步方法。只有自由函数和特定类型固有的方法才可以是异步的。取消这个限制需要对语言进行一些修改。在此期间，如果你需要定义包含异步函数的trait，可以考虑使用\texttt{async-trait} crate，它提供了一个基于宏的解决方案。
 
 \subsection{在同步代码中调用异步函数：\texttt{block\_on}}
 某种意义上讲，异步函数只是在推卸责任。在异步函数里很容易获取一个future的值：只需要\texttt{await}它。但异步函数\emph{本身}也返回一个future，因此现在调用者需要负责poll它。最后，总有一个地方必须实际等待一个值。
@@ -221,7 +219,7 @@ future的poll才能继续通过第一个\texttt{await}。因此表达式\texttt{
     fn main() -> std::io::Result<()> {
         use async_std::task;
 
-        let response = task::block_on(cheapo_request("example.com", 80, "/))?;
+        let response = task::block_on(cheapo_request("example.com", 80, "/"))?;
         println!("{}", response);
         Ok(())
     }
@@ -229,7 +227,7 @@ future的poll才能继续通过第一个\texttt{await}。因此表达式\texttt{
 
 因为\texttt{block\_on}是一个产生异步函数的最终值的同步函数，你可以将它看作是异步世界到同步世界的适配器。但它阻塞的特性也意味着你永远不应该在一个异步函数里使用\texttt{block\_on}：它会阻塞整个线程直到值准备好。作为代替，请使用\texttt{await}。
 
-\autoref{f20-2}展示了\texttt{main}的一个可能的执行过程。
+\hyperref[f20-2]{图20-2}展示了\texttt{main}的一个可能的执行过程。
 
 \begin{figure}[htbp]
     \centering
@@ -238,29 +236,27 @@ future的poll才能继续通过第一个\texttt{await}。因此表达式\texttt{
     \label{f20-2}
 \end{figure}
 
-上面的时间线，即“简化视图”，展示了程序的异步调用的抽象视图：\texttt{cheapo\_request}首先调用了\\
-\texttt{TcpStream::connect}来获取一个套接字，然后对套接字调用了\texttt{write\_all}和\texttt{read\_to\_string}。然后它返回。这和本章前面的同步版本的\texttt{cheapo\_request}的时间线非常相似。
+上面的时间线，即“简化视图”，展示了程序的异步调用的抽象视图：\texttt{cheapo\_request}首先调用了\texttt{TcpStream::connect}来获取一个套接字，然后对套接字调用了\texttt{write\_all}和\\
+\texttt{read\_to\_string}。然后它返回。这和本章前面的同步版本的\texttt{cheapo\_request}的时间线非常相似。
 
 但这里每一个异步调用都是多阶段的过程：一个future被创建，然后被poll直到它准备好，可能还会创建并poll其他子future。下面的时间线，即“实现”，展示了实现了这个异步行为的实际同步调用。这是一个介绍普通的异步执行过程中到底发生了什么的好机会：
 \begin{itemize}
-    \item 首先，\texttt{main}调用\texttt{cheapo\_request}，它返回最终结果的future \texttt{A}。然后\texttt{main}把这个future传给了\\
-    \texttt{async\_std::block\_on}，它会poll \texttt{A}。
-    \item poll future \texttt{A}允许\texttt{cheapo\_request}的函数体开始执行。函数里调用了\texttt{TcpStream::connect}来获取一个套接字的future \texttt{B}并await它。更确切地说，因为\texttt{TcpStream::connect}可能会遇到错误，因此\texttt{B}是一个\texttt{Result<TcpStream, std::io::Error}的future。
+    \item 首先，\texttt{main}调用\texttt{cheapo\_request}，它返回最终结果的future \texttt{A}。然后\texttt{main}把这个future传给了\texttt{async\_std::block\_on}，它会poll \texttt{A}。
+    \item poll \texttt{A}促使\texttt{cheapo\_request}的函数体开始执行。函数里调用了\texttt{TcpStream::connect}来获取一个套接字的future \texttt{B}并await它。更确切地说，因为\texttt{TcpStream::connect}可能会遇到错误，因此\texttt{B}是一个\texttt{Result<TcpStream, std::io::Error>}的future。
     \item future \texttt{B}被\texttt{await} poll。因为网络连接还没有建立好，所以\texttt{B.poll}返回\texttt{Poll::Pending}，但会设置好当套接字准备好后唤醒调用它的任务。
     \item 因为future \texttt{B}还没有准备好，\texttt{A.poll}也会向它的调用者\texttt{block\_on}返回\texttt{Poll::Pending}。
     \item 因为\texttt{block\_on}没有别的事情可做，它会陷入睡眠。这时整个线程会阻塞。
     \item 当\texttt{B}的连接准备好之后，它会唤醒poll它的任务。这促使\texttt{block\_on}开始行动，它会尝试再次poll future \texttt{A}。
     \item poll \texttt{A}促使\texttt{cheapo\_request}在它的第一个\texttt{await}处恢复执行，然后再次poll \texttt{B}。
-    \item 这一次，\texttt{B}准备好了：套接字已经创建完毕，因此它返回\texttt{Poll::Ready(Ok(socket))}到\texttt{A.poll}。
-    \item 到此\texttt{TcpStream::connect}的异步调用就完成了。\texttt{TcpStream::connect(...).await}表达式的值就是\\
-    \texttt{Ok(socket)}。
+    \item 这一次\texttt{B}准备好了：套接字已经创建完毕，因此它返回\texttt{Poll::Ready(Ok(socket))}。
+    \item 到此\texttt{TcpStream::connect}的异步调用就完成了。\texttt{TcpStream::connect(...).await}表达式的值就是\texttt{Ok(socket)}。
     \item \texttt{cheapo\_request}的函数体会继续正常执行，使用\texttt{format!}宏构造请求字符串并传递给\texttt{socket.write\_all}。
-    \item 因为\texttt{socket.write\_all}是一个异步函数，它会返回一个future \texttt{C}，\texttt{cheapo\_request}会await \texttt{C}。
+    \item \texttt{socket.write\_all}是一个异步函数，它返回一个future \texttt{C}，然后\texttt{cheapo\_request}会await \texttt{C}。
 \end{itemize}
 
-剩余的流程和之前相似。在\autoref{f20-2}所示的执行流程中，\texttt{socket.read\_to\_string}在准备好之前被poll了四次，每一次都会从套接字读取\emph{一些}数据，但\texttt{read\_to\_string}被指定为一直读取到输入的末尾，这需要好几次的操作。
+剩余的流程和之前相似。在\hyperref[f20-2]{图20-2}所示的执行流程中，\texttt{socket.read\_to\_string}在准备好之前被poll了四次，每一次都会从套接字读取\emph{一些}数据，但\texttt{read\_to\_string}被指定为一直读取到输入的末尾，这需要好几次的操作。
 
-听起来编写一个一直调用\texttt{poll}的循环并不难。但让\texttt{async\_std::task::block\_on}真正有价值的是：它知道怎么睡眠到恰好future值得再次poll，而不是浪费处理器的时间和电量来进行几十亿次无用的\texttt{poll}调用。基本的I/O函数例如\texttt{connect}和\texttt{read\_to\_string}返回的future保留了传递给\texttt{poll}的\texttt{Context}参数提供的唤醒器，并在\texttt{block\_on}应该醒来并再次尝试poll时调用唤醒器。我们将在“\nameref{WhenPoll}”中通过实现一个简单版本的\texttt{block\_on}来展示这具体是怎么工作的。
+听起来编写一个一直调用\texttt{poll}的循环并不难。但让\texttt{async\_std::task::block\_on}真正有价值的是：它知道怎么睡眠到恰好future值得再次poll，而不是浪费处理器的时间和电量来进行几十亿次无用的\texttt{poll}调用。基本的I/O函数例如\texttt{connect}和\texttt{read\_to\_string}返回的future保留了传递给\texttt{poll}的\texttt{Context}参数提供的唤醒器，并在\texttt{block\_on}应该醒来并再次尝试poll时调用唤醒器来唤醒它。我们将在\nameref{WhenPoll}中通过实现一个简单版本的\texttt{block\_on}来展示这具体是怎么工作的。
 
 和我们之前展示的原始的同步版本一样，这个异步版本的\texttt{cheapo\_request}方法也把几乎所有的时间花费在等待操作完成上。如果时间轴是按比例绘制的，那么图将几乎完全是深灰色的，只有当程序被唤醒时会有几个计算过程对应的很细的条。
 
@@ -269,16 +265,17 @@ future的poll才能继续通过第一个\texttt{await}。因此表达式\texttt{
 \subsection{spawn异步任务}
 \texttt{async\_std::task::block\_on}函数会阻塞直到一个future的值准备好。但在单个future上完全阻塞一个线程并不比同步调用更好：本章的目的是让线程在等待的同时\emph{做别的工作}。
 
-为了实现这一点，你可以使用\texttt{async\_std::task::spawn\_local}。这个函数接受一个future并把它添加到一个池，当\texttt{block\_on}阻塞等待的future还没准备好时\texttt{block\_on}会poll这个池。因此如果你把一堆future传递给\texttt{spawn\_local}并且之后对最终结果的future调用\texttt{block\_on}，\texttt{block\_on}会poll每一个被spawn的future（当它们可以进一步执行时），并发运行整个池，直到结果准备好。
+为了实现这一点，你可以使用\texttt{async\_std::task::spawn\_local}。这个函数接受一个future并把它添加到一个池，当\texttt{block\_on}等待的future还没准备好时\texttt{block\_on}会poll这个池。因此如果你把一堆future传递给\texttt{spawn\_local}并且之后对最终结果的future调用\texttt{block\_on}，\texttt{block\_on}会poll每一个被spawn的future（当它们可以进一步执行时），并发运行整个池，直到结果准备好。
 
-在撰写本书时，只有当你启用\texttt{async-std} crate的\texttt{unstable}特性时\texttt{spawn\_local}才可用。你需要在\emph{Cargo.toml}中用这样的一行引入\texttt{async-std}：
+在撰写本书时，只有当启用\texttt{async-std} crate的\texttt{unstable}特性时\texttt{spawn\_local}才可用。你需要在\emph{Cargo.toml}中用这样的一行引入\texttt{async-std}：
 \begin{minted}{toml}
     async-std = { version = "1", features = ["unstable"] }
 \end{minted}
 
 \texttt{spawn\_local}函数是标准中用于启动新线程的\texttt{std::thread::spawn}函数的异步版本的类似物：
 \begin{itemize}
-    \item \texttt{std::thread::spawn(c)}接收闭包\texttt{c}然后启动一个线程运行它，返回一个\texttt{std::thread::JoinHandle}，它的\texttt{join}方法会等待线程结束并返回\texttt{c}返回的内容。
+    \item \texttt{std::thread::spawn(c)}接收闭包\texttt{c}然后启动一个线程运行它，返回一个\\
+    \texttt{std::thread::JoinHandle}，它的\texttt{join}方法会等待线程结束并返回\texttt{c}返回的内容。
     \item \texttt{async\_std::task::spawn\_local(f)}接收future \texttt{f}并把它添加到当前线程调用\texttt{block\_on}时会poll的池里。\texttt{spawn\_local}会返回它自己的\texttt{async\_std::task::JoinHandle}类型，它本身是一个future，你可以await它来获取\texttt{f}的最终值。
 \end{itemize}
 
@@ -322,7 +319,7 @@ future的poll才能继续通过第一个\texttt{await}。因此表达式\texttt{
 
 自然地，如果我们向异步函数传递引用，那么它们返回的future就必须持有这些引用，因此出于安全性future不能比它们借用的值生存的更久。任何持有引用的其他值也有相同的限制。
 
-问题在于\texttt{spawn\_local}不能确保你会在\texttt{host}和\texttt{path}被drop之前等待任务结束。事实上，\texttt{spawn\_local}只接受生命周期是\texttt{'static}的future，因为你可以简单地忽略它返回的\texttt{JoinHandle}并让任务在程序的剩余部分执行时继续运行。这并不是异步任务独有的问题：当你尝试用\texttt{std::thread::spawn}启动一个线程，并且它的闭包捕获了局部变量的引用时也会遇到类似的错误。
+问题在于\texttt{spawn\_local}不能确保你会在\texttt{host}和\texttt{path}被drop之前等待任务结束。事实上，\texttt{spawn\_local}只接受生命周期是\texttt{'static}的future，因为你可以简单地忽略它返回的\texttt{JoinHandle}并让任务继续运行程序的剩下部分。这并不是异步任务独有的问题：当你尝试用\texttt{std::thread::spawn}启动一个线程，并且它的闭包捕获了局部变量的引用时也会遇到类似的错误。
 
 一种解决这个问题的方法是创建另一个版本的获取参数所有权的异步函数：
 \begin{minted}{Rust}
@@ -334,7 +331,7 @@ future的poll才能继续通过第一个\texttt{await}。因此表达式\texttt{
 
 这个函数接收\texttt{String}而不是\texttt{\&str}引用，因此它的future自身将拥有\texttt{host}和\texttt{path}，并且生命周期是\texttt{'static}。借用检查器可以看到它立刻await了\texttt{cheapo\_request}的future，并且因此如果这个future被poll，它借用的\texttt{host}和\texttt{path}变量肯定还在。一切都没有问题。
 
-使用\texttt{cheapo\_owning\_request}，你可以像这样spwan所有的请求：
+使用\texttt{cheapo\_owning\_request}，你可以像这样spawn所有的请求：
 \begin{minted}{Rust}
     for (host, port, path) in requests {
         handles.push(task::spawn_local(cheapo_owning_request(host, port, path)));
@@ -358,7 +355,7 @@ future的poll才能继续通过第一个\texttt{await}。因此表达式\texttt{
     }
 \end{minted}
 
-这段代码会在\texttt{block\_on}的调用中并发运行三个请求。每个请求会在当其他的请求阻塞时抓住几乎继续执行，它们全部在调用者线程中执行。\autoref{f20-3}中展示了三个\texttt{cheapo\_request}调用的可能的执行过程。
+这段代码会在\texttt{block\_on}的调用中并发运行三个请求。每个请求会在当其他的请求阻塞时抓住机会继续执行，它们全部在调用者线程中执行。\hyperref[f20-3]{图20-3}中展示了三个\texttt{cheapo\_request}调用的可能的执行过程。
 
 \begin{figure}[htbp]
     \centering
@@ -367,12 +364,11 @@ future的poll才能继续通过第一个\texttt{await}。因此表达式\texttt{
     \label{f20-3}
 \end{figure}
 
-（我们鼓励你自己尝试运行这段代码，使用\texttt{eprintln!}在\texttt{cheapo\_request}首部和每一个\texttt{await}表达式之后打印消息，这样你可以看到这些调用如何交错执行。）
+（我们鼓励你自己尝试运行这段代码，使用\texttt{eprintln!}在\texttt{cheapo\_request}开头和每一个\texttt{await}表达式之后打印消息，这样你可以看到这些调用如何交错执行。）
 
 对\texttt{many\_requests}的调用（为了简单没有展示）spawn了三个异步的任务，分别用\texttt{A}、\texttt{B}、\texttt{C}标记。\texttt{block\_on}开始时先poll \texttt{A}，\texttt{A}会开始连接到\texttt{example.com}。这会立刻返回\texttt{Poll::Pending}，\texttt{block\_on}会把注意移动到下一个spawn的任务，然后poll future \texttt{B}，最后是\texttt{C}，它们会开始连接各自的服务器。
 
-当所有可以poll的future都返回了\texttt{Poll::Pending}之后，\texttt{block\_on}会进入睡眠，直到其中一个\\
-\texttt{TcpStream::connect}的future指示它的任务值得再次poll。
+当所有可以poll的future都返回了\texttt{Poll::Pending}之后，\texttt{block\_on}会进入睡眠，直到其中一个\texttt{TcpStream::connect}的future指示它的任务值得再次poll。
 
 在这次执行中，服务器\texttt{en.wikipedia.org}比其他的响应得更快，因此这个任务最先完成。当一个spawn的任务完成时，它会把值保存在\texttt{JoinHandle}并标记它已经准备好了，这样\texttt{many\_requests} await它时无需等待，可以继续执行。最后，其它的\texttt{cheapo\_request}要么成功要么返回错误，然后\texttt{many\_request}本身可以返回了。最后，\texttt{main}接收\texttt{block\_on}返回的结果的vector。
 
@@ -380,10 +376,10 @@ future的poll才能继续通过第一个\texttt{await}。因此表达式\texttt{
 
 我们终于达成了我们在本章开头设置的目标：让一个线程在等待I/O完成的同时去执行其他的工作，这样线程的资源不会因等待而浪费。更妙的是，达成这个目标的代码看起来非常像普通的Rust代码：一些函数被标记为\texttt{async}、一些函数调用后面有\texttt{.await}、使用的函数来自\texttt{async\_std}而不是\texttt{std}，但除此之外，它就是普通的Rust代码。
 
-异步任务和线程有一个不同之处需要牢记：异步任务只有在\texttt{await}表达式处被await的future返回\\
-\texttt{Poll::Pending}时才会切换到另一个异步任务。这意味着如果你在\texttt{cheapo\_request}中放了一段长时间运行的计算代码，那么在它完成之前，任何传给\texttt{spawn\_local}的其他任务都没有机会运行。而使用线程时没有这个问题：操作系统可以在任何地方挂起任何线程并设置计时器来确保没有线程可以垄断处理器。
+异步任务和线程有一个不同之处需要牢记：异步任务只有在\texttt{await}表达式中被await的\\
+future返回\texttt{Poll::Pending}时才会切换到其他异步任务。这意味着如果你在\texttt{cheapo\_request}中放了一段长时间运行的计算代码，那么在它完成之前，任何传给\texttt{spawn\_local}的其他任务都没有机会运行。而使用线程时没有这个问题：操作系统可以在任何地方挂起任何线程并设置计时器来确保没有线程可以垄断处理器。
 
-异步代码依赖于共享线程的future的协作。如果你需要让长时间计算和异步代码共存，本章后面的“\nameref{LongCompute}”中介绍了一些方法。
+异步代码依赖于共享线程的future的协作。如果你需要让长时间计算和异步代码共存，本章后面的\nameref{LongCompute}中介绍了一些方法。
 
 \subsection{\texttt{async}块}
 除了异步函数之外，Rust还支持\emph{异步块(asynchronous block)}。与一个普通的块返回最后一个表达式的值不同，一个异步块返回最后一个表达式的\emph{值的future}。你可以在异步块里使用\texttt{await}表达式。
@@ -402,14 +398,13 @@ future的poll才能继续通过第一个\texttt{await}。因此表达式\texttt{
     };
 \end{minted}
 
-这里用一个future初始化了\texttt{serve\_one}，当poll它时，它会监听并处理单个TCP连接。块的代码直到\texttt{serve\_one}\\
-被poll才会执行，就像异步函数只有在它的future被poll时才会执行一样。
+这里用一个future初始化了\texttt{serve\_one}，当poll它时，它会监听并处理单个TCP连接。块的代码直到\texttt{serve\_one}被poll才会执行，就像异步函数只有在它的future被poll时才会执行一样。
 
 如果你在异步块里使用了\texttt{?}操作符，它会从块里返回，而不是从所处的函数返回。例如，如果上面的\texttt{bind}调用返回一个错误，那么\texttt{?}操作符会返回它作为\texttt{serve\_one}的最终值。类似的，\texttt{return}表达式会从异步块里返回，而不是从外层的函数返回。
 
-如果一个异步块引用了周围代码里的变量，它的future会捕获那些变量，就像闭包一样。并且和\texttt{move}闭包一样（见“\nameref{StealClosure}”），你可以以\texttt{async move}来创建获取变量所有权的块，而不是持有变量的引用。
+如果一个异步块引用了周围代码里的变量，它的future会捕获那些变量，就像闭包一样。并且和\texttt{move}闭包一样（见\nameref{StealClosure}），你可以用\texttt{async move}来创建获取变量所有权的块，而不是持有变量的引用。
 
-异步块提供了一种精确的分离出想要异步运行的部分代码的方法。例如，在上一节中，\texttt{spawn\_local}需要\texttt{'static} future，因此我们定义了\texttt{cheapo\_owning\_request}包装函数来得到一个获取参数所有权的future。你可以简单地在一个异步块里调用\texttt{cheapo\_request}而不需要分离出包装函数来实现相同的效果：
+异步块提供了一种精确地分离出想要异步运行的部分代码的方法。例如，在上一节中，\texttt{spawn\_local}需要\texttt{'static} future，因此我们定义了\texttt{cheapo\_owning\_request}包装函数来得到一个获取参数所有权的future。你可以简单地在一个异步块里调用\texttt{cheapo\_request}而不需要分离出包装函数来实现相同的效果：
 \begin{minted}{Rust}
     pub async fn many_requests(requests: Vec<(String, u16, String)>)
                                -> Vec<std::io::Result<String>>
@@ -426,8 +421,7 @@ future的poll才能继续通过第一个\texttt{await}。因此表达式\texttt{
     }
 \end{minted}
 
-因为这是一个\texttt{async move}块，所以它的future获取了\texttt{String}值\texttt{host}和\texttt{path}的所有权，就类似\texttt{move}闭包一样。然后它向\texttt{cheapo\_request}传递引用，借用检查器可以看到块的\texttt{await}表达式获取了\texttt{cheapo\_request}的future的所有权，因此\texttt{host}和\texttt{path}的引用不可能比它们借用的被捕获的变量生存的更久。异步块和\\
-\texttt{cheapo\_owning\_request}完成了同样的事，但所需的样板代码更少。
+因为这是一个\texttt{async move}块，所以它的future获取了\texttt{String}值\texttt{host}和\texttt{path}的所有权，就类似\texttt{move}闭包一样。然后它向\texttt{cheapo\_request}传递引用，借用检查器可以看到块的\texttt{await}表达式获取了\texttt{cheapo\_request}的future的所有权，因此\texttt{host}和\texttt{path}的引用不可能比它们借用的被捕获的变量生存的更久。异步块和\texttt{cheapo\_owning\_request}完成了同样的事，但所需的样板代码更少。
 
 一个你可能遇到的问题是没有语法能指定异步块的返回类型，即异步函数参数后跟的\texttt{-> T}。当使用\texttt{?}操作符时这可能会导致问题：
 \begin{minted}{Rust}
@@ -455,7 +449,8 @@ future的poll才能继续通过第一个\texttt{await}。因此表达式\texttt{
        |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ cannot infer type
 \end{minted}
 
-Rust不能分辨异步块的返回类型应该是什么。\texttt{read\_line}方法返回\texttt{Result<(), std::io::Error>}，但因为\texttt{?}操作符使用了\texttt{From} trait来在需要时转换成指定的错误类型，所以这个异步块的返回类型是\texttt{Result<(), E>}，其中\texttt{E}可能是任何实现了\texttt{From<std::io::Error>}的类型。
+Rust不能分辨异步块的返回类型应该是什么。\texttt{read\_line}方法返回一个\\
+\texttt{Result<(), std::io::Error>}，但因为\texttt{?}操作符使用了\texttt{From} trait来在需要时转换成指定的错误类型，所以这个异步块的返回类型是\texttt{Result<(), E>}，其中\texttt{E}可能是任何实现了\texttt{From<std::io::Error>}的类型。
 
 Rust未来的版本可能会添加指定\texttt{async}块的返回类型的语法。但现在，可以通过手动写出最后的\texttt{Ok}的类型来解决这个问题：
 \begin{minted}{Rust}
@@ -527,8 +522,7 @@ Rust未来的版本可能会添加指定\texttt{async}块的返回类型的语�
     ...
 \end{minted}
 
-类似于\texttt{spawn\_local}，\texttt{spawn}也返回一个\texttt{JoinHandle}值，你可以await它来获取future的最终值。但和\\
-\texttt{spawn\_local}不同的是，这个future不会等到你调用\texttt{block\_on}才会被poll，只要线程池中有一个空闲的线程，它就会尝试poll这个future。
+类似于\texttt{spawn\_local}，\texttt{spawn}也返回一个\texttt{JoinHandle}值，你可以await它来获取future的最终值。但和\texttt{spawn\_local}不同的是，这个future不会等到你调用\texttt{block\_on}才会被poll，只要线程池中有一个空闲的线程，它就会尝试poll这个future。
 
 在实践中，\texttt{spawn}比\texttt{spawn\_local}使用得更加广泛，因为人们更希望他们的负载不管计算和阻塞怎么混合，都能在机器上均衡地执行。
 
@@ -537,9 +531,10 @@ Rust未来的版本可能会添加指定\texttt{async}块的返回类型的语�
 如果你正在使用thread-local存储，你可能会惊讶地发现你在\texttt{await}表达式之前放置的一些数据在恢复之后被替换成了某些完全不同的东西，这是因为你的任务现在正在被池中的另一个线程poll。如果这导致了问题，你应该使用\emph{task-local storage}；细节见\texttt{async-std} crate中\texttt{task\_local!}宏的文档。
 
 \subsection{但你的future实现了\texttt{Send}吗？}
-有一个\texttt{spawn}要求但\texttt{spawn\_local}不要求的限制。因为future被送到另一个线程运行，因此future必须实现了\texttt{Send}标记trait。我们在“\nameref{threadsafe}”中介绍过\texttt{Send}。只有当future包含的所有值都是\texttt{Send}时future才是\texttt{Send}：所有的函数参数、局部变量、甚至匿名的临时值都必须能安全地移动到另一个线程。
+有一个\texttt{spawn}要求但\texttt{spawn\_local}不要求的限制。因为future被送到另一个线程运行，因此future必须实现了\texttt{Send}标记trait。我们在\nameref{threadsafe}中介绍过\texttt{Send}。只有当future包含的所有值都是\texttt{Send}时future才是\texttt{Send}：所有的函数参数、局部变量、甚至匿名的临时值都必须能安全地移动到另一个线程。
 
-和之前一样，这个要求也不是异步任务独有的：如果你尝试使用\texttt{std::thread::spawn}启动一个捕获了非\texttt{Send}值的闭包也会遇到一个类似的错误。不同之处在于，传给\texttt{std::thread::spawn}的闭包会留在新创建的线程中运行，而spawn到线程池里的future可能会在await时从一个线程移动到另一个线程。
+和之前一样，这个要求也不是异步任务独有的：如果你尝试使用\texttt{std::thread::spawn}启动一个捕获了非\texttt{Send}值的闭包也会遇到一个类似的错误。不同之处在于，传给\\
+\texttt{std::thread::spawn}的闭包会留在新创建的线程中运行，而spawn到线程池里的future可能会在await时从一个线程移动到另一个线程。
 
 这个限制很容易意外触发。例如，下面的代码看起来足够合法：
 \begin{minted}{Rust}
@@ -586,7 +581,7 @@ Rust未来的版本可能会添加指定\texttt{async}块的返回类型的语�
 这一段错误信息很长，但包含很多有用的细节：
 \begin{itemize}
     \item 它解释了为什么future需要是\texttt{Send}：\texttt{task::spawn}的要求。
-    \item 它解释了什么样的值不是\texttt{Send}，局部变量\texttt{string}，它的类型是\texttt{Rc<String>}。
+    \item 它解释了什么样的值不是\texttt{Send}：局部变量\texttt{string}，它的类型是\texttt{Rc<String>}。
     \item 它解释了为什么\texttt{string}会影响future：它的作用域跨过了\texttt{await}。
 \end{itemize}
 
@@ -608,7 +603,7 @@ Rust未来的版本可能会添加指定\texttt{async}块的返回类型的语�
 
 另一种解决方案是简单地用\texttt{std::sync::Arc}替换\texttt{Rc}。\texttt{Arc}使用原子更新来管理它的引用计数，这意味着它会稍微慢一点，不过\texttt{Arc}指针是\texttt{Send}。
 
-尽管最终你会学会识别和避免非\texttt{Send}类型，但一开始它们可能令人惊讶。（至少，你的作者通常会很惊讶。）例如，较旧的Rust代码有时会像这样使用泛型结果类型：
+尽管最终你会学会识别和避免非\texttt{Send}类型，但一开始它们可能令人惊讶。（至少，你的作者经常被惊讶到。）例如，较旧的Rust代码有时会像这样使用泛型结果类型：
 \begin{minted}{Rust}
     // 不推荐！
     type GenericError = Box<dyn std::error::Error>;
@@ -639,10 +634,9 @@ Rust未来的版本可能会添加指定\texttt{async}块的返回类型的语�
     async_std::task::spawn(unfortunate());
 \end{minted}
 
-和前面的例子一样，编译器的错误消息解释了发生了什么，指出了那个\texttt{Result}是罪魁祸首。因为Rust考虑到\texttt{some\_fallible\_thing}的结果在整个\texttt{match}表达式中生效，包括\texttt{await}表达式，它决定了\texttt{unfortunate}的future\\
-不是\texttt{Send}。这个错误是因为Rust过度谨慎：尽管\texttt{GenericError}不能安全地发送到另一个线程，但\texttt{await}只会在结果是\texttt{Ok}的时候发生，因此当我们await \texttt{use\_output}的future时错误的值永远不会存在。
+和前面的例子一样，编译器的错误消息解释了发生了什么，指出了那个\texttt{Result}是罪魁祸首。因为Rust考虑到\texttt{some\_fallible\_thing}的结果在整个\texttt{match}表达式中生效，包括\texttt{await}表达式，它决定了\texttt{unfortunate}的future不是\texttt{Send}。这个错误是因为Rust过度谨慎：尽管\texttt{GenericError}不能安全地发送到另一个线程，但\texttt{await}只会在结果是\texttt{Ok}的时候发生，因此当我们await \texttt{use\_output}返回的future时错误的值永远不会存在。
 
-一个理想的解决方法是使用更加严格的泛型错误类型，例如我们在“\nameref{MultiErr}”中建议的这个：
+一个理想的解决方法是使用更加严格的泛型错误类型，例如我们在\nameref{MultiErr}中建议的这个：
 \begin{minted}{Rust}
     type GenericError = Box<dyn std::error::Error + Send + Sync + 'static>;
     type GenericResult<T> = Result<T, GenericError>;
@@ -650,11 +644,11 @@ Rust未来的版本可能会添加指定\texttt{async}块的返回类型的语�
 
 这个trait对象显式地要求底层的错误类型要实现了\texttt{Send}，这样就一切顺利了。
 
-如果你的future不是\texttt{Send}并且不能方便地将它变成\texttt{Send}，那么你可以使用\texttt{spawn\_local}来在当前线程运行它。当然，你需要保证这个线程在某个地方调用\texttt{block\_on}，以给它运行的机会，并且你将不能从多处理器中收益。
+如果你的future不是\texttt{Send}并且不能方便地将它变成\texttt{Send}，那么你可以使用\texttt{spawn\_local}来在当前线程运行它。当然，你需要保证这个线程在某个地方调用\texttt{block\_on}，以给它运行的机会，并且你将不能从多处理器中受益。
 
 \subsection{长时间计算：\texttt{yield\_now}和\texttt{spawn\_blocking}}\label{LongCompute}
 
-对于一个和其它任务共享它的线程的future，它的\texttt{poll}方法应该总是尽可能快速地返回。但如果你在进行长时间的计算，它可能需要很长时间才会到达下一个\texttt{await}，让其它的异步任务等待比你预想得更长的时间。
+如果一个future和其他任务共享线程，那么它的\texttt{poll}方法应该总是尽可能快速地返回。但如果你在进行长时间的计算，它可能需要很长时间才会到达下一个\texttt{await}，让其它的异步任务等待比你预想得更长的时间。
 
 一种避免这种情况的方法是偶尔就\texttt{await}一次。\texttt{async\_std::task::yield\_now}函数返回一个为此设计的简单future：
 \begin{minted}{Rust}
@@ -702,7 +696,8 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 \subsection{一个真实的异步HTTP客户端}
 如果我们不展示一个使用合适的异步HTTP客户端crate的例子将是我们的疏忽，因为它是如此简单，并且有好几个好的crate可以选择，包括\texttt{reqwest}和\texttt{surf}。
 
-这里有一个使用\texttt{surf}来并发运行一系列请求的重写的\texttt{many\_requests}，甚至比基于\texttt{cheapo\_request}的版本还要简单，你需要在\emph{Cargo.toml}中加上这些依赖：
+这里有一个使用\texttt{surf}来并发运行一系列请求的重写的\texttt{many\_requests}，甚至比基于\\
+\texttt{cheapo\_request}的版本还要简单，你需要在\emph{Cargo.toml}中加上这些依赖：
 \begin{minted}{toml}
     [dependencies]
     async-std = "1.7"
@@ -754,7 +749,8 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 
 特别地，我们想很好的处理\emph{背压(backpressure)}。意思是如果一个客户端的网络连接很慢或者完全丢失了连接，必须不影响其他客户端交换信息的能力。并且因为一个慢速的客户端不应该让服务器花费无限制的内存来保存它不断增长的累积消息，我们的服务器应该丢弃一些不能跟上速度的客户端的消息，但要通知它们它们的消息流是不完整的。（一个真实的服务器应该把消息记录到磁盘上并让客户端去获取它们错过的消息，不过我们省略了这个功能。）
 
-我们以命令\texttt{cargo new --lib async-chat}开始项目，首先把以下内容添加到\emph{async-chat/Cargo.toml}：
+我们以命令\texttt{cargo new --lib async-chat}开始项目，首先把以下内容添加到\\
+\emph{async-chat/Cargo.toml}：
 \begin{minted}{toml}
     [package]
     name = "async-chat"
@@ -774,32 +770,32 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
     \item \texttt{async-std} crate是我们在本章中一直在用的异步I/O原语和工具的集合。
     \item \texttt{tokio} crate是另一个类似\texttt{async-std}的异步原语的集合，它是最古老和成熟的之一。它被广泛使用并保持设计和实现的高标准，但相比\texttt{async-std}还需要一些别的crate才能使用。
     
-    \texttt{tokio}是要给很大的crate，但我们只需要它的一个组件，因此\emph{Cargo.toml}中的\texttt{features = ["sync"]}字段将\texttt{tokio}消减到只有我们需要的部分，让它更加轻量一些。
+    \texttt{tokio}是一个很大的crate，但我们只需要它的一个组件，因此\emph{Cargo.toml}中的\texttt{features = ["sync"]}字段将\texttt{tokio}削减到只有我们需要的部分，让它更加轻量一些。
 
-    当异步库的生态系统不够主流时，人们会避免同时在一个程序中使用\texttt{tokio}和\texttt{async-std}，但这两个项目一直在合作来确保可以正确工作，只要遵守它们的文档中的每一条规则。
+    当异步库的生态系统不够成熟时，人们会避免同时在一个程序中使用\texttt{tokio}和\texttt{async-std}，但这两个项目一直在合作来确保可以正确工作，只要遵守它们的文档中的每一条规则。
     \item \texttt{serde}和\texttt{serde\_json} crate我们之前已经在\hyperref[ch18]{第18章}中见过。它们给了我们便利且高效地生成和解析JSON的工具，我们的聊天协议将使用JSON来在网络中表示数据。我们想使用\texttt{serde}中的一些可选特性，因此在我们指定依赖时选择了那些特性。
 \end{itemize}
 
 我们的聊天应用的整体架构，包括客户端和服务器，看起来像这样：
 \begin{minted}{text}
     async-chat
-    |—— Cargo.toml
-    |—— src
-        |—— lib.rs
-        |—— utils.rs
-        |—— bin
-            |—— client.rs
-            |—— server
-                |—— main.rs
-                |—— connection.rs
-                |—— group.rs
-                |—— group_table.rs
+    |-- Cargo.toml
+    |-- src
+        |-- lib.rs
+        |-- utils.rs
+        |-- bin
+            |-- client.rs
+            |-- server
+                |-- main.rs
+                |-- connection.rs
+                |-- group.rs
+                |-- group_table.rs
 \end{minted}
 
-这个包的布局使用了我们在“\nameref{src/bin}”中介绍过的一个Cargo的特性：除了主要的库crate \emph{src/lib.rs}和它的子模块\emph{src/utils.rs}之外，它还包含两个可执行文件：
+这个包的布局使用了我们在\nameref{src/bin}中介绍过的一个Cargo的特性：除了主要的库crate \emph{src/lib.rs}和它的子模块\emph{src/utils.rs}之外，它还包含两个可执行文件：
 \begin{itemize}
     \item \emph{src/bin/client.rs}是聊天客户端的单文件可执行程序。
-    \item \emph{src/bin/server}是聊天服务器的可执行程序，它被分成四个文件：\emph{main.rs}保存\texttt{main}函数，还有三个子模块\texttt{connection.rs}、\texttt{group.rs}、\texttt{group\_table.rs}。
+    \item \emph{src/bin/server}是聊天服务器的可执行程序，它被分成四个文件：\emph{main.rs}保存\texttt{main}函数，还有三个子模块\emph{connection.rs}、\emph{group.rs}、\emph{group\_table.rs}。
 \end{itemize}
 
 我们将在本章中展示每个源文件的内容，等它们都就位之后，如果在目录树中输入\texttt{cargo build}，就会编译库crate并且构建两个可执行程序。Cargo会自动把库crate当作一个依赖，这使得它变为一个放置客户端和服务器共享的定义的好地方。类似的，\texttt{cargo check}会检查整个源码树。为了运行其中某一个可执行程序，你可以使用像这样的命令：
@@ -808,7 +804,7 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
     $ cargo run --release --bin client -- localhost:8088
 \end{minted}
 
-\texttt{--bin}选项指示了要运行哪一个可执行程序，并且任何跟在\texttt{--}选项后面的参数都会被传给可执行程序本身。我们的客户端和服务器要想知道服务器的地址和TCP端口。
+\texttt{--bin}选项指示了要运行哪一个可执行程序，并且任何跟在\texttt{--}选项后面的参数都会被传给可执行程序本身。我们的客户端和服务器需要知道服务器的地址和TCP端口。
 
 \subsection{\texttt{Error}和\texttt{Result}类型}
 库crate的\texttt{utils}模块定义了整个应用中用到的结果和错误类型。\emph{src/utils.rs}：
@@ -819,7 +815,8 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
     pub type = ChatResult<T> = Result<T, ChatError>;
 \end{minted}
 
-这是我们在“\nameref{MultiErr}”中建议过的通用的错误类型。\texttt{async\_std}、\texttt{serde\_json}和\texttt{tokio} crate都定义了它们自己的错误类型，但\texttt{?}运算符可以自动把它们全部转换成一个\texttt{ChatError}，使用标准库的\texttt{From} trait的实现可以把任何合适的错误类型转换成\texttt{Box<dyn Error + Send + Sync + 'static>}。\texttt{Send}和\texttt{Sync}约束确保了如果一个被spawn到其他线程的任务失败了，它可以安全地把错误汇报给主线程。
+这是我们在\nameref{MultiErr}中建议过的通用的错误类型。\texttt{async\_std}、\texttt{serde\_json}和\\
+\texttt{tokio} crate都定义了它们自己的错误类型，但\texttt{?}运算符可以自动把它们全部转换成\texttt{ChatError}，使用标准库的\texttt{From} trait的实现可以把任何合适的错误类型转换成\texttt{Box<dyn Error + Send + Sync + 'static>}。\texttt{Send}和\texttt{Sync}约束确保了如果一个被spawn到其他线程的任务失败了，它可以安全地把错误汇报给主线程。
 
 在一个真实的应用中，请考虑使用\texttt{anyhow} crate，它提供了类似于这里的\texttt{Error}和\texttt{Result}类型。\texttt{anyhow} crate易于使用并且提供了一些我们的\texttt{ChatError}和\texttt{ChatResult}没有的很棒的特性。
 
@@ -867,9 +864,9 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
     }
 \end{minted}
 
-\texttt{FromClient}枚举表示一个客户端可能发送给服务器的包：它可以要求加入一个房间并向它加入的房间发送消息。\texttt{FromServer}表示服务器可能返回给客户端的包：被发送到组的消息和错误消息。使用引用计数指针\texttt{Arc<String>}来代替普通的\texttt{String}帮助服务器在管理组和分发消息时避免拷贝字符串。
+\texttt{FromClient}枚举表示一个客户端可能发送给服务器的包：它可以要求加入一个房间并向它加入的房间发送消息。\texttt{FromServer}表示服务器可能返回给客户端的包：被发到聊天组里的消息和错误消息。使用引用计数指针\texttt{Arc<String>}来代替普通的\texttt{String}帮助服务器在管理组和分发消息时避免拷贝字符串。
 
-\texttt{\#[derive]}属性告诉\texttt{serde} crate为\texttt{FromClient}和\texttt{FromServer}生成它的\texttt{Serialize}和\texttt{Deserialize} trait的实现。这让我们可以调用\texttt{serde\_json::to\_string}来把它们转换成JSON值、通过网络发送它们、并且最终调用\texttt{serde\_json::from\_str}来把它们转换回Rust形式。
+\texttt{\#[derive]}属性让\texttt{serde} crate为\texttt{FromClient}和\texttt{FromServer}生成\texttt{Serialize}和\texttt{Deserialize} trait的实现。这让我们可以调用\texttt{serde\_json::to\_string}来把它们转换成JSON值、通过网络发送它们、并且最终调用\texttt{serde\_json::from\_str}来把它们转换回Rust形式。
 
 \texttt{test\_fromclient\_json}单元测试展示了这该如何使用。有了\texttt{serde}生成的\texttt{Serialize}实现，我们可以调用\texttt{serde\_json::to\_string}来把给定的\texttt{FromClient}值转换成这个JSON：
 \begin{minted}{json}
@@ -908,10 +905,9 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
     }
 \end{minted}
 
-这段代码中调用了\texttt{async\_std::io::stdin}来获取一个客户端的标准输入的异步handle，用\\
-\texttt{async\_std::io::BufReader}包装它来进行缓冲，然后调用\texttt{lines}来逐行处理用户的输入。它尝试把输入的每一行命令行解析为\texttt{FromClient}值，并且如果成功就把值发送给服务器。如果用户输入了未知的命令，\texttt{parse\_command}会打印出错误消息并返回\texttt{None}，因此\texttt{send\_commands}可以继续循环。如果用户输入了end-of-file标志，那么\texttt{lines}流会返回\texttt{None}，因此\texttt{send\_commands}会返回。这和以普通的同步程序的方式编写的代码非常相似，除了它使用了\texttt{async\_std}版本的库特性。
+这段代码中调用了\texttt{async\_std::io::stdin}来获取一个客户端的标准输入的异步handle，用\texttt{async\_std::io::BufReader}包装它来进行缓冲，然后调用\texttt{lines}来逐行处理用户的输入。它尝试把输入的每一行命令行解析为\texttt{FromClient}值，并且如果成功就把值发送给服务器。如果用户输入了未知的命令，\texttt{parse\_command}会打印出错误消息并返回\texttt{None}，因此\texttt{send\_commands}可以继续循环。如果用户输入了end-of-file标志，那么\texttt{lines}流会返回\texttt{None}，因此\texttt{send\_commands}会返回。这和以普通的同步程序的方式编写的代码非常相似，除了它使用了\texttt{async\_std}版本的库特性。
 
-异步的\texttt{BufReader}的\texttt{lines}方法很有趣。它并不像标准库一样返回一个迭代器：标准库中\texttt{Iterator::next}方法是一个普通的同步函数，因此调用\texttt{commands.next()}将会阻塞线程直到读取到下一行。作为代替，它返回一个\texttt{Result<String>}值的\emph{流}。流是异步中和迭代器类似的概念：它按需以一种异步友好的风格产生一个值的序列。这里是\texttt{Stream} trait的定义，来自于\texttt{async\_std::stream}模块：
+异步的\texttt{BufReader}的\texttt{lines}方法很有趣。它并不像标准库一样返回一个迭代器：标准库中\texttt{Iterator::next}方法是一个普通的同步函数，因此调用\texttt{commands.next()}将会阻塞线程直到读取到下一行。作为代替，它返回一个\texttt{Result<String>}值的\emph{流(stream)}。流是异步中和迭代器类似的概念：它按需以一种异步友好的风格产生一个值的序列。这里是\texttt{Stream} trait的定义，来自于\texttt{async\_std::stream}模块：
 \begin{minted}{Rust}
     trait Stream {
         type Item;
@@ -924,7 +920,8 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 
 你可以将它看作\texttt{Iterator}和\texttt{Future} trait的结合。类似于迭代器，\texttt{Stream}有关联的\texttt{Item}类型并使用\texttt{Option}来指示序列何时结束。但类似于future，流必须被poll才能得到下一个item（或者知道stream已经结束），你必须调用\texttt{poll\_next}直到它返回\texttt{Poll::Ready}。一个流的\texttt{poll\_next}实现应该总是快速返回，不能阻塞。如果一个流返回\texttt{Poll::Pending}，它必须在值得再次poll时通过\texttt{Context}提醒调用者。
 
-\texttt{poll\_next}方法直接使用起来很别扭，但你通常不需要这么做。类似迭代器，流也有很多工具方法例如\texttt{filter}和\texttt{map}。其中一个是\texttt{next}方法，它返回流的下一个\texttt{Option<Self::Item>}的future。你可以调用\texttt{next}并await future返回而不是显式地poll流。
+\texttt{poll\_next}方法直接使用起来很别扭，但你通常不需要这么做。类似迭代器，流也有很多工具方法例如\texttt{filter}和\texttt{map}。其中一个是\texttt{next}方法，它返回流的下一个\texttt{Option<Self::Item>}的\\
+future。你可以调用\texttt{next}并await future返回而不是显式地poll流。
 
 将这些组合起来，\texttt{send\_commands}通过使用\texttt{next}和\texttt{while let}迭代一个流产生的值并消耗输入的行：
 \begin{minted}{Rust}
@@ -935,7 +932,7 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 
 （未来的Rust版本可能会引入一种\texttt{for}循环语法的异步变体来消耗流，就像普通的\texttt{for}循环消耗\texttt{Iterator}值一样。）
 
-在流结束后poll它——即在它返回\texttt{Poll::Ready(None)}来指示流结束之后——就类似于在一个迭代器返回\texttt{None}之后调用\texttt{next}或在一个future返回\texttt{Poll::Ready}之后poll它一样：\texttt{Stream} trait没有指定流的行为，因此有些流可能行为不当。类似于future和迭代器，流有一个\texttt{fuse}方法来确保这样的调用结果是可预测的，更多细节见文档。
+在流结束后poll它——即在它返回\texttt{Poll::Ready(None)}来指示流结束之后——就类似于在一个迭代器返回\texttt{None}之后调用\texttt{next}或在一个future返回\texttt{Poll::Ready}之后poll它一样。\texttt{Stream} trait没有指定这种情况下流的行为，因此有些流可能行为不当。类似于future和迭代器，流有一个\texttt{fuse}方法来确保这样的调用结果是可预测的，更多细节见文档。
 
 当处理流时，要记得use \texttt{async\_std}的 prelude：
 \begin{minted}{Rust}
@@ -951,10 +948,11 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
     impl<T: Stream> StreamExt for T { }
 \end{minted}
 
-这是我们在“\nameref{OrphanRule}”中介绍过的\emph{扩展trait(extension trait)}的一个例子。\texttt{async\_std::prelude}模块把\texttt{StreamExt}的方法引入作用域，因此要记得use这个prelude来确保这些方法在你的代码中可见。
+这是我们在\nameref{OrphanRule}中介绍过的\emph{扩展trait(extension trait)}的一个例子。\\
+\texttt{async\_std::prelude}模块把\texttt{StreamExt}的方法引入作用域，因此要记得use这个prelude来确保这些方法在你的代码中可见。
 
 \subsection{发送包}
-为了通过网络套接字传输包，我们的客户端和服务器使用了我们的库crate的\texttt{utils}模块中的\texttt{send\_as\_json}函数：
+为了通过网络套接字传输包，我们的客户端和服务器使用了库crate的\texttt{utils}模块中的\texttt{send\_as\_json}函数：
 \begin{minted}{Rust}
     use async_std::prelude::*;
     use serde::Serialize;
@@ -974,8 +972,7 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 
 这个函数构建\texttt{packet}的JSON \texttt{String}表示，在末尾加上了一个换行符，然后全部写入\texttt{outbound}。
 
-通过它的where子句，你可以看到\texttt{send\_as\_json}非常灵活。要发送的包的类型\texttt{P}，可以是任何实现了\texttt{serde::Serialize}的类型。输出流\texttt{S}可以是任何实现了\texttt{async\_std::io::Write}的类型，这个trait是\\
-\texttt{std::io::Write} trait的异步版本。这足够我们在一个异步的\texttt{TcpStream}上发送\texttt{FromClient}和\texttt{FromServer}值。保持\texttt{send\_as\_json}的定义是泛型的可以确保它不依赖流或包的类型的细节：不过\texttt{send\_as\_json}只能使用那些trait的方法。
+通过它的where子句，你可以看到\texttt{send\_as\_json}非常灵活。要发送的包的类型\texttt{P}，可以是任何实现了\texttt{serde::Serialize}的类型。输出流\texttt{S}可以是任何实现了\texttt{async\_std::io::Write}的类型，这个trait是\texttt{std::io::Write} trait的异步版本。这足够我们在一个异步的\texttt{TcpStream}上发送\texttt{FromClient}和\texttt{FromServer}值。保持\texttt{send\_as\_json}的定义是泛型的可以确保它不依赖流或包的类型的细节，不过这样的话\texttt{send\_as\_json}就只能使用那些trait的方法了。
 
 为了使用\texttt{write\_all}方法，\texttt{S}中的\texttt{Unpin}约束是必须的。我们将在本章稍后介绍pin和unpin，但现在只需要给需要的类型参数添加上\texttt{Unpin}约束即可，如果你哪里忘了，Rust编译器会指出来的。
 
@@ -984,7 +981,8 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 和流一样，\texttt{async\_std}的I/O trait的很多方法实际上也是定义在扩展trait中，因此无论何时使用它们都要记得\texttt{use async\_std::prelude::*}。
 
 \subsection{接收包：更多异步流}
-为了接受包，我们的服务器和客户端将使用\texttt{utils}模块中的这个函数来接收\texttt{FromClient}和\texttt{FromServer}值，它从一个异步的TCP套接字，即\texttt{async\_std::io::BufReader<TcpStream>}中接收值：
+为了接收包，我们的服务器和客户端将使用\texttt{utils}模块中的这个函数来接收\texttt{FromClient}和\\
+\texttt{FromServer}值，它从一个异步的TCP套接字，即\texttt{async\_std::io::BufReader<TcpStream>}中接收值：
 \begin{minted}{Rust}
     use serde::de::DeserializeOwned;
 
@@ -1077,7 +1075,7 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
     from_server.await?;
 \end{minted}
 
-但因为我们要await这两个join handle，只有当两个任务\emph{都}结束时程序才会退出。我们希望\emph{任何一个}任务结束时程序就会退出。future的\texttt{race}方法完成了这个功能。调用\texttt{from\_server.race(to\_server)}返回一个新的future，它同时poll \texttt{from\_server}和\texttt{to\_server}，并在任何一个准备好时返回\texttt{Poll::Ready(v)}：最终的值是第一个完成的future的值，未完成的future被丢弃。
+但因为我们要await这两个join handle，只有当两个任务\emph{都}结束时程序才会退出。我们希望\emph{任何一个}任务结束时程序就会退出。future的\texttt{race}方法完成了这个功能。调用\texttt{from\_server.race(to\_server)}返回一个新future，它同时poll \texttt{from\_server}和\texttt{to\_server}，并在任何一个准备好时返回\texttt{Poll::Ready(v)}：最终的值是第一个完成的future的值，未完成的future被丢弃。
 
 \texttt{race}方法和很多其它有用的工具，被定义在\texttt{async\_std::prelude::FutureExt} trait中，\texttt{async\_std::prelude}让它对我们可见。
 
@@ -1129,7 +1127,7 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 
 服务器的\texttt{main}函数和客户端的很像：它进行一些初始化工作，然后调用\texttt{block\_on}来运行一个异步块来做真正的工作。为了处理从客户端到来的连接，它创建了一个\texttt{TcpListener}套接字，它的\texttt{incoming}方法返回一个\texttt{std::io::Result<TcpStream>}值的流。
 
-对没有给到来的连接，我们spawn一个异步任务运行\texttt{connection::serve}函数。每一个任务还接受一个\texttt{GroupTable}值的引用，它表示我们的服务器的聊天组的列表，通过一个\texttt{Arc}引用计数指针被所有连接共享。
+对每个到来的连接，我们spawn一个异步任务运行\texttt{connection::serve}函数。每一个任务还接受一个\texttt{GroupTable}值的引用，它表示我们的服务器的聊天组的列表，通过一个\texttt{Arc}引用计数指针被所有连接共享。
 
 如果\texttt{connection::serve}返回一个错误，我们向标准错误输出记录一条消息并让任务退出。其它的连接继续运行。
 
@@ -1145,8 +1143,37 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 
     use crate::group_table::GroupTable;
 
-    pub async fn serve(socket: 
-                ...
+    pub async fn serve(socket: TcpStream, groups: Arc<GroupTable>)
+                 -> ChatResult<()>
+    {
+        let outbound = Arc::new(Outbound::new(socket.clone()));
+
+        let buffered = BufReader::new(socket);
+        let mut from_client = utils::receive_as_json(buffered);
+        while let Some(request_result) = from_client.next().await {
+            let request = request_result?;
+            let result = match request {
+                FromClient::Join { group_name } => {
+                    let group = groups.get_or_create(group_name);
+                    group.join(outbound.clone());
+                    Ok(())
+                }
+
+                FromClient::Post { group_name, message } => {
+                    match groups.get(&group_name) {
+                        Some(group) => {
+                            group.post(message);
+                            Ok(())
+                        }
+                        None => {
+                            Err(format!("Group '{}' does not exist", group_name))
+                        }
+                    }
+                }
+            };
+
+            if let Err(message) = result {
+                let report = FromServer::Error(message);
                 outbound.send(report).await?;
             }
         }
@@ -1154,7 +1181,6 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
         Ok(())
     }
 \end{minted}
-\footnote{译者注：代码中省略号是因为不知道为什么原文里这部分代码缺失了，只有一片空白。}
 
 这基本只是客户端的\texttt{handle\_replies}函数的镜像：代码的主体是一个循环，它负责处理一个\texttt{FromClient}值的流，这个流是使用\texttt{receive\_as\_json}从一个缓冲的TCP流构建的。如果有错误发生，我们就生成一个\texttt{FromServer::Error}包将坏消息传回给客户端。
 
@@ -1190,7 +1216,7 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 
 第一，如果一个任务在持有一个互斥锁guard的时候挂起，标准库的\texttt{Mutex}可能会有不恰当的行为。如果正在运行任务的线程选择了另一个任务来运行，并且那个任务里尝试锁住同一个\texttt{Mutex}，就会出现问题：从\texttt{Mutex}的观点来看，已经拥有它的线程再次尝试锁住它。标准的\texttt{Mutex}设计时并没有考虑到这种情况，因此它会panic或者死锁。（它永远不会错误地允许锁定。）有一些工作让Rust能在编译期检测出这个问题并且在\texttt{std::sync::Mutex} guard的作用域包含一个\texttt{await}表达式时给出一个警告。因为\texttt{Outbound::send}需要在await \texttt{send\_as\_json}和\texttt{guard.flush}的同时持有锁，所以它必须使用\texttt{async\_std}的\texttt{Mutex}。
 
-第二，异步的\texttt{Mutex}的\texttt{lock}方法返回一个guar的future，因此一个等待锁住互斥锁的任务会让出线程给其它任务，直到互斥锁准备好。（如果互斥锁已经可用，\texttt{lock} future会立刻准备好，任务也不会挂起自身。）另一方面，标准的\texttt{Mutex}的\texttt{lock}方法在等待获取锁时会定住整个线程。因为上面的代码在通过网络传输一个包时需要持有锁，这可能会需要一段时间。
+第二，异步的\texttt{Mutex}的\texttt{lock}方法返回一个guard的future，因此一个等待锁住互斥锁的任务会让出线程给其它任务，直到互斥锁准备好。（如果互斥锁已经可用，\texttt{lock} future会立刻准备好，任务也不会挂起自身。）另一方面，标准的\texttt{Mutex}的\texttt{lock}方法在等待获取锁时会定住整个线程。因为上面的代码在通过网络传输一个包时需要持有锁，这可能会需要一段时间。
 
 最后，标准的\texttt{Mutex}必须被锁住它的线程解锁。为了强迫这一点，标准的互斥锁guard类型没有实现\texttt{Send}：它不能被传送到其他线程。这意味着一个包含这样的guard的future自身也没有实现\texttt{Send}，因此不能传给\texttt{spawn}以在线程池中运行；它只能用\texttt{block\_on}或者\texttt{spawn\_local}来运行。一个\texttt{async\_std Mutex}的guard确实实现了\texttt{Send}，因此在被spawn的任务中使用它不会有问题。
 
@@ -1227,7 +1253,7 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 
 一个\texttt{GroupTable}就是一个被锁保护的哈希表，它把聊天组的名称映射到实际的组，两者都使用引用计数指针来管理。\texttt{get}和\texttt{get\_or\_create}方法会锁住互斥锁，进行一些哈希表的操作，可能还会有一些内存分配，并返回。
 
-在\texttt{GroupTable}中，我们使用了一个普通的\texttt{std::sync::Mutex}。这个模块中根本没有任何异步代码，因此没有需要避免的\texttt{await}。事实上，如果我们想在这里使用\texttt{async\_std::sync::Mutex}，我们需要把\texttt{get}和\texttt{get\_or\_create}变成异步函数，这会引入future的创建、挂起、恢复的开销，收益却只有一点：互斥锁只有在一些哈希操作和内存分配操作时会被锁住。
+在\texttt{GroupTable}中，我们使用了一个普通的\texttt{std::sync::Mutex}。这个模块中没有任何异步代码，因此没有需要避免的\texttt{await}。事实上，如果我们想在这里使用\texttt{async\_std::sync::Mutex}，我们需要把\texttt{get}和\texttt{get\_or\_create}变成异步函数，这会引入future的创建、挂起、恢复的开销，收益却只有一点：互斥锁只有在一些哈希操作和内存分配操作时会被锁住。
 
 如果我们的聊天服务器发现它有了数百万的用户，并且\texttt{GroupTable}互斥锁变成了一个瓶颈，那么把它变为异步的并不能解决问题。使用一些专为并发访问设计的集合类型来代替\texttt{HashMap}可能会更好。例如，\texttt{dashmap} crate提供了这样一个类型。
 
@@ -1245,7 +1271,7 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 
 通常，一个广播通道会保留队列中的每条消息直到每一个消费者都获得了它的拷贝。但如果队列的长度超过了通道的最大容量（在创建时指定），最旧的消息就会被丢弃。所有不能跟上的消费者会在尝试获取下一条消息时将得到一个错误值，并且通道会把它们前进到可用的最旧的消息。
 
-例如，\autoref{f20-4}展示了一个最大容量为16的广播通道。
+例如，\hyperref[f20-4]{图20-4}展示了一个最大容量为16的广播通道。
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.9\textwidth]{../img/f20-4.png}
@@ -1255,7 +1281,7 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 
 这里有2个sender发送消息和4个receiver接收消息——或者更精确地说，从队列中拷贝消息。Receiver B有14条要接收的消息，Receiver C有7条，Receiver D完全跟上了。Receiver A落后了，并且有11条消息都被丢弃了。它下一次尝试接收消息时会失败，返回一个错误表示这种情况，然后它会直接前进到当前队列的尾部。
 
-我们的聊天服务器将每一个聊天组表示为一个携带\texttt{Arc<String>}值的广播通道：向组发送一条消息会向所有的成员广播。这里是\texttt{group::Group}类型的定义，在\emph{srd/bin/server/group.rs}中定义：
+我们的聊天服务器将每一个聊天组表示为一个携带\texttt{Arc<String>}值的广播通道：向组发送一条消息会向所有的成员广播。这里是\texttt{group::Group}类型的定义，在\emph{src/bin/server/group.rs}中定义：
 \begin{minted}{Rust}
     use async_std::task;
     use crate::connection::Outbound;
@@ -1287,11 +1313,11 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
     }
 \end{minted}
 
-一个\texttt{Group}结构体持有聊天组的名称和一个表示组的广播通道的发送端的\texttt{broadcast::Sender}。 \texttt{Group::new}方法调用了\texttt{broadcast::channel}来创建一个最大容量为1000条消息的广播通道。\texttt{channel}函数同时返回一个sender和一个receiver，但我们这时还不需要receiver，因为这个组这时还没有任何成员。
+一个\texttt{Group}结构体持有聊天组的名称和一个\texttt{broadcast::Sender}，它表示组的广播通道的发送端。\texttt{Group::new}方法调用了\texttt{broadcast::channel}来创建一个最大容量为1000条消息的广播通道。\texttt{channel}函数同时返回一个sender和一个receiver，但我们这时还不需要receiver，因为这个组这时还没有任何成员。
 
 为了向组里添加成员，\texttt{Group::join}方法会调用sender的\texttt{subscribe}方法来创建一个新的通道的receiver。然后它spawn一个新的异步任务来监测receiver的消息，并把它们写回到客户端，这个功能在\texttt{handle\_subscriber}函数中完成。
 
-这些细节完成之后，\texttt{Group::post}方法就很直观了：它简单地向广播通道发送消息。因为通道携带的值是\texttt{Arc<String>}，给每一个receiver一个拷贝只会增加消息的引用计数，没有任何拷贝或堆分配。一旦所有的订阅者都接收到了消息，引用计数就会降到0，消息就会被释放。
+这些细节完成之后，\texttt{Group::post}方法就很直观了：它简单地向广播通道发送消息。因为通道携带的值是\texttt{Arc<String>}，给每个receiver一个拷贝只会增加消息的引用计数，没有任何拷贝或堆分配。一旦所有的订阅者都接收到了消息，引用计数就会降到0，消息就会被释放。
 
 这里是\texttt{handle\_subscriber}的定义：
 \begin{minted}{Rust}
@@ -1333,8 +1359,7 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 这就是聊天服务器的完整代码。它有些简陋，并且\texttt{async\_std}、\texttt{tokio}和\texttt{futures} crate还有很多比我们在本书中介绍的更有价值的特性，但这个示例的理想目的是展示异步生态系统的某些功能如何协同工作：异步任务、流、异步I/O trait、通道、和两种风格的互斥锁。
 
 \section{原语future和executor：何时一个future值得再次poll}\label{WhenPoll}
-聊天服务展示了我们怎么使用像\texttt{TcpListener}和\texttt{broadcast}通道这样的异步原语编写代码，并用像\texttt{block\_on}\\
-和\texttt{spawn}来驱动它们执行。现在我们可以看看它们是如何实现的。关键的问题在于，当一个future返回\texttt{Poll::Pending}时，它怎么跟executor协调以在正确的时间再次poll它？
+聊天服务展示了我们怎么使用像\texttt{TcpListener}和\texttt{broadcast}通道这样的异步原语编写代码，并用像\texttt{block\_on}和\texttt{spawn}来驱动它们执行。现在我们可以看看它们是如何实现的。关键的问题在于，当一个future返回\texttt{Poll::Pending}时，它怎么跟executor协调以在正确的时间再次poll它？
 
 考虑当我们运行聊天客户端的\texttt{main}函数中的这段代码时会发生什么：
 \begin{minted}{Rust}
@@ -1344,9 +1369,9 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
     })
 \end{minted}
 
-\texttt{block\_on}第一次poll异步块的future时，网络连接当然不能立刻准备好，因此\texttt{block\_on}会陷入睡眠。但应该什么时候唤醒它？不知为何，一旦网络连接准备好，\texttt{TcpStream}需要告诉\texttt{block\_on}它应该再次poll异步块的future，因为它知道这个时候，\texttt{await}将会结束，异步块的执行可以取得进展。
+\texttt{block\_on}第一次poll异步块的future时，网络连接当然不能立刻准备好，因此\texttt{block\_on}会陷入睡眠。但应该什么时候唤醒它？一旦网络连接准备好，\texttt{TcpStream}需要告诉\texttt{block\_on}它应该再次poll异步块的future，因为它知道这个时候，\texttt{await}将会结束，异步块的执行可以取得进展。
 
-当一个类似\texttt{block\_on}这样的executor poll一个future时，它必须传递一个回调函数称为一个\emph{waker}。如果future还没有准备好，\texttt{Future} trait的规则要求它必须立刻返回\texttt{Poll::Pending}，并设置好当future值得再次poll时调用waker。
+当一个类似\texttt{block\_on}这样的executor poll一个future时，它必须传递一个回调函数，称为一个\emph{waker}。如果future还没有准备好，\texttt{Future} trait的规则要求它必须立刻返回\texttt{Poll::Pending}，并设置好当future值得再次poll时调用waker。
 
 因此一个手写的\texttt{Future}实现通常看起来像这样：
 \begin{minted}{Rust}
@@ -1397,7 +1422,7 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 现在我们已经展示了executor和future是如何通信的，我们将自己实现一个future，然后介绍一个\texttt{block\_on} executor的实现。
 
 \subsection{调用waker：\texttt{spawn\_blocking}}\label{InvokeWaker}
-本章更早的时候，我们描述过\texttt{spawn\_blocking}函数，它启动一个给定的闭包，在另一个线程并返回一个返回值的future。我们现在已经有了实现\texttt{spawn\_blocking}所需的所有知识。为了简单，我们的版本将会每一个闭包创建一个新的线程，而不是像\texttt{async\_std}的版本一样使用一个线程池。
+本章更早的时候，我们描述过\texttt{spawn\_blocking}函数，它启动一个给定的闭包，在另一个线程运行并返回一个返回值的future。我们现在已经有了实现\texttt{spawn\_blocking}所需的所有知识。为了简单，我们的版本将会每一个闭包创建一个新的线程，而不是像\texttt{async\_std}的版本一样使用一个线程池。
 
 尽管\texttt{spawn\_blocking}返回一个future，但我们并不准备把它写成一个\texttt{async fn}。相反，它将是一个普通的同步函数，返回一个\texttt{SpawnBlocking}结构体，我们将基于它实现我们自己的\texttt{Future}。
 
@@ -1409,14 +1434,40 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
           T: Send + 'static,
 \end{minted}
 
-因为我们需要把闭包送到另一个线程去运行并把结果带回来，因此闭包\texttt{F}和它的返回值\texttt{T}都必须实现了\texttt{Send}。并且因为我们不知道这个线程将会运行多久，因此它们必须都实现了\texttt{'static}。\texttt{std::thread::spawn}本身的约束一样。
+因为我们需要把闭包送到另一个线程去运行并把结果带回来，因此闭包\texttt{F}和它的返回值\texttt{T}都必须实现了\texttt{Send}。并且因为我们不知道这个线程将会运行多久，因此它们必须都实现了\texttt{'static}。这些约束和\texttt{std::thread::spawn}的约束一样。
 
 \texttt{SpawnBlocking<T>}是一个闭包将要返回的值的future。这是它的定义：
 \begin{minted}{Rust}
     use std::sync::{Arc, Mutex};
     use std::task::Waker;
-    pub struct
-    ...
+
+    pub struct SpawnBlocking<T>(Arc<Mutex<Shared<T>>>);
+
+    struct Shared<T> {
+        value: Option<T>,
+        waker: Option<Waker>,
+    }
+\end{minted}
+
+\texttt{Shared}结构体必须充当future和运行闭包的线程之间的交点，因此把它放进\texttt{Arc}里，并且使用了\texttt{Mutex}来保护它。（这里使用同步的\texttt{Mutex}是没问题的。）poll这个future会检查\texttt{value}是否就绪和是否要把waker保存到\texttt{waker}中。运行闭包的线程会把返回值保存到\texttt{value}中，并且如果有\texttt{waker}的话就调用它。
+
+这里是\texttt{spawn\_blocking}的完整定义：
+\begin{minted}{Rust}
+    pub fn spawn_blocking<T, F>(closure: F) -> SpawnBlocking<T>
+    where F: FnOnce() -> T,
+          F: Send + 'static,
+          T: Send + 'static,
+    {
+        let inner = Arc::new(Mutex::new(Shared {
+            value: None,
+            waker: None,
+        }));
+        
+        std::thread::spawn({
+            let inner = inner.clone();
+            move || {
+                let value = closure();
+
                 let maybe_waker = {
                     let mut guard = inner.lock().unwrap();
                     guard.value = Some(value);
@@ -1432,9 +1483,9 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
         SpawnBlocking(inner)
     }
 \end{minted}
-\footnote{译者注：代码中省略号是因为不知道为什么原文里这部分代码缺失了，只有一片空白。}
 
-在创建了\texttt{Shared}值之后，这段代码spawn了一个线程来运行闭包，把结果存储在\texttt{Shared}的\texttt{value}字段中，然后调用waker。
+在创建了\texttt{Shared}值之后，这段代码spawn了一个线程来运行闭包，把结果存储在\texttt{Shared}\\
+的\texttt{value}字段中，然后调用waker。
 
 我们可以像下面这样为\texttt{SpawnBlocking}实现\texttt{Future}：
 \begin{minted}{Rust}
@@ -1459,8 +1510,7 @@ Rust的异步编程的方案在很多方面都和其他语言采用的方案很�
 
 poll一个\texttt{SpawnBlocking}会检查闭包的值是否已经准备好了，如果准备好了就获取它的所有权并返回。否则，future就继续pending，并在future的\texttt{waker}字段中保存一个上下文的waker。
 
-一旦一个\texttt{Future}返回\texttt{Poll::Ready}，你不应该再去poll它。通常的消耗future的方式，例如\texttt{await}和\texttt{block\_on}\\
-都遵守这个规则。如果一个\texttt{SpawnBlocking}被过度poll，不会有什么特别的麻烦发生，但它也没有特别处理这种情况。对手写的future来说这是典型的情况。
+一旦一个\texttt{Future}返回\texttt{Poll::Ready}，你不应该再去poll它。通常的消耗future的方式，例如\texttt{await}和\texttt{block\_on}都遵守这个规则。如果一个\texttt{SpawnBlocking}被过度poll，不会有什么特别的麻烦发生，但它也没有特别处理这种情况。对手写的future来说这是典型的情况。
 
 \subsection{实现\texttt{block\_on}}
 除了能实现future原语之外，我们也已经有了构建一个简单的executor所需的所有知识。在这一节中，我们将编写我们自己的\texttt{block\_on}。它将比\texttt{async\_std}的版本简单一些；例如，它不支持\texttt{spawn\_local}、task-local变量、或者嵌套调用（在异步代码中调用\texttt{block\_on}）。但它足够运行我们的聊天客户端和服务器。代码如下：
@@ -1495,7 +1545,8 @@ poll一个\texttt{SpawnBlocking}会检查闭包的值是否已经准备好了，
     let unparker = parker.unparker().clone();
 \end{minted}
 
-\texttt{crossbeam} crate的\texttt{Parker}类型是一个简单的阻塞原语：调用\texttt{parker.park()}会阻塞当前的线程直到某个别的线程对相应的\texttt{Unparker}调用\texttt{.unpark()}，\texttt{Unparker}通过调用\texttt{parker.unparker()}获得。如果你\texttt{unpark}了一个还没有park的线程，它的下一次\texttt{park}调用将没有阻塞、立即返回。我们的\texttt{block\_on}将使用\texttt{Parker}来在future还没有准备好时等待，并且传递给future的waker将unpark它：
+\texttt{crossbeam} crate的\texttt{Parker}类型是一个简单的阻塞原语：调用\texttt{parker.park()}会阻塞当前的线程直到某个别的线程对相应的\texttt{Unparker}调用\texttt{.unpark()}，\texttt{Unparker}通过调用\\
+\texttt{parker.unparker()}获得。如果你\texttt{unpark}了一个还没有park的线程，它的下一次\texttt{park}调用将没有阻塞、立即返回。我们的\texttt{block\_on}将使用\texttt{Parker}来在future还没有准备好时等待，并且传递给future的waker将负责unpark它：
 \begin{minted}{Rust}
     let waker = waker_fn(move || unparker.unpark());
 \end{minted}
@@ -1527,7 +1578,7 @@ poll一个\texttt{SpawnBlocking}会检查闭包的值是否已经准备好了，
 在这一节中，我们将展示为什么异步函数调用和块的future不能像普通的Rust值一样自由处理。然后我们将展示\texttt{Pin}如何充当一个指针的“seal of approval”，以被用来安全地管理这样的future。最后，我们将展示一些使用\texttt{Pin}值的方法。
 
 \subsection{future的两个生命阶段}
-考虑下面简单的异步代码：
+考虑下面简单的异步代码：\footnote{译者注：因为某些谜之原因，译者这里无法在代码里逃逸（escapeinside无效），只能（用texcomments）在注释里逃逸，这里原文中\ding{173}和\ding{174}都是在\texttt{await}和\texttt{?}之间的位置。}
 \begin{minted}[texcomments]{Rust}
     use async_std::io::prelude::*;
     use async_std::{io, net};
@@ -1540,7 +1591,6 @@ poll一个\texttt{SpawnBlocking}会检查闭包的值是否已经准备好了，
         Ok(buf)
     }
 \end{minted}
-\footnote{译者注：因为某些谜之原因，译者这里无法在代码里逃逸（escapeinside无效），只能（用texcomments）在注释里逃逸，这里原文中\ding{173}和\ding{174}都是在\texttt{await}和\texttt{?}之间的位置。}
 
 这会打开一个到给定地址的TCP连接并且返回一个服务器发送的\texttt{String}。标记为\ding{172}\ding{173}\ding{174}的点是\emph{恢复点(resumption point)}，异步函数中的代码在执行时可能会在这些点挂起。
 
@@ -1549,9 +1599,9 @@ poll一个\texttt{SpawnBlocking}会检查闭包的值是否已经准备好了，
     let response = fetch_string("localhost:6502");
 \end{minted}
 
-现在\texttt{response}是一个准备在\texttt{fetch\_string}的开头执行的future。在内存中，这个future看起来像\autoref{f20-5}这样。
+现在\texttt{response}是一个准备在\texttt{fetch\_string}的开头执行的future。在内存中，这个future看起来像\hyperref[f20-5]{图20-5}这样。
 
-\begin{figure}
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.9\textwidth]{../img/f20-5.png}
     \caption{\texttt{fetch\_string}的调用构造出的future}
@@ -1560,15 +1610,14 @@ poll一个\texttt{SpawnBlocking}会检查闭包的值是否已经准备好了，
 
 因为我们刚刚创建这个future，它应该在恢复点\ding{172}，即函数体的开头开始执行。这个状态下，future继续运行时唯一需要的值就是函数参数。
 
-现在假设你已经poll了\texttt{response}几次，它到达了函数体中的这个点：
+现在假设你已经poll了\texttt{response}几次，它到达了函数体中的这个点：\footnote{同上。}
 \begin{minted}[texcomments]{Rust}
     socket.read_to_string(&mut buf).await?; // \ding{174}
 \end{minted}
-\footnote{同上。}
 
-进一步假设\texttt{read\_to\_string}的结果还没有准备好，因此这一次poll会返回\texttt{Poll::Pending}。这时，future看起来像\autoref{f20-6}。
+进一步假设\texttt{read\_to\_string}的结果还没有准备好，因此这一次poll会返回\texttt{Poll::Pending}。这时，future看起来像\hyperref[f20-6]{图20-6}。
 
-\begin{figure}
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.9\textwidth]{../img/f20-6.png}
     \caption{await \texttt{read\_to\_string}到一半的同一个future}
@@ -1584,14 +1633,14 @@ poll一个\texttt{SpawnBlocking}会检查闭包的值是否已经准备好了，
 
 注意对\texttt{read\_to\_string}的调用借用了\texttt{socket}和\texttt{buf}的引用。在一个同步函数中，所有的局部变量都存在栈上，但在异步函数中，生命周期包含一个\texttt{await}的局部变量必须放置在future中，这样当下一次poll时它们才可用。借用这样的变量的引用会借用future的一部分。
 
-然而，Rust要求值在被借用时不能被move。假设你想把这个future移动到一个未知：
+然而，Rust要求值在被借用时不能被move。假设你想把这个future移动到一个新位置：
 \begin{minted}{Rust}
     let new_variable = response;
 \end{minted}
 
-Rust没有办法找到所有活跃的引用并调整它们。因此\texttt{socket}和\texttt{buf}的引用会继续指向原本的\texttt{response}里的旧位置，而不是指向新位置。它们就会变成悬垂指针，如\autoref{f20-7}所示。
+Rust没有办法找到所有活跃的引用并调整它们。因此\texttt{socket}和\texttt{buf}的引用会继续指向原本的\texttt{response}里的旧位置，而不是指向新位置。它们就会变成悬垂指针，如\hyperref[f20-7]{图20-7}所示。
 
-\begin{figure}
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.9\textwidth]{../img/f20-7.png}
     \caption{\texttt{fetch\_string}的future，在借用的同时被move（Rust会阻止这种情况）}
@@ -1600,18 +1649,18 @@ Rust没有办法找到所有活跃的引用并调整它们。因此\texttt{socke
 
 阻止被借用的值被move通常是借用检查器的职责。借用检查器把变量看作所有权树的根，但和存储在栈上的变量不同，如果future本身被move了那么存储在future中的变量也会被move。这意味着\texttt{socket}和\texttt{buf}的借用不仅会影响\texttt{fetch\_string}可以对自己的变量进行的操作，还会影响它的调用者可以对\texttt{response}（包含它们的future）进行的操作。异步函数的future是借用检查器的的盲点，Rust为了保持内存安全的保证必须处理这种情况。
 
-Rust对这个问题的解决方案依赖于一个发现：future在刚被创建时总是可以安全地move，只有当它们被poll以后才不能安全地move。调用一个异步函数返回的刚创建的future只包含一个恢复点和参数值。这些都属于异步函数的函数体，此时它还没有开始执行。只有当poll一个future后才有可能借用它的内容。
+Rust对这个问题的解决方案依赖于一个发现：future在刚被创建时总是可以安全地move，只有当它们被poll以后才不能安全地move。一个异步函数调用返回的刚创建的future只包含一个恢复点和参数值。这些都属于异步函数的函数体，此时它还没有开始执行。只有当poll一个future后才有可能借用它的内容。
 
 从这一点来看，我们可以看到每个future都有两个生命阶段：
 \begin{itemize}
     \item 当future被创建时第一个阶段开始。因为函数体还没有开始执行，它的任何一部分都还没有被借用。这时，它和其他Rust值一样可以安全地移动。
-    \item 第二个阶段在future第一次被poll时开始。一旦函数体开始执行，它就可能借用存储在future中的变量的引用，然后await，导致future的一部分被借用。在future第一次被poll之后，我们必须假设它已经不能安全地move了。
+    \item 第二个阶段开始于future第一次被poll。一旦函数体开始执行，它就可能借用存储在future中的变量的引用，然后await，导致future的一部分被借用。在future第一次被poll之后，我们必须假设它已经不能安全地move了。
 \end{itemize}
 
-第一个生命阶段的灵活性让我们可以把future传递给\texttt{block\_on}和\texttt{spawn}，以及调用适配器方法例如\texttt{race}和\\
-\texttt{fuse}，它们全都是以值接受future。事实上，即使创建future的异步函数调用也需要把它返回给调用者，这里也有一次move。
+第一个生命阶段的灵活性让我们可以把future传递给\texttt{block\_on}和\texttt{spawn}，以及调用适配器方法例如\texttt{race}和\texttt{fuse}，它们全都是以值接受future。事实上，创建future的异步函数调用也需要把它返回给调用者，这里也有一次move。
 
-future只有被poll之后才会进入第二个生命阶段。\texttt{poll}方法需要future以\texttt{Pin<\&mut Self>}值传递。\texttt{Pin}是一个指针类型的包装（类似于\texttt{\&mut Self}），它限制了指针的使用方式，确保它们引用的对象（例如\texttt{Self}）不能再次被move。因此在poll一个future之前你必须先创建它的\texttt{Pin}包装的指针。
+future只有被poll之后才会进入第二个生命阶段。\texttt{poll}方法需要future以\texttt{Pin<\&mut Self>}\\
+值传递。\texttt{Pin}是一个指针类型的包装（类似于\texttt{\&mut Self}），它限制了指针的使用方式，确保它们引用的对象（例如\texttt{Self}）不能再次被move。因此在poll一个future之前你必须先创建它的\texttt{Pin}包装的指针。
 
 这就是Rust保证future安全的策略：一个future在被poll之前不可能变得危险；你不能poll一个future，直到你构造一个\texttt{Pin}包装的指针；并且一旦你这么做了，future就不能再move。
 
@@ -1619,7 +1668,7 @@ future只有被poll之后才会进入第二个生命阶段。\texttt{poll}方法
 
 尽管这一节是在讨论异步函数，但所有讨论的内容也适用于异步块。一个由异步块创建的新future会像闭包一样从周围的环境中捕获它用到的变量。只有当poll它的future时才会创建对它的内容的引用，将它标记为不能安全地move。
 
-请记住，这种move的脆弱性仅限于异步函数和块的future，以及它们特殊的编译器生成的\texttt{Future}实现。如果你手动为你的类型实现了\texttt{Future}，就像我们在“\nameref{InvokeWaker}”中为我们的\texttt{SpawnBlocking}类型做的一样，这样的future不管是在poll前还是poll后都可以完美地move。在任何手写的\texttt{poll}实现中，借用检查器会确保你借用的\texttt{self}的部分引用会在\texttt{poll}返回时消失。这只是因为异步函数和块有能力在一个函数调用中途挂起执行，如果这个过程中有借用，我们必须谨慎处理它们的future。
+请记住，这种move的脆弱性仅限于异步函数和块的future，以及它们特殊的编译器生成的\texttt{Future}实现。如果你手动为你的类型实现了\texttt{Future}，就像我们在\nameref{InvokeWaker}中为我们的\texttt{SpawnBlocking}类型做的一样，这样的future不管是在poll前还是poll后都可以完美地move。在任何手写的\texttt{poll}实现中，借用检查器会确保你借用的\texttt{self}的部分引用会在\texttt{poll}返回时消失。这只是因为异步函数和块有能力在一个函数调用中途挂起执行，如果这个过程中有借用，我们必须谨慎处理它们的future。
 
 \subsection{Pinned 指针}
 \texttt{Pin}类型是一个future的指针的包装，它限制了指针的用法来确保future一旦被poll之后就不能再move。对于不会被move的future这些限制可以被忽略，但它们对安全地poll异步函数和块的future是至关重要的。
@@ -1644,7 +1693,8 @@ future只有被poll之后才会进入第二个生命阶段。\texttt{poll}方法
 
 每一种获得future的pinned指针的方式都意味着放弃future的所有权，并且没有办法将它转变回来。pinned指针自身可以move到任何地方，但move一个指针不会move它引用的对象。因此创建一个pinned指针的过程就是在证明你永久放弃了move这个future的能力。这就是想让它可以被安全地poll所需的全部内容。
 
-一旦你钉住了一个future，如果你想poll它，所有的\texttt{Pin<pointer to T>}类型有一个\texttt{as\_mut}方法解引用指针并返回一个\texttt{Pin<\&mut T>}，这正是\texttt{poll}所需的。
+一旦你钉住了一个future，如果你想poll它，所有的\texttt{Pin<pointer to T>}类型有一个\texttt{as\_mut}\\
+方法解引用指针并返回一个\texttt{Pin<\&mut T>}，这正是\texttt{poll}所需的。
 
 \texttt{as\_mut}方法还可以帮助你在不放弃所有权的情况下poll一个future。我们的\texttt{block\_on}实现就用到了这一点：
 \begin{minted}{Rust}
@@ -1660,13 +1710,13 @@ future只有被poll之后才会进入第二个生命阶段。\texttt{poll}方法
 
 这里，\texttt{pin!}宏重新声明\texttt{future}为一个\texttt{Pin<\&mut F>}，因此我们可以把它传递给\texttt{poll}。但可变引用不是\texttt{Copy}，因此\texttt{Pin<\&mut F>}也不能是\texttt{Copy}，这意味着直接调用\texttt{future.poll()}将会获取\texttt{future}的所有权，导致下一次迭代时\texttt{future}的值变为未初始化状态。为了避免这一点，我们调用了\texttt{future.as\_mut()}来在每一次迭代时重新借用一个新的\texttt{Pin<\&mut F>}。
 
-没有办法得到一个被钉住的future的\texttt{\&mut}引用：如果可以的话，你可以使用\texttt{std::mem::replace}或者\\
-\texttt{std::mem::swap}来把它move出来，并在原来的地方放一个新的future。
+没有办法得到一个被钉住的future的\texttt{\&mut}引用：因为如果可以的话，你就可以使用\\
+\texttt{std::mem::replace}或者\texttt{std::mem::swap}把它move出来，并在原来的位置放一个新的future，这显然是不允许的。
 
 我们在普通的异步代码中之所以不用考虑钉住的future，是因为大多数情况下获取一个future的值——await它或者传给一个executor——都会获取future的所有权并在内部管理pinning。例如，我们的\texttt{block\_on}实现就获取了future的所有权，然后使用\texttt{pin!}宏来产生一个poll所需的\texttt{Pin<\&mut F>}。一个\texttt{await}表达式也会获取future的所有权并且在内部使用一种类似\texttt{pin!}宏的方法。
 
 \subsection{\texttt{Unpin} trait}
-然而，不是所有的future都需要这种谨慎地处理。对于任何为普通类型手写的\texttt{Future}实现，例如我们之前提到的\texttt{SpawnBlocking}类型，这种构造和使用pinned指针的限制是不必要的。
+然而，不是所有的future都需要这么谨慎地处理。对于任何为普通类型手写的\texttt{Future}实现，例如我们之前提到的\texttt{SpawnBlocking}类型，这种构造和使用pinned指针的限制是不必要的。
 
 这样的类型会实现\texttt{Unpin}标记trait：
 \begin{minted}{Rust}
@@ -1689,13 +1739,13 @@ Rust中几乎所有的类型都通过编译器的特殊支持实现了\texttt{Un
     assert_eq!(new_home, "Pinned? Not so much.");
 \end{minted}
 
-即使构造出一个\texttt{Pin<\&mut String>}之后，我们也有对原本的字符串的完整可变访问权限，并且一旦\texttt{Pin}被\texttt{into\_inner}消耗，可变引用就会消失，此时我们还可以把它move进一个新的变量中。因此对于那些是\texttt{Unpin}的类型——几乎所有类型都是——\texttt{Pin}只是一个该类型指针的讨厌的包装。
+即使构造出一个\texttt{Pin<\&mut String>}之后，我们也有对原本的字符串的完整可变访问权限，并且一旦\texttt{Pin}被\texttt{into\_inner}消耗，可变引用就会消失，此时我们还可以把它move进一个新的变量中。因此对于那些是\texttt{Unpin}的类型——几乎所有类型都是——\texttt{Pin}只是一个该类型指针的无聊的包装。
 
 这意味着当你为自己的\texttt{Unpin}类型实现\texttt{Future}时，你的\texttt{poll}实现可以把\texttt{self}看作是一个\texttt{\&mut Self}，而不是一个\texttt{Pin<\&mut Self>}。pin基本可以完全忽略。
 
 你可能会很惊讶\texttt{Pin<\&mut F>}和\texttt{Pin<Box<F>>}实现了\texttt{Unpin}，即使\texttt{F}没有实现。这听起来好像不对——一个\texttt{Pin}怎么能是\texttt{Unpin}？——但如果你仔细想想这两个术语的含义，它确实应该是这样的。即使\texttt{F}一旦被poll之后就不能再安全地move，但一个指向它的指针总是可以安全地move的，不管是否被poll过。只有指针move了，它指向的对象并没有。
 
-当你想把异步函数或块的future传递给一个只接受\texttt{Unpin} future的函数时知道这些是有用的。（这样的函数在\texttt{async\_std}中很罕见，但在异步生态系统的其他地方较为罕见。）即使\texttt{F}不是\texttt{Unpin}，\texttt{Pin<Box<F>>}也是\texttt{Unpin}，因此对一个异步函数或块的future应用\texttt{Box::pin}可以得到一个可以在任何地方使用的future，代价是一次堆分配。
+当你想把异步函数或块的future传递给一个只接受\texttt{Unpin} future的函数时知道这些是有用的。（这样的函数在\texttt{async\_std}中很罕见，但在异步生态系统的其他地方较为常见。）即使\texttt{F}不是\texttt{Unpin}，\texttt{Pin<Box<F>>}也是\texttt{Unpin}，因此对一个异步函数或块的future应用\texttt{Box::pin}可以得到一个可以在任何地方使用的future，代价是一次堆分配。
 
 有很多处理\texttt{Pin}的unsafe方法，它们可以让你对指针和它指向的对象做任何事情，即使目标类型不是\texttt{Unpin}。但正如我们在\hyperref[ch22]{第22章}中解释的一样，Rust不能检查这些方法是否被正确使用，确保使用它们的代码的安全性变成了你的责任。
 
@@ -1717,13 +1767,14 @@ Rust中几乎所有的类型都通过编译器的特殊支持实现了\texttt{Un
 \begin{itemize}
     \item \emph{异步任务消耗更少的内存}。在Linux上，一个线程开始时的内存占用是20KB\footnote{这包括内核内存和为线程分配的物理页，而不是虚拟的、尚未分配的页面。macOS和Windows上这个数字也相差不多。}。future可以小得多：我们的聊天服务器的future只有几百字节，并且随着Rust编译器的改进还可以变得更小。
     \item \emph{异步任务可以更快地创建}。在Linux上，创建一个线程需要大概15µs。spawn一个异步任务只需要大约300ns，几乎只有$\frac{1}{50}$的时间。
-    \item \emph{异步任务的上下文切换比操作系统线程的上下文切换更快}，在Linux分别是0.2µs和1.7µs\footnote{Linux上下文切换以前也是大概0.2µs的范围，直到内核因为处理器的安全缺陷而被迫使用更慢的技术。}。然而，这是两者的最佳情况：如果切换是因为I/O就绪，两者都需要花费1.7µs。切换是否发生在不同处理器上的线程或者任务间也会产生重要的影响：处理器核心之间的通信非常慢。
+    \item \emph{异步任务的上下文切换比操作系统线程的上下文切换更快}，在Linux上分别是0.2µs和\\
+    1.7µs\footnote{Linux上下文切换以前也是大概0.2µs的范围，直到内核因为处理器的安全缺陷而被迫使用更慢的技术。}。然而，这是两者的最佳情况：如果切换是因为I/O就绪，两者都需要花费1.7µs。切换是否发生在不同处理器上的线程或者任务间也会产生重要的影响：处理器核心之间的通信非常慢。
 \end{itemize}
 
 这提示我们异步代码可以解决什么样的问题。例如，一个异步服务器可能为每一个任务使用更少的内存，因此可以处理更多同时的连接。（这可能也是异步代码因“适合I/O”而享有盛誉的地方。）或者，如果你的设计可以自然地组织为很多互相通信的独立任务，那么更低的开销、更短的创建时间、快速的上下文切换都是重要的优势。这就是为什么聊天服务器是异步编程的经典案例，但多人游戏和网络路由可能也是合适的使用场景。
 
 在其他情况下，适合使用异步的条件并不是很清楚。如果你的程序有一个线程池进行繁重的计算或者因为等待I/O完成而闲置，那么上面列出的优势可能对性能并没有很大的影响。你必须优化你的计算，找到更快的网络连接，或者进行一些其他能真正影响到限制因素的改进。
 
-在实践中，我们可以找到的每个大规模服务器的说明都强调了测量、调整和不懈努力以识别和消除任务之间的竞争源头的重要性。一个异步架构不能帮你跳过其中任何一点。事实上，虽然有很多现成的工具可用于评估多线程程序的行为，但Rust的异步任务对这些工具是不可见的，因此还需要它们专门的工具。（正如一位睿智的长者所说：“现在你有了\emph{两个}问题”。）
+在实践中，我们可以找到的每个大规模服务器的说明都强调了测量、调整和不懈努力以识别和消除任务之间的竞争源头的重要性。一个异步架构不能帮你跳过其中任何一点。事实上，虽然有很多现成的工具可用于评估多线程程序的行为，但Rust的异步任务对这些工具是不可见的，因此还需要它们自己专门的工具。（正如一位睿智的长者所说：“现在你有了\emph{两个}问题”。）
 
-即使你现在并不使用异步代码，知道这种选择也很nice，如果你以后有幸比现在忙很多的话。
+即使你现在并不使用异步代码，知道还有这种选择也很nice，如果你以后有幸比现在忙很多的话。
