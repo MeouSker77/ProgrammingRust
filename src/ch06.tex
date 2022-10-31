@@ -159,7 +159,8 @@ C中的大部分控制流工具都是语句，而Rust中的控制流则全是表
 
 \section{块和分号}
 
-块是最通用的表达式。一个块产生一个值，可以被用于任何需要一个值的地方：\begin{minted}{Rust}
+块是最通用的表达式。一个块产生一个值，可以被用于任何需要一个值的地方：
+\begin{minted}{Rust}
     let display_name = match post.author() {
         Some(author) => author.name(),
         None => {
