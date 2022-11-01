@@ -229,7 +229,7 @@ Rust假设在\texttt{extern}块中声明的函数使用C语言的惯例来传递
     }
 \end{minted}
 
-在确保了\texttt{environ}有第一个元素之后，代码调用了\texttt{CStr::from\_ptr}来构建一个借用它的\texttt{CStr}。\texttt{to\_string\_lossy}方法返回一个\texttt{Cow<str>}：如果C字符串包含有效的UTF-8，\texttt{Cow}会以\texttt{\&str}的形式借用它的内容，不包括结尾的空字符。否则，\texttt{to\_string\_lossy}在堆上构造一份文本的拷贝，把其中非UTF-8的字符序列替换为官方的Unicode替换字符\symbol{65533}，并构造出一个拥有它所有权的\texttt{Cow}。无论是哪种情况，结果都实现了\texttt{Display}，因此你可以使用\texttt{\{\}}格式化参数打印出它。
+在确保了\texttt{environ}有第一个元素之后，代码调用了\texttt{CStr::from\_ptr}来构建一个借用它的\texttt{CStr}。\texttt{to\_string\_lossy}方法返回一个\texttt{Cow<str>}：如果C字符串包含有效的UTF-8，\texttt{Cow}会以\texttt{\&str}的形式借用它的内容，不包括结尾的空字符。否则，\texttt{to\_string\_lossy}在堆上构造一份文本的拷贝，把其中非UTF-8的字符序列替换为官方的Unicode替换字符�，并构造出一个拥有它所有权的\texttt{Cow}。无论是哪种情况，结果都实现了\texttt{Display}，因此你可以使用\texttt{\{\}}格式化参数打印出它。
 
 \section{使用库里的函数}
 为了使用一个特定的库提供的函数，你可以在\texttt{extern}块上方加上\texttt{\#[link]}属性来指定Rust应该链接的库的名称。例如，这里有一个程序调用\texttt{libgit2}的初始化和结束函数，但不做任何其他事：
@@ -238,8 +238,8 @@ Rust假设在\texttt{extern}块中声明的函数使用C语言的惯例来传递
 
     #[link(name = "git2")]
     extern {
-        pub fn git_liggit2_init() -> c_int;
-        pub fn git_liggit2_shutdown() -> c_int;
+        pub fn git_libgit2_init() -> c_int;
+        pub fn git_libgit2_shutdown() -> c_int;
     }
 
     fn main() {
@@ -312,7 +312,7 @@ Rust假设在\texttt{extern}块中声明的函数使用C语言的惯例来传递
 \end{minted}
 
 这是Linux上的正确路径；在Windows上，你应该把\texttt{native=}之后的路径替换为\\
-\emph{C:\textbackslash{}Users\textbackslash{}JimB\textbackslash{}liggit2-0.25.1\textbackslash{}build\textbackslash{}Debug}。（我们忽略了一些细节来保证这个例子的简洁；在一个真实的应用中，你应该避免在构建脚本中使用绝对路径。我们在本节结尾给出了如何正确实现这一点的文档。）
+\emph{C:\textbackslash{}Users\textbackslash{}JimB\textbackslash{}libgit2-0.25.1\textbackslash{}build\textbackslash{}Debug}。（我们忽略了一些细节来保证这个例子的简洁；在一个真实的应用中，你应该避免在构建脚本中使用绝对路径。我们在本节结尾给出了如何正确实现这一点的文档。）
 
 现在你基本上可以运行这个程序了。在macOS上它可能可以立即工作；但在Linux系统上你可能会看到类似这样的输出：
 \begin{minted}{text}
