@@ -205,7 +205,8 @@ future的具体类型由编译器根据函数体和参数自动生成。这个�
 
 但关键的是，下一次poll \texttt{cheapo\_request}的future时将不会再次从函数的首部开始：相反，它从poll \texttt{connect\_future}的地方开始\emph{恢复(resume)}执行。直到future准备好之后我们才会继续执行这个异步函数的其他部分。
 
-随着\texttt{cheapo\_request}的future继续被poll，它会从函数体里的一个\texttt{await}开始执行到下一个\texttt{await}，并且只有当它正在等待的子future ready时才会继续。因此，\texttt{cheapo\_request}的future将会被poll多少次取决于子future的行为和函数本身的控制流。\texttt{cheapo\_request}的future会追踪下一次\texttt{poll}时的恢复点和所有的局部状态——变量、参数、临时值——恢复需要这些。
+随着\texttt{cheapo\_request}的future继续被poll，它会从函数体里的一个\texttt{await}开始执行到下一个\texttt{await}，并且只有当它正在等待的子future ready时才会继续。因此，\texttt{cheapo\_request}的future\\
+将会被poll多少次取决于子future的行为和函数本身的控制流。\texttt{cheapo\_request}的future会追踪下一次\texttt{poll}时的恢复点和所有的局部状态——变量、参数、临时值——恢复需要这些。
 
 在函数中间挂起并稍后恢复执行的能力是异步函数独有的。当普通函数返回时，它的栈帧就消失了。因为\texttt{await}表达式依赖于恢复执行的能力，所以你只能在异步函数里使用它们。
 
