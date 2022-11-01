@@ -455,7 +455,8 @@ trait对象就是解决方案:
     }
 \end{minted}
 
-\texttt{write}和\texttt{flush}方法是每一个writer必须实现的基本方法。一个writer可能也实现了\texttt{write\_all}，但如果没有，将会使用我们上边展示的默认实现。
+\texttt{write}和\texttt{flush}方法是每一个writer必须实现的基本方法。一个writer可能也实现了\\
+\texttt{write\_all}，但如果没有，将会使用我们上边展示的默认实现。
 
 你自己的trait也可以使用相同的语法包含默认实现。
 
@@ -639,7 +640,8 @@ trait对象实际上是为最简单的trait设计的，就是那种可以用Java
 \end{minted}
 
 每一个实现了\texttt{StringSet} trait的类型都必须实现这四个关联函数。前两个函数\texttt{new()}和\\
-\texttt{from\_slice()}，没有\texttt{self}参数。它们充当构造函数。在非泛型代码中，这些函数可以使用\texttt{::}语法调用，就像其他类型关联函数一样：
+\texttt{from\_slice()}，没有\texttt{self}参数。它们充当构造函数。在非泛型代码中，这些函数可以使用\texttt{::}\\
+语法调用，就像其他类型关联函数一样：
 \begin{minted}{Rust}
     // 创建两个impl StringSet的多态类型：
     let set1 = SortedStringSet::new();
