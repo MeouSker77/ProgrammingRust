@@ -227,7 +227,7 @@ Rust的二元算术和位运算以及对应的内建trait如\hyperref[t12-3]{表
 
 Rust的所有数值类型都实现了算术运算符。Rust的整数类型和\texttt{bool}类型实现了位运算符。还有一个操作数是引用或者两个操作数都是引用的版本的实现。
 
-所有这些trait都有相同的形式。例如\texttt{std::ops::BitXor}(用于\^{}运算符)的定义看起来像这样：
+所有这些trait都有相同的形式。例如\texttt{std::ops::BitXor}(用于\texttt{\^{}}运算符)的定义看起来像这样：
 \begin{minted}{Rust}
     trait BitXor<Rhs = Self> {
         type Output;
