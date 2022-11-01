@@ -544,7 +544,7 @@ token树正是我们的\texttt{json!}宏所需要的。每一个JSON值都是单
     }
 \end{minted}
 
-这个版本的\texttt{json！}宏可以匹配任何JSON数据。现在我们只需要产生正确的Rust代码。
+这个版本的\texttt{json!}宏可以匹配任何JSON数据。现在我们只需要产生正确的Rust代码。
 
 为了保证Rust在未来可以添加新的语法特性而不会破坏任何你今天写的宏，Rust限制了模式中紧跟在片段之后的token。\hyperref[t21-2]{表21-2}中“后边可以跟”这一列展示了哪些token可以跟在模式后面。例如，模式\texttt{\$x:expr \textasciitilde{} \$y:expr}是错的，因为\texttt{\textasciitilde{}}不允许出现在\texttt{expr}后面。模式\texttt{\$vars:pat => \$handler:expr}是可以的，因为\texttt{\$vars:pat}后跟的是箭头\texttt{=>}，它允许跟在\texttt{pat}后面，而\texttt{\$handler:expr}后面没有跟任何东西，这种情况总是允许的。
 
