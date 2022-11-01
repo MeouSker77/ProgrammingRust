@@ -460,7 +460,7 @@ Rust保证编译器将总是接受语言的所有版本，并且程序可以自�
     use AminoAcid::*;
 \end{minted}
 
-（这里的\texttt{AminoAcid}的例子，有些违背我们之前提到的只导入类型、trait和模块的风格。如果我们的程序包含很长的氨基酸序列，那么根据奥威尔的第六原则：“Break any of these rules sooner than say anything outright barbarous.”（绝不要用粗俗语言，为此可以打破上面任一规则。）这么做也是有道理的。
+（这里的\texttt{AminoAcid}的例子，有些违背我们之前提到的只导入类型、trait和模块的风格。如果我们的程序包含很长的氨基酸序列，那么根据奥威尔的第六原则：“Break any of these rules sooner than say anything outright barbarous.”（绝不要用粗俗语言，为此可以打破上面任一规则。）这么做也是有道理的。）
 
 路径中的\texttt{super}和\texttt{crate}关键字有特殊的含义：\texttt{super}指代父模块，\texttt{crate}指代包含当前模块的crate。
 
@@ -1220,7 +1220,7 @@ Cargo也有一个内建的机制来解决这个问题。当你第一次构建项
        Compiling fern_sim v0.1.0 (file:///.../fern_sim/target/package/fern_sim-0.1.0)
 \end{minted}
 
-\texttt{cargo package}命令会产生一个文件（这里是\emph{target/package/fern\_sim-0.1.0.crate}，这个文件包含你库里的所有源文件，包括\emph{Cargo.toml}。这是你将要上传到crates.io与全世界分享的文件。（你可以使用\texttt{cargo package --list}来查看包含了哪些文件。）Cargo会进行二次检查，像你的最终用户一样从\emph{.crate}文件构建你的库，来确保它能正常工作。
+\texttt{cargo package}命令会产生一个文件（这里是\emph{target/package/fern\_sim-0.1.0.crate}），这个文件包含你库里的所有源文件，包括\emph{Cargo.toml}。这是你将要上传到crates.io与全世界分享的文件。（你可以使用\texttt{cargo package --list}来查看包含了哪些文件。）Cargo会进行二次检查，像你的最终用户一样从\emph{.crate}文件构建你的库，来确保它能正常工作。
 
 Cargo警告说\emph{Cargo.toml}的\texttt{[package]}节缺少了一些对下游用户来说很重要的信息，例如你分发代码所依据的许可证。警告中的URL是非常优秀的资源，因此我们不会在这里详细解释所有的字段。简单来说，你可以通过在\emph{Cargo.toml}中添加几行内容来修复警告：
 \begin{minted}{toml}
