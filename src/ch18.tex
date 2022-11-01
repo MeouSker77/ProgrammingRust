@@ -1,8 +1,8 @@
 \chapter{输入输出}\label{ch18}
 
-\emph{Doolittle: What concrete evidence do you have that you exist?
-Bomb \#20: Hmmmm... well... I think, therefore I am.
-Doolittle: That’s good. That’s very good. But how do you know that anything else exists?
+\emph{Doolittle: What concrete evidence do you have that you exist?\\
+Bomb \#20: Hmmmm... well... I think, therefore I am.\\
+Doolittle: That’s good. That’s very good. But how do you know that anything else exists?\\
 Bomb \#20: My sensory apparatus reveals it to me.}
 
 \begin{flushright}
@@ -309,7 +309,8 @@ Rust中有关输入输出的特性围绕着三个trait：\texttt{Read}、\texttt
 
 还有一个\texttt{print!()}宏，它不会在最后加上一个换行符，\texttt{eprintln!}和\texttt{eprint!}宏写入到标准错误流。这些函数的格式化代码都和\texttt{format!}宏一样，见\nameref{format}。
 
-使用\texttt{write!()}和\texttt{writeln!()}宏可以把输出写入一个writer。它们与\texttt{print!()}和\texttt{println!()}类似，除了两个不同点：
+使用\texttt{write!()}和\texttt{writeln!()}宏可以把输出写入一个writer。它们与\texttt{print!()}和\\
+\texttt{println!()}类似，除了两个不同点：
 \begin{minted}{Rust}
     writeln!(io::stderr(), "error: world not helloable")?;
 
@@ -623,7 +624,7 @@ Rust的字符串总是有效的Unicode。在实践中文件名\emph{几乎}总�
                Some(OsStr::new("program.txt")));
 \end{minted}
 
-\codeentry{path.is\_absolute(), \texttt{path.is\_relative()}}
+\codeentry{path.is\_absolute(), path.is\_relative()}
 \hangparagraph{这些方法判断路径是绝对的（例如Unix路径\emph{/usr/bin/advent}或者Windows路径\\\emph{C:\textbackslash{}Program Files}）还是相对的（例如\emph{src/main.rs}）。}
 
 \codeentry{path1.join(path2)}
@@ -712,13 +713,11 @@ Rust的字符串总是有效的Unicode。在实践中文件名\emph{几乎}总�
         \hline
         \multirow{3}{*}{拷贝，移动和链接} & \texttt{copy(src\_path, dest\_path) -> Result<u64>} \cellcolor{tablecolor} & 类似\texttt{cp -p} \cellcolor{tablecolor} & \texttt{CopyFileEx()} \cellcolor{tablecolor} \\
         & \texttt{rename(src\_path, dest\_path)} & \texttt{rename()} & \texttt{MoveFileex()} \\
-        & \texttt{hard\_link(src\_path, dest\_path)} \cellcolor{tablecolor} & \texttt{link()} \cellcolor{tablecolor} &
-        \texttt{CreateHardLink()} \cellcolor{tablecolor} \\
+        & \texttt{hard\_link(src\_path, dest\_path)} \cellcolor{tablecolor} & \texttt{link()} \cellcolor{tablecolor} & \texttt{CreateHardLink()} \cellcolor{tablecolor} \\
         \hline
         \multirow{5}{*}{检查} & \texttt{canonicalize(path) -> Result<PathBuf>} & \texttt{realpath} & \texttt{GetFinalPathNameByHandle()} \\
-        & \texttt{metadata(path) -> Result<Metadata>} \cellcolor{tablecolor} & \texttt{stat()} \cellcolor{tablecolor} &
-        \texttt{GetFileInformationByHandle()} \cellcolor{tablecolor} \\
-        & \texttt{symlink\_metadata(path) -> Result<Metadata>} & \texttt{lstat()} & \texttt{GetFileInformationByHandle} \\
+        & \texttt{metadata(path) -> Result<Metadata>} \cellcolor{tablecolor} & \texttt{stat()} \cellcolor{tablecolor} & \texttt{GetFileInformationByHandle()} \cellcolor{tablecolor} \\
+        & \texttt{symlink\_metadata(path) -> Result<Metadata>} & \texttt{lstat()} & \texttt{GetFileInformationByHandle()} \\
         & \texttt{read\_dir(path) -> Result<ReadDir>} \cellcolor{tablecolor} & \texttt{opendir()} \cellcolor{tablecolor} & \texttt{FindFirstFile()} \cellcolor{tablecolor} \\
         & \texttt{read\_link(path) -> Result<PathBuf>} & \texttt{readlink()} & \texttt{FSCTL\_GET\_REPARSE\_POINT} \\
         \hline 
