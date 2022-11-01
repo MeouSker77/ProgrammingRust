@@ -179,7 +179,7 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
 
 \texttt{IntoIterator}使\texttt{for}循环能正常工作，因此它显然是必要的。但当你不使用\texttt{for}循环时，使用\texttt{favorites.iter()}比\texttt{(\&favorites).into\_iter()}更加清晰。你可能会频繁需要以共享引用迭代，因此\texttt{iter}和\texttt{iter\_mut}也很有用。
 
-\texttt{IntoIterator}在泛型代码中也很有用：你可以使用一个约束例如\texttt{T: IntoIterator}来限制类型参数\texttt{T}必须是可以迭代的类型。或者，你可以写\texttt{T: IntoIterator<Item=U>}来进一步要求迭代会产生\texttt{U}类型的值。例如，这个函数打印出任何item可以用\texttt{"{:?}"}格式打印的可迭代对象：
+\texttt{IntoIterator}在泛型代码中也很有用：你可以使用一个约束例如\texttt{T: IntoIterator}来限制类型参数\texttt{T}必须是可以迭代的类型。或者，你可以写\texttt{T: IntoIterator<Item=U>}来进一步要求迭代会产生\texttt{U}类型的值。例如，这个函数打印出任何item可以用\texttt{"\{:?\}"}格式打印的可迭代对象：
 \begin{minted}{Rust}
     use std::fmt::Debug;
 
@@ -296,7 +296,7 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
     & \texttt{s.chars()} & 产生UTF-8字符串的\texttt{char}。 \\
     & \texttt{s.split\_whitespace()} \cellcolor{tablecolor} & 以空格分隔字符串，产生非空字符们的切片。 \cellcolor{tablecolor} \\
     & \texttt{s.lines()} & 产生字符串的每一行的切片。 \\
-    & \texttt{s.split('/')} \cellcolor{tablecolor} & 用给定的模式分隔字符串，产生每两个匹配之间的内容的切片。模式可以是字符、字符串或者闭包。\cellcolor    {tablecolor} \\
+    & \texttt{s.split('/')} \cellcolor{tablecolor} & 用给定的模式分隔字符串，产生每两个匹配之间的内容的切片。模式可以是字符、字符串或者闭包。\cellcolor{tablecolor} \\
     \hline
     \multirow{5}{*}{\shortstack[l]{\texttt{std::collections::}\\\texttt{HashMap, std::}\\\texttt{collections::BTreeMap}}} & \texttt{s.matches(char:: is\_numeric)} & 产生匹配给定模式的切片。 \\
     & \texttt{map.keys(), map.values()} \cellcolor{tablecolor} & 产生map的key或value的共享引用。 \cellcolor{tablecolor} \\
@@ -304,7 +304,6 @@ Rust标准库文档中详细解释了每种类型提供哪些种类的迭代器�
     \hline
     \multirow{3}{*}{\shortstack[l]{\texttt{std::collections::}\\\texttt{HashSet, std::}\\\texttt{collections::BTreeSet}}} & \texttt{set1.union(set2)} \cellcolor{tablecolor} & 产生\texttt{set1}和\texttt{set2}的并集的元素的共享引用。 \cellcolor{tablecolor} \\
     & \texttt{set1.intersection(set2)} & 产生\texttt{set1}和\texttt{set2}的交集的元素的共享引用。 \\
-    & & \\
     \hline
     \rowcolor{tablecolor}
     \texttt{std::sync::mpsc:: Receiver} & \texttt{rev.iter()} & 产生另一个线程通过相应的\texttt{Sender}发送的值。 \\
