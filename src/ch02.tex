@@ -258,7 +258,7 @@ Rust语言内建有对测试的支持。为了测试我们的\texttt{gcd}函数�
 除了和\texttt{for}循环一起使用之外，迭代器还有很多可以直接使用的方法。例如，\texttt{args}方法返回的迭代器的第一个值总是正在运行的程序名，我们想要跳过它，因此我们调用了迭代器的\texttt{skip}方法来生成一个忽略了第一个值的新迭代器。
 
 \begin{minted}{Rust}
-    numbers.push(u64.from_str(&arg)
+    numbers.push(u64::from_str(&arg)
                  .expect("error parsing argument"));
 \end{minted}
 
@@ -409,7 +409,8 @@ crate有一些可选的特性：这些特性是有些用户可能用不到、但
     }
 \end{minted}
 
-我们以一条\texttt{use}声明开始，引入一些\texttt{actix-web}的定义。当我们写下\texttt{use actix\_web::\{...\}}时，花括号里的每一个名称都被导入到作用域中，这样我们就可以直接使用\texttt{HttpResponse}，而不用每次都写出全名\texttt{actix\_web::HttpResponse}。（我们稍后才会使用\texttt{serde} crate）
+我们以一条\texttt{use}声明开始，引入一些\texttt{actix-web}的定义。当我们写下\texttt{use actix\_web::\{...\}}\\
+时，花括号里的每一个名称都被导入到作用域中，这样我们就可以直接使用\texttt{HttpResponse}，而不用每次都写出全名\texttt{actix\_web::HttpResponse}。（我们稍后才会使用\texttt{serde} crate）
 
 我们的\texttt{main}函数很简单：它首先调用\texttt{HttpServer::new}来创建一个服务器，这个服务器会响应对\texttt{"/"}路径的get方法；然后打印出一条消息；最后让服务器监听本地机器上的3000 TCP端口。
 
@@ -761,7 +762,7 @@ Rust的另一项长处是对并发编程的支持。Rust中用于避免内存安
 
 通配模式\texttt{\_}匹配任何情况并忽略值。如果我们到达这个地方，说明\texttt{parse\_pair}失败了，因此求值为\texttt{None}，并作为函数的返回值。
 
-现在我们已经有了\texttt{parse\_pair}，很容易就可以写出一个解析一对浮点数并返回\\
+现在我们已经有了\texttt{parse\_pair}，很容易就可以写出一个解析一对浮点数并返回一个\\
 \texttt{Complex<f64>}值的函数：
 \begin{minted}{Rust}
     /// 把一对逗号分隔的浮点数解析为一个复数。

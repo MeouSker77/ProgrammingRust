@@ -213,7 +213,7 @@ Rust会报错\texttt{table}不再可用：
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.8\textwidth]{../img/f5-1.png}
-    \caption{引用r，现在指向y而不是x}
+    \caption{引用\texttt{r}现在指向\texttt{y}而不是\texttt{x}}
     \label{f5-1}
 \end{figure}
 
@@ -592,7 +592,7 @@ Rust对引用安全的约束不可能因为我们把引用藏在了结构体里�
 
 回到之前的代码，表达式\texttt{S \{ r: \&x \}}创建了一个生命周期为\texttt{'a}的新\texttt{S}。当你把\texttt{\&x}存储到\texttt{r}字段时，你约束了\texttt{'a}的生命周期必须被\texttt{x}的生命周期包含。
 
-赋值语句\texttt{s = S { ... }}把\texttt{S}存储到了变量中，变量的生命周期直到示例的结尾处，\texttt{'a}的生命周期需要包含\texttt{s}的生命周期。现在Rust遇到了和之前一样的矛盾的约束：\texttt{'a}的生命周期不能超过\texttt{x}，但又要至少和\texttt{s}一样长。没有满足条件的生命周期存在，所以Rust拒绝了这段代码。避免了灾难！
+赋值语句\texttt{s = S \{ ... \}}把\texttt{S}存储到了变量中，变量的生命周期直到示例的结尾处，\texttt{'a}的生命周期需要包含\texttt{s}的生命周期。现在Rust遇到了和之前一样的矛盾的约束：\texttt{'a}的生命周期不能超过\texttt{x}，但又要至少和\texttt{s}一样长。没有满足条件的生命周期存在，所以Rust拒绝了这段代码。避免了灾难！
 
 如果把带有生命周期参数的类型存储在其他类型里会发生什么？
 \begin{minted}{Rust}
@@ -843,7 +843,7 @@ Rust假设如果你要借用，那么你会从\texttt{self}借用。
                           0.0, 1.0, 0.0, -1.0]);
 \end{minted}
 
-粗略地检查一遍，感觉这好像没有问题。但记住当我们把元素添加到vector中时，如果缓冲区已经满了，它必须重新分配一个更大的缓冲区。假设\texttt{wave}一开始有4个元素，因此当\texttt{extend}尝试添加第5个元素时\texttt{wave}必须分配更大的缓冲区。此时内存布局看起来如\hyperref[f5-8]{图5-8}.
+粗略地检查一遍，感觉这好像没有问题。但记住当我们把元素添加到vector中时，如果缓冲区已经满了，它必须重新分配一个更大的缓冲区。假设\texttt{wave}一开始有4个元素，因此当\texttt{extend}尝试添加第5个元素时\texttt{wave}必须分配更大的缓冲区。此时内存布局看起来如\hyperref[f5-8]{图5-8}。
 
 \begin{figure}[htbp]
     \centering
@@ -860,7 +860,7 @@ Rust假设如果你要借用，那么你会从\texttt{self}借用。
 
 导致这种bug特别难解决的是它并不是总是发生。在测试中，你的vector可能总是恰好有足够的空间，缓冲区从来不重新分配，那这个问题可能一直都不会被曝光。
 
-然而Rust，会在编译期就汇报调用\texttt{extend}的问题：
+然而Rust会在编译期就汇报调用\texttt{extend}的问题：
 \begin{minted}{text}
     error[E0502]: cannot borrow `wave` as immutable because it is also
     borrowed as mutable
@@ -881,7 +881,7 @@ Rust假设如果你要借用，那么你会从\texttt{self}借用。
     \emph{共享访问是只读的访问}
 \end{flushleft}
 
-\hangparagraph{共享引用借用的值是制度的。在一个共享引用的生命周期中，不管是它引用的值，还是任何通过这个值可以访问的东西，都不能被\emph{任何东西}修改。如果一个结构体的所有者是只读的，将不允许指向结构体中任何内容的可变引用。它实际上被冻结了。}
+\hangparagraph{共享引用借用的值是只读的。在一个共享引用的生命周期中，不管是它引用的值，还是任何通过这个值可以访问的东西，都不能被\emph{任何东西}修改。如果一个结构体的所有者是只读的，将不允许指向结构体中任何内容的可变引用。它实际上被冻结了。}
 
 \begin{flushleft}
     \emph{可变访问是独占的访问}
@@ -902,7 +902,7 @@ Rust会报告\texttt{extend}的例子违反了第二条规则：因为我们已�
     \label{f5-9}
 \end{figure}
 
-注意在两种情况下，在引用的生命周期内，所有权树中通往被引用值的路径都不可能被修改。对于共享引用，这个路径是只读的；对于一个可变引用，这个路径完全不可访问。因此一个程序没有任何方法让一个引用变的无效。
+注意在两种情况下，在引用的生命周期内，所有权树中通往被引用值的路径都不可能被修改。对于共享引用，这个路径是只读的；对于一个可变引用，这个路径完全不可访问。因此程序没有任何方法让一个引用变的无效。
 
 将这些原则分解为最简单的示例：
 \begin{minted}{Rust}
@@ -1021,7 +1021,7 @@ Rust会报告\texttt{extend}的例子违反了第二条规则：因为我们已�
         \Large{Rust的共享引用 vs C的常量指针}
     \end{center}
 
-    乍一看，Rust中的共享引用很向C和C++中指向\texttt{const}值的指针。然而，Rust对共享引用的限制要更严格。例如考虑下面的C代码：
+    乍一看，Rust中的共享引用很像C和C++中指向\texttt{const}值的指针。然而，Rust对共享引用的限制要更严格。例如考虑下面的C代码：
     \begin{minted}{C}
     int x = 42;         // int变量，不是const
     const int *p = &x;  // 指向const int的指针
@@ -1032,7 +1032,7 @@ Rust会报告\texttt{extend}的例子违反了第二条规则：因为我们已�
 
     \texttt{p}是\texttt{const int *}的事实意味着你不能通过\texttt{p}自身来改变它指向的值：\texttt{(*p)++}是禁止的。但你可以直接通过\texttt{x}访问被引用的值，而\texttt{x}并不是\texttt{const}，所以你可以直接修改它的值。C家族的\texttt{const}关键字有它的作用，但它并不能把指向的值变为常量。
 
-    在Rust中，一个共享引用会禁止对被引引用值的任何修改，直到引用的生命周期结束：
+    在Rust中，一个共享引用会禁止对被引用值的任何修改，直到引用的生命周期结束：
     \begin{minted}{Rust}
     let mut x = 42;         // 非常量i32值
     let p = &x;             // i32的共享引用

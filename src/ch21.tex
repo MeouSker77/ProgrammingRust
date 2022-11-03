@@ -5,14 +5,14 @@
     ——Matt Madden
 \end{flushright}
 
-Rust支持\emph{宏(macros)}：一种普通函数无法做到的扩展语言的方式。例如，我们已经看到过\texttt{assert\_eq!}宏，它可以方便地用来测试：
+Rust支持\emph{宏(macros)}，这是一种普通函数无法做到的扩展语言的方式。例如，我们已经看到过\texttt{assert\_eq!}宏，它可以方便地用来测试：
 \begin{minted}{Rust}
     assert_eq!(gcd(6, 10), 2);
 \end{minted}
 
 这也可以写成一个泛型函数，但\texttt{assert\_eq!}可以做到几件函数做不到的事。其中一点是当断言失败时，\texttt{assert\_eq!}会生成包含断言所在的文件名和行号的错误消息。函数没有办法获得这些信息，但宏可以，因为它们工作的方式完全不同。
 
-宏是一种简写。编译期间在类型检查之前、更在生成任何机器码之前，每一个宏调用都会被\emph{展开(expand)}——即被替换为一些Rust代码。上面的宏调用会展开成类似这样的代码：
+宏是一种缩写。编译期间在类型检查之前、更在生成任何机器码之前，每一个宏调用都会被\emph{展开(expand)}——即被替换为一些Rust代码。上面的宏调用会展开成类似这样的代码：
 \begin{minted}{Rust}
     match (&gcd(6, 10), &2) {
         (left_val, right_val) => {
@@ -26,7 +26,7 @@ Rust支持\emph{宏(macros)}：一种普通函数无法做到的扩展语言的�
 
 \texttt{panic!}也是一个宏，它自己会展开成更多Rust代码（这里没有展示）。那些代码里用到了两个别的宏：\texttt{file!()}和\texttt{line!()}。一旦crate中的每一个宏调用都被完全展开，Rust会进入编译的下一个阶段。
 
-在运行时，一个断言失败看起来像这样（并且可能指示\texttt{gcd()}函数中的一个bug，因为\texttt{2}是正确的答案）：
+在运行时，一个断言失败看起来像这样（并且可能指示\texttt{gcd()}函数中的一个bug，因为\texttt{2}是正确结果）：
 \begin{minted}{text}
     thread 'main' panicked at 'assertion failed: `(left == right)`, (left: `17`,
     right: `2`)', gcd.rs:7
@@ -37,7 +37,7 @@ Rust支持\emph{宏(macros)}：一种普通函数无法做到的扩展语言的�
 在本章中，我们将通过几个简单的示例展示如何编写宏。但和Rust中的很多部分一样，宏值得深入理解，所以我们将介绍一个更复杂的宏的设计，它允许我们直接在我们的程序中嵌入JSON字面量。但除了本书中介绍的部分之外，宏还有更多的内容。因此我们将以一些进一步学习的点结束，既有我们将在这里向你展示的高级技巧，也有功能更强大的被称为\emph{过程宏(procedural macros)}的设施。
 
 \section{宏基础}
-\autoref{f21-1}展示了\texttt{assert\_eq!}宏的部分源码。
+\hyperref[f21-1]{图21-1}展示了\texttt{assert\_eq!}宏的部分源码。
 
 \begin{figure}[htbp]
     \centering
@@ -57,9 +57,9 @@ Rust支持\emph{宏(macros)}：一种普通函数无法做到的扩展语言的�
     ...
 \end{minted}
 
-\autoref{f21-1}中的\texttt{assert\_eq!}版本只有一个模式和一个模板。
+\hyperref[f21-1]{图21-1}中的\texttt{assert\_eq!}版本只有一个模式和一个模板。
 
-顺便，你可以使用方括号或者花括号来代替模式或模板两侧的圆括号，对Rust来说它们并没有任何区别。另外，当你调用一个宏时，这些都是等价的：
+顺带一提，你可以使用方括号或者花括号来代替模式或模板两侧的圆括号，对Rust来说它们并没有任何区别。另外，当你调用一个宏时，这些都是等价的：
 \begin{minted}{Rust}
     assert_eq!(gcd(6, 10), 2);
     assert_eq![gcd(6, 10), 2];
@@ -76,9 +76,9 @@ Rust支持\emph{宏(macros)}：一种普通函数无法做到的扩展语言的�
 \end{itemize}
 
 \subsection{宏展开基础}
-Rust会在编译的前期展开宏。编译器会从头到尾读取源码，在这个过程中定义和展开宏。宏只有在定义之后才能被调用，因为Rust会立刻展开每一个宏调用，而不会去看程序的剩余部分。（相反，函数和其他的\hyperref[static]{item}的定义不需要按照任何顺序。调用一个后面才定义的函数也是OK的。
+Rust会在编译的前期展开宏。编译器会从头到尾读取源码，在这个过程中定义和展开宏。宏只有在定义之后才能被调用，因为Rust会立刻展开每一个宏调用，而不会去看程序的剩余部分。（相反，函数和其他的\hyperref[static]{item}的定义不需要按照任何顺序。调用一个后面才定义的函数也是OK的。）
 
-当Rust展开一个\texttt{assert\_eq!}宏调用时，行为和执行一个\texttt{match}表达式非常像。Rust首先根据模式匹配参数，如\autoref{f21-2}所示：
+当Rust展开一个\texttt{assert\_eq!}宏调用时，行为和执行一个\texttt{match}表达式非常像。Rust首先根据模式匹配参数，如\hyperref[f21-2]{图21-2}所示：
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.6\textwidth]{../img/f21-2.png}
@@ -90,11 +90,11 @@ Rust会在编译的前期展开宏。编译器会从头到尾读取源码，在�
 
 正则表达式和宏模式的另一个重要不同之处是圆括号、方括号、花括号在Rust中总是成对出现。这一点会在宏展开之前就检查，不仅仅是在宏模式中，而且是在整个语言中。
 
-在这个例子中，我们的模式包含了\emph{fragment(片段)} \texttt{\$left:expr}，这告诉Rust去匹配一个表达式（在这个例子中，就是\texttt{gcd(6, 10)}并把它复制到名称\texttt{\$left}。然后Rust用\texttt{gcd}调用后边的逗号匹配模式中的逗号。类似于正则表达式，模式只有少数特殊字符会触发有趣的匹配行为；其它的所有字符，例如逗号，都必须逐字匹配相同的字符，否则就会匹配失败。
+在这个例子中，我们的模式包含了\emph{fragment(片段)} \texttt{\$left:expr}，这告诉Rust去匹配一个表达式（在这个例子中，就是\texttt{gcd(6, 10)}）并把它复制到名称\texttt{\$left}。然后Rust用\texttt{gcd}调用后边的逗号匹配模式中的逗号。类似于正则表达式，模式只有少数特殊字符会触发有趣的匹配行为；其它的所有字符，例如逗号，都必须逐字匹配相同的字符，否则就会匹配失败。
 
-这个模式中的两个代码片段都是\texttt{expr}类型：它们代表表达式。我们将在“\nameref{FragType}”中看到其他类型的代码片段。
+这个模式中的两个代码片段都是\texttt{expr}类型：它们代表表达式。我们将在\nameref{FragType}中看到其他类型的代码片段。
 
-因为这个模式匹配到了所有的参数，Rust会展开相应的\emph{template(模板)}(\autoref{f21-3})：
+因为这个模式匹配到了所有的参数，Rust会展开相应的\emph{template(模板)}(\hyperref[f21-3]{图21-3})：
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.9\textwidth]{../img/f21-3.png}
@@ -104,7 +104,7 @@ Rust会在编译的前期展开宏。编译器会从头到尾读取源码，在�
 
 Rust会用匹配阶段发现的代码片段来替换\texttt{\$left}和\texttt{\$right}。
 
-一个常见的错误是在输出模板中包含片段的类型：写\texttt{\$left:expr}而不是\texttt{\$left}。Rust不会立刻检测出这种错误。它会把\texttt{\$left}看错一个整体，然后把\texttt{:expr}看作和模板中其他部分一样的东西：要包含在宏的输出中的词元。因此只有当你\emph{调用}这个宏时这个错误才会出现；然后它会生成错误的不能编译的输出。如果你在使用一个新的宏时得到了类似\texttt{cannot find type `expr` in this scope}和\texttt{help: maybe you meant to use a path separator here}这样的错误消息，可以检查下它是不是有这个错误。（“\nameref{DebugMacro}”提供了更多类似这种情况的建议。）
+一个常见的错误是在输出模板中包含片段的类型：写\texttt{\$left:expr}而不是\texttt{\$left}。Rust不会立刻检测出这种错误。它会把\texttt{\$left}看做一个整体，然后把\texttt{:expr}看作和模板中其他部分一样的东西：要包含在宏的输出中的词元。因此只有当你\emph{调用}这个宏时这个错误才会出现；然后它会生成错误的不能编译的输出。如果你在使用一个新的宏时得到了类似\texttt{cannot find type `expr` in this scope}和\texttt{help: maybe you meant to use a path separator here}这样的错误消息，可以检查下它是不是有这个错误。（\nameref{DebugMacro}提供了更多类似这种情况的建议。）
 
 宏模板和web编程中常用的很多种模板语言中的任意一种都没有太大的区别。唯一的不同——也是很重要的一点——就是它的输出是Rust代码。
 
@@ -187,12 +187,11 @@ C++里的这个经典bug你\emph{将不会}看到：
 
 当Rust展开一个例如\texttt{vec![1, 2, 3]}的宏调用时，它首先尝试匹配参数\texttt{1, 2, 3}和第一条规则的模式，即\texttt{\$elem:expr ; \$n:expr}。这会匹配失败：\texttt{1}是一个表达式，但这个模式要求它后边有一个分号，然而并没有。因此Rust会移动到第二个规则，等等。如果没有规则可以匹配，就会报错。
 
-第一个规则处理类似\texttt{vec![0u8; 1000]}这样的调用。恰好有一个标准（但不在文档里的）函数\\
-\texttt{std::vec::from\_elem}，正好可以完成我们需要的功能，因此这个规则很直观。
+第一个规则处理类似\texttt{vec![0u8; 1000]}这样的调用。恰好有一个标准（但不在文档里的）函数\texttt{std::vec::from\_elem}，正好可以完成我们需要的功能，因此这个规则很直观。
 
-第二个规则处理\texttt{vec!["udon", "ramen", "soba"]}。模式\texttt{\$( \$x:expr ),*}使用了一个我们之前没有提过的的特性：重复。它匹配0个或多个逗号分隔的表达式。更一般地来说，语法\texttt{\$( PATTERN ),*}用来匹配任意逗号分割的列表，其中列表中的每一项匹配\texttt{PATTERN}。
+第二个规则处理\texttt{vec!["udon", "ramen", "soba"]}。模式\texttt{\$( \$x:expr ),*}使用了一个我们之前没有提过的的特性：重复。它匹配0个或多个逗号分隔的表达式。更一般地来说，语法\texttt{\$( PATTERN ),*}用来匹配任意逗号分割的列表，其中列表中的每一项与\texttt{PATTERN}匹配。
 
-这里的\texttt{*}和正则表达式中的\texttt{*}有相同的含义（“0次或多次”），尽管正则表达式没有特殊的\texttt{,*}重复器。你也可以用\texttt{+}来要求至少一次匹配，或者用\texttt{?}要求0次或1次匹配。\autoref{t21-1}列出了全套的重复模式。
+这里的\texttt{*}和正则表达式中的\texttt{*}有相同的含义（“0次或多次”），尽管正则表达式没有特殊的\texttt{,*}重复器。你也可以用\texttt{+}来要求至少一次匹配，或者用\texttt{?}要求0次或1次匹配。\hyperref[t21-1]{表21-1}列出了全套的重复模式。
 
 \begin{table}[htbp]
     \centering
@@ -270,7 +269,7 @@ Rust编译器提供了几个宏，如果你要定义自己的宏，它们可能�
 
 \codeentry{concat!(str0, str1, ...)}
 
-\hangparagraph{连接参数开展为单个字符串字面量。}
+\hangparagraph{连接参数展开为单个字符串字面量。}
 
 Rust还定义了下面这些宏用来查询构建环境：
 
@@ -320,7 +319,7 @@ Rust还定义了下面这些宏用来查询构建环境：
 Rust还提供了几个方便的宏：
 \codeentry{todo!(), unimplemented!()}
 
-\hangparagraph{这些等价于\texttt{panic!()}，但用于表示不同的意图。\texttt{unimplemented!()}出现在\texttt{if}分支、\texttt{march}分支，以及其它还未处理的case中。它总是会panic。\texttt{todo!()}大致相同，但传达的意图是代码还没写完；一些IDE使用它来进行标记。}
+\hangparagraph{这些等价于\texttt{panic!()}，但用于表示不同的意图。\texttt{unimplemented!()}出现在\texttt{if}分支、\texttt{match}分支，以及其它还未处理的case中。它总是会panic。\texttt{todo!()}大致相同，但传达的意图是代码还没写完；一些IDE使用它来进行标记。}
 
 \codeentry{matches!(value, pattern)}
 
@@ -370,7 +369,8 @@ Rust还提供了几个方便的宏：
       = note: expanding `vec! { 1 , 2 , 3 }`
       = note: to `< [ _ ] > :: into_vec ( box [ 1 , 2 , 3 ] )`
 \end{minted}
-编译器会显示每一个宏调用的代码，包括展开之前和展开之后的代码。\texttt{trace\_macros!(false);}这一行关闭了追踪，因此\texttt{println!()}的调用不会被追踪。
+编译器会显示每一个宏调用的代码，包括展开之前和展开之后的代码。\texttt{trace\_macros!(false);}\\
+这一行关闭了追踪，因此\texttt{println!()}的调用不会被追踪。
 
 \section{构建\texttt{json!}宏}
 
@@ -438,7 +438,7 @@ Rust还提供了几个方便的宏：
     }
 \end{minted}
 
-这并不完全正确，因为宏模式没法区分最后最终三种情况，但我们稍后将会看到怎么处理它们。前三种情况至少很明显地以不同的token开头，因此我们可以用这些token进行区分。
+这并不完全正确，因为宏模式没法区分最后三种情况，但我们稍后将会看到怎么处理它们。前三种情况至少很明显地以不同的token开头，因此我们可以用这些token进行区分。
 
 第一个规则已经可以工作了：
 \begin{minted}{Rust}
@@ -466,7 +466,7 @@ Rust还提供了几个方便的宏：
     }
 \end{minted}
 
-不幸的是，者不能匹配所有的JSON数组。这里有一个会产生问题的例子：
+不幸的是，这不能匹配所有的JSON数组。这里有一个会产生问题的例子：
 \begin{minted}{Rust}
     #[test]
     fn json_array_with_json_element() {
@@ -490,7 +490,7 @@ Rust还提供了几个方便的宏：
 
 模式\texttt{\$( \$element:expr ),*}意思是“一个逗号分隔的Rust表达式的列表”。但很多JSON值尤其是对象，不是有效的Rust表达式，它们不能匹配。
 
-因为你想要匹配的代码并不都是表达式，所以Rust还支持其他几种片段类型，如\autoref{t21-2}所示。
+因为你想要匹配的代码并不都是表达式，所以Rust还支持其他几种片段类型，如\hyperref[t21-2]{表21-2}所示。
 
 \begin{table}[htbp]
     \centering
@@ -535,7 +535,7 @@ token树正是我们的\texttt{json!}宏所需要的。每一个JSON值都是单
         ([ $( $element:tt ),* ]) => {
             Json::Array(...)
         };
-        ({ $( $key:tt : $value: tt),* }) => {
+        ({ $( $key:tt : $value: tt ),* }) => {
             Json::Object(...)
         };
         ($other::tt) => {
@@ -544,9 +544,9 @@ token树正是我们的\texttt{json!}宏所需要的。每一个JSON值都是单
     }
 \end{minted}
 
-这个版本的\texttt{json！}宏可以匹配任何JSON数据。现在我们只需要产生正确的Rust代码。
+这个版本的\texttt{json!}宏可以匹配任何JSON数据。现在我们只需要产生正确的Rust代码。
 
-为了保证Rust在未来可以添加新的语法特性而不会破坏任何你今天写的宏，Rust限制了模式中紧跟在片段之后的token。\autoref{t21-2}中“后边可以跟”这一列展示了哪些token可以跟在模式后面。例如，模式\texttt{\$x:expr ~ \$y:expr}是错的，因为\texttt{~}不允许出现在\texttt{expr}后面。模式\texttt{\$vars:pat => \$handler:expr}是可以的，因为\texttt{\$vars:pat}后跟的是箭头\texttt{=>}，它允许跟在\texttt{pat}后面，而\texttt{\$handler:expr}后面没有跟任何东西，这种情况总是允许的。
+为了保证Rust在未来可以添加新的语法特性而不会破坏任何你今天写的宏，Rust限制了模式中紧跟在片段之后的token。\hyperref[t21-2]{表21-2}中“后边可以跟”这一列展示了哪些token可以跟在模式后面。例如，模式\texttt{\$x:expr \textasciitilde{} \$y:expr}是错的，因为\texttt{\textasciitilde{}}不允许出现在\texttt{expr}后面。模式\texttt{\$vars:pat => \$handler:expr}是可以的，因为\texttt{\$vars:pat}后跟的是箭头\texttt{=>}，它允许跟在\texttt{pat}后面，而\texttt{\$handler:expr}后面没有跟任何东西，这种情况总是允许的。
 
 \subsection{宏中的递归}
 我们已经见过了一个在宏里调用自身的小例子：我们的\texttt{vec!}的实现使用了递归来支持尾部的逗号。这里我们可以展示一个更加显著的例子：\texttt{json!}需要递归调用它自身。
@@ -735,7 +735,7 @@ token树正是我们的\texttt{json!}宏所需要的。每一个JSON值都是单
 
 现在这里有一个叫\texttt{fields}的变量（在调用者中声明）和另一个叫\texttt{fields}的变量（宏引入的）。因为这两个名字的颜色不同，所以这两个变量不会混淆。
 
-如果一个宏真的需要引用一个在调用者作用于里的变量，那么调用者必须向宏传递这个变量的名字。
+如果一个宏真的需要引用一个在调用者作用域里的变量，那么调用者必须向宏传递这个变量的名字。
 
 （染色的比喻并不意味着hygiene真的就是这么工作的。实际的机制要更聪明一些：不管是什么颜色，如果两个标识符引用了宏和调用者作用域里的同一个变量，那么就认为它们是相同的。但在Rust中像这样的例子非常少见。如果你理解了上面的例子，那么就使用hygiene宏来说已经足够了。）
 
@@ -846,10 +846,11 @@ hygiene让宏的使用变得更繁琐了一点，但这是一个特性，而不�
     }
 \end{minted}
 
-因为\texttt{.to\_string()}方法是标准的\texttt{ToString} trait的一部分，所以我们也使用了\texttt{\$crate}来引用它，并使用了我们在\nameref{fullymethod}中介绍过的语法：\texttt{\$crate::macors::ToString::to\_string(\$key)}。在我们的例子中，为了让宏能正常工作，这并不是必须的，因为\texttt{ToString}在标准prelude里。但如果你在调用一个trait的方法，并且这个trait可能不在调用处的作用域里，那么完全限定方法调用将是最好的方式。
+因为\texttt{.to\_string()}方法是标准的\texttt{ToString} trait的一部分，所以我们也使用了\texttt{\$crate}来引用它，并使用了我们在\nameref{fullymethod}中介绍过的语法：\\
+\texttt{\$crate::macors::ToString::to\_string(\$key)}。在我们的例子中，为了让宏能正常工作，这并不是必须的，因为\texttt{ToString}在标准prelude里。但如果你在调用一个trait的方法，并且这个trait可能不在调用处的作用域里，那么完全限定方法调用将是最好的方式。
 
 \section{在匹配时避免语法错误}
-下面的宏看起来是有原因的，但它会给Rust带了一些麻烦：
+下面的宏看起来是有原因的，但它会给Rust带来一些麻烦：
 \begin{minted}{Rust}
     macro_rules! complain {
         ($msg:expr) => {
@@ -866,11 +867,12 @@ hygiene让宏的使用变得更繁琐了一点，但这是一个特性，而不�
     complain!(user: "jimb", "the AI lab's chatbots keep picking on me");
 \end{minted}
 
-对人眼来说，显然这会匹配第二个模式。但Rust会首先尝试第一个规则，尝试用\texttt{\$msg:expr}匹配所有的输入。这时事情会变得糟糕起来。\texttt{user: "jimb"}显然不是一个表达式，因此我们会得到一个语法错误。Rust拒绝掩盖语法错误——宏已经足够难调试了。它会立刻报错并中断编译。
+以人眼来看，显然这会匹配第二个模式。但Rust会首先尝试第一个规则，尝试用\texttt{\$msg:expr}\\
+匹配所有的输入。这时事情会变得糟糕起来。\texttt{user: "jimb"}显然不是一个表达式，因此我们会得到一个语法错误。Rust拒绝掩盖语法错误——宏已经足够难调试了。它会立刻报错并中断编译。
 
 如果模式中的其他token匹配失败，rust会移动到下一条规则。只有语法错误会导致终止，并且只有当尝试匹配片段时才会出现语法错误。
 
-这里的问题并不能理解：我们尝试在一条错误的规则中用\texttt{\$msg:expr}匹配一个片段。它会匹配失败，因为我们没想过用这条规则来匹配，调用者是希望用另一条规则来匹配。有两种避免这个错误的方式：
+这里的问题并不难理解：我们尝试在一条错误的规则中用\texttt{\$msg:expr}匹配一个片段。它会匹配失败，因为我们没想过用这条规则来匹配，调用者是希望用另一条规则来匹配。有两种避免这个错误的方式：
 
 第一，避免易混淆的规则。例如，我们可以修改宏，让每一个模式都以一个不同的标识符开头：
 \begin{minted}{Rust}
@@ -891,9 +893,10 @@ hygiene让宏的使用变得更繁琐了一点，但这是一个特性，而不�
 \section{\texttt{macro\_rules!}之外}
 宏模式可以解析比JSON更复杂得多的输入，但我们会发现它的复杂性很快就脱离了控制。
 
-Daniel Keep等人的\href{https://danielkeep.github.io/tlborm/book/}{The Litter Book of Rust Macros}是一本优秀的讲解高级\texttt{macro\_rules!}编程的书。这本书非常的清楚和聪明，它比我们这里更加详细地描述了宏展开的每一个概念。它还提出了几种非常巧妙的技术，将\texttt{macro\_rules!}模式作为一种编程语言来解析复杂的输入。这一点我们不太热衷。请小心使用。
+Daniel Keep等人的\href{https://danielkeep.github.io/tlborm/book/}{The Little Book of Rust Macros}是一本优秀的讲解高级\texttt{macro\_rules!}编程的书。这本书非常的清楚和聪明，它比我们这里更加详细地描述了宏展开的每一个概念。它还提出了几种非常巧妙的技术，将\texttt{macro\_rules!}模式作为一种编程语言来解析复杂的输入。这一点我们不太热衷。请小心使用。
 
-Rust 1.15引入了一种单独的机制称为\emph{过程宏(procedural macros)}。过程宏支持扩展\texttt{\#[derive]}属性来实现自定义派生，如\autoref{f21-4}所示。还可以创造自定义的属性，以及新的和之前介绍的\texttt{macro\_rules!}宏调用方式一样的宏。
+Rust 1.15引入了一种单独的机制称为\emph{过程宏(procedural macros)}。过程宏支持扩展\\
+\texttt{\#[derive]}属性来实现自定义派生，如\hyperref[f21-4]{图21-4}所示。还可以创造自定义的属性以及新的和之前介绍的\texttt{macro\_rules!}宏调用方式一样的宏。
 
 \begin{figure}[htbp]
     \centering
@@ -902,7 +905,7 @@ Rust 1.15引入了一种单独的机制称为\emph{过程宏(procedural macros)}
     \label{f21-4}
 \end{figure}
 
-并不存在\texttt{IntoJson} trait，但没关系：一个过程宏可以使用这种方式来插入它需要的代码（在这个例子中，可能是\texttt{impl From<Money> for Json \{ ... \}}。
+并不存在\texttt{IntoJson} trait，但没关系：一个过程宏可以使用这种方式来插入它需要的代码（在这个例子中，可能是\texttt{impl From<Money> for Json \{ ... \}}）。
 
 过程宏之所以被称为“过程”是因为它被实现为一个Rust函数，而不是声明规则集。这个函数通过一个简单的抽象层和编译器交互，并且可以非常复杂。例如，\texttt{diesel}数据库的库使用了过程宏来连接到一个数据库并在编译期根据该数据库的模式生成代码。
 
