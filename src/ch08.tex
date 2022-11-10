@@ -855,7 +855,7 @@ Rust程序中的任何item都可以用\emph{属性}修饰。属性是Rust中向�
 \begin{minted}{Rust}
     use std::num::ParseIntError;
 
-    /// 只有当"1204"是个有效的数字时这个测试才能通过
+    /// 只有当"1024"是个有效的数字时这个测试才能通过
     #[test]
     fn main() -> Result<(), ParseIntError> {
         i32::from_str_radix("1024", 10)?;
@@ -1143,7 +1143,7 @@ Rust中的文档注释的一个特殊特性是Markdown链接可以使用Rust的i
 这种细粒度的依赖控制方式是一种很强大的功能。如果你发现任何开源的crate都不完全符合你的要求，你可以fork它：点击GitHub上的Fork按钮，然后更改\emph{Cargo.toml}中的一行。这样你的下一次\texttt{cargo build}命令将会使用你fork的版本而不是官方的版本。
 
 \subsection{版本}
-当你在\emph{Cargo.toml}中写下类似\texttt{iamge = "0.13.0"}这样的内容时，Cargo会以比较宽松的方式解释它。它会使用和0.13.0版本兼容的最新版本。
+当你在\emph{Cargo.toml}中写下类似\texttt{image = "0.13.0"}这样的内容时，Cargo会以比较宽松的方式解释它。它会使用和0.13.0版本兼容的最新版本。
 
 兼容性规则改编自\href{https://semver.org/}{语义版本号}。
 
