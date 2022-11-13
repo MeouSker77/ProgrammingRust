@@ -205,7 +205,7 @@ Rust会报错\texttt{table}不再可用：
     let mut r = &x;
     if b { r = &y; }
 
-    assert!(*r == 10 || *r == 10);
+    assert!(*r == 10 || *r == 20);
 \end{minted}
 
 引用\texttt{r}一开始指向\texttt{x}。但如果\texttt{b}为true，\texttt{r}将指向\texttt{y}，如\hyperref[f5-1]{图5-1}所示。
