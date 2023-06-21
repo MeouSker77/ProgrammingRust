@@ -107,13 +107,13 @@ Rust的数字类型的名称遵循通用的模式，即宽度加上类型（\hyp
         \textbf{大小(比特数)}   & \textbf{无符号整数}   & \textbf{有符号整数}   & \textbf{浮点数}   \\
         \hline
         \texttt{8}  & \texttt{u8}   & \texttt{i8}   &              \\
-        \rowcolor{tablecolor} 
+        \rowcolor{tablecolor}
         \texttt{16} & \texttt{u16}  & \texttt{i16}  &              \\
         \texttt{32} & \texttt{u32}  & \texttt{i32}  & \texttt{f32} \\
-        \rowcolor{tablecolor} 
+        \rowcolor{tablecolor}
         \texttt{64} & \texttt{u64}  & \texttt{i64}  & \texttt{f64} \\
         \texttt{128}& \texttt{u128} & \texttt{i128} &              \\
-        \rowcolor{tablecolor} 
+        \rowcolor{tablecolor}
         机器字      & \texttt{usize} & \texttt{isize} & \\
     \end{tabular}
 \end{table}
@@ -132,13 +132,13 @@ Rust的无符号整数使用全部的范围来表示正数和0（\hyperref[t3-3]
         \textbf{类型}   &   \textbf{范围}                   \\
         \hline
         \texttt{u8}     & 0到$2^{8}-1$（0到255）            \\
-        \rowcolor{tablecolor} 
+        \rowcolor{tablecolor}
         \texttt{u16}    & 0到$2^{16}-1$（0到65,535）        \\
         \texttt{u32}    & 0到$2^{32}-1$（0到4,294,967,295） \\
-        \rowcolor{tablecolor} 
+        \rowcolor{tablecolor}
         \texttt{u64}    & 0到$2^{64}-1$（0到18,446,744,073,709,551,615或1万8千亿）  \\
         \texttt{u128}   & 0到$2^{128}-1$（0到大约$3.4*10^{38}$）                    \\
-        \rowcolor{tablecolor} 
+        \rowcolor{tablecolor}
         \texttt{usize}  & 0到$2^{32}-1$或$2^{64}-1$         \\
     \end{tabular}
 \end{table}
@@ -595,7 +595,7 @@ Rust的指针有以下两种类型：
 \hangparagraph{一个不可变的共享引用。你可以同时拥有同一个值的多个共享的引用，但它们都是只读的：修改它们指向的值是禁止的，就像C中的\texttt{const T*}一样。}
 
 \codeentry{\&mut T}
-\hangparagraph{一个可变的、独占的应用。你可以读写它指向的值，类似于C中的\texttt{T*}。但只要这个引用存在，你不能再持有任何这个值的其他任何类型的引用。事实上，这时候你唯一可以访问这个值的方法就是通过这个可变引用。}
+\hangparagraph{一个可变的、独占的引用。你可以读写它指向的值，类似于C中的\texttt{T*}。但只要这个引用存在，你不能再持有任何这个值的其他任何类型的引用。事实上，这时候你唯一可以访问这个值的方法就是通过这个可变引用。}
 
 Rust使用这种方式来区分共享和可变的引用，以此来强制执行“单个写者或多个读者”规则：要么你可以读写值，要么它只能被任何数量的读者共享。这种分隔由编译器检查来强制执行，它是Rust安全保证的核心。\hyperref[ch05]{第5章}解释了Rust中使用安全引用的规则。
 
