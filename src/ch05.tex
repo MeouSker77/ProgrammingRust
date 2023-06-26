@@ -556,7 +556,7 @@ Rust怎么处理存储在数据结构中的引用？这里有一个我们之前�
     struct S {
         r: &i32
     }
-    
+
     let s;
     {
         let x = 10;
@@ -756,7 +756,7 @@ Rust为什么会报错？如果你仔细思考这段代码，你会发现以下�
     impl StringTable {
         fn find_by_prefi(&self, prefix: &str) -> Option<&String> {
             for i in 0 .. self.elements.len() {
-                if self.elements[i].starts_width(prefix) {
+                if self.elements[i].starts_with(prefix) {
                     return Some(&self.elements[i]);
                 }
             }
@@ -998,14 +998,14 @@ Rust会报告\texttt{extend}的例子违反了第二条规则：因为我们已�
 
 当然，Rust拒绝编译代码：
 \begin{minted}{text}
-    error[E0502] : cannot borrow `f` as immutable because it is also 
-    borrowed as mutable 
+    error[E0502] : cannot borrow `f` as immutable because it is also
+    borrowed as mutable
       --> references_self_assignment.rs:18:25
        |
     18 |     clone_from(&mut f, &f);
-       |                     -   ^- mutable borrow ends here 
+       |                     -   ^- mutable borrow ends here
        |                     |   |
-       |                     |   immutable borrow occurs here 
+       |                     |   immutable borrow occurs here
        |                     mutable borrow occurs here
 \end{minted}
 
@@ -1042,7 +1042,7 @@ Rust会报告\texttt{extend}的例子违反了第二条规则：因为我们已�
     \end{minted}
 
     为了确保值是常量，我们需要持续追踪所有可以访问到这个值的路径，并确保它们都不允许修改操作或者直接不可用。C和C++的编译器对指针的检查太过宽松。Rust的引用总是关联到一个特定的生命周期，这使得在编译期检查它们变得可行。
-\end{shaded}    
+\end{shaded}
 
 \clearpage
 

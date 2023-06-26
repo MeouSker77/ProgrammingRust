@@ -31,7 +31,7 @@ Rust标准库里包含几种\emph{集合(collection)}，它们是在内存中存
         \cline{3-5}
          & & \textbf{C++} & \textbf{Java} & \textbf{Python} \\
         \hline
-        
+
         \texttt{Vec<T>} & 可增长的数组  & \texttt{vector} & \texttt{ArrayList} & \texttt{list}  \\
         \rowcolor{tablecolor}
         \texttt{VecDeque<T>} & 双端队列(可增长环形缓冲区) & \texttt{deque} & \texttt{ArrayDeque} & \texttt{collections.deque} \\
@@ -107,7 +107,7 @@ Rust标准库里包含几种\emph{集合(collection)}，它们是在内存中存
     // 获取一个元素的引用
     let first_line = &lines[0];
 
-    // 获取一个元素的拷贝 
+    // 获取一个元素的拷贝
     let fifth_number = numbers[4];          // 需要Copy
     let second_number = lines[1].clone();   // 需要Clone
 
@@ -507,8 +507,8 @@ vector有一个高效地移除任何元素的方法：
 \codeentry{slice.starts\_with(other)}
 \hangparagraph{如果\texttt{slice}起始的值序列等于\texttt{other}的元素则返回\texttt{true}：}
 \begin{minted}{Rust}
-    assert_eq!([1, 2, 3, 4].starts_width(&[1, 2]), true);
-    assert_eq!([1, 2, 3, 4].starts_width(&[2, 3]), false);
+    assert_eq!([1, 2, 3, 4].starts_with(&[1, 2]), true);
+    assert_eq!([1, 2, 3, 4].starts_with(&[2, 3]), false);
 \end{minted}
 
 \codeentry{slice.ends\_with(other)}
@@ -545,7 +545,7 @@ Rust的标准库中并不包含随机数。\texttt{rand} crate提供了它们，
     for index, val in enumerate(my_list):
         if val > 4:
             del my_list[index]  # bug: 在迭代的同时修改
-    
+
     print(my_list)
 \end{minted}
 （Python中的\texttt{enumerate}函数等价于Rust中的\texttt{.enumerate()}方法，见\nameref{enumerate}。）
@@ -557,7 +557,7 @@ Rust的标准库中并不包含随机数。\texttt{rand} crate提供了它们，
 \begin{minted}{Rust}
     fn main() {
         let mut my_vec = vec![1, 3, 5, 7, 9];
-        
+
         for (index, &val) in my_vec.iter().enumerate() {
             if val > 4 {
                 my_vec.remove(index);   // error: can't borrow `my_vec` as mutable
