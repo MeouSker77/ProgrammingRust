@@ -182,7 +182,7 @@ vtable的地址。其他指针类型例如\texttt{Rc<dyn Write>}也一样。
 类型\texttt{W}到底是什么取决于泛型函数如何被调用：
 \begin{minted}{Rust}
     say_hello(&mut local_file)?;    // 调用say_hello::<File>
-    say_hello(&mut bytes)?;         // 调用say_hello<Vec<u8>>
+    say_hello(&mut bytes)?;         // 调用say_hello::<Vec<u8>>
 \end{minted}
 
 当你把\texttt{\&mut local\_file}传递给泛型的\texttt{say\_hello()}函数时，你实际是在调用\\
@@ -347,7 +347,7 @@ trait对象就是解决方案:
 
 相比与trait对象的行为，Rust直到运行时才能知道一个trait对象指向的值到底是什么类型。因此即使你传递了一个\texttt{Sink}，虚方法的调用开销和检查错误的开销仍然不可避免。
 
-泛型的第二个优势是有的trait不支持trait对象。trait只支持一部分特性，例如关联函数只能使用泛型，这样就完全排除了trait对象。当我们将到这些特性时会指出它们。
+泛型的第二个优势是有的trait不支持trait对象。trait只支持一部分特性，例如关联函数只能使用泛型，这样就完全排除了trait对象。当我们讲到这些特性时会指出它们。
 
 泛型的第三个优势是可以很容易地一次给泛型类型参数添加多个trait约束，例如我们的\texttt{top\_ten}函数就要求它的参数\texttt{T}要实现\texttt{Debug + Hash + Eq}。trait对象不能这么做：Rust不支持类似\texttt{\&mut (dyn Debug + Hash + Eq)}这样的类型。（你可以用本章中稍后会讲到的\hyperref[subtrait]{子trait}来实现类似的功能，但这样有点复杂。）
 
@@ -666,7 +666,7 @@ trait对象实际上是为最简单的trait设计的，就是那种可以用Java
 
 \begin{minted}{Rust}
     trait StringSet {
-        fn new() -> self
+        fn new() -> Self
             where Self: Sized;
 
         fn from_slice(strings: &[&str]) -> Self
