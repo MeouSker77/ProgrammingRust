@@ -467,7 +467,7 @@ Rust的字符类型\texttt{char}代表一个单独的Unicode字符，是一个32
 
 Rust使用\texttt{char}表示单个字符，但使用UTF-8编码字符串和文本流。因此，\texttt{String}表示它的文本是一个UTF-8字节序列，而不是字符的数组。
 
-字符串字面量是被单括号包围的单个字符，例如\texttt{'8'}或\texttt{'!'}。你可以使用Unicode范围内的任何字符：\texttt{'錆'}是一个\texttt{char}字面量代表日语汉字中的\emph{sabi}（rust）。\footnote{译者注：看起来这个字符可能无法正常显示，可以在源码里看到这个字符原本的样子。}
+字符字面量是被单括号包围的单个字符，例如\texttt{'8'}或\texttt{'!'}。你可以使用Unicode范围内的任何字符：\texttt{'錆'}是一个\texttt{char}字面量代表日语汉字中的\emph{sabi}（rust）。\footnote{译者注：看起来这个字符可能无法正常显示，可以在源码里看到这个字符原本的样子。}
 
 和字节字面量一样，一些字符需要反斜杠转义（\hyperref[t3-10]{表3-10}）。
 \begin{table}[htbp]
@@ -478,13 +478,13 @@ Rust使用\texttt{char}表示单个字符，但使用UTF-8编码字符串和文�
         \hline
         \textbf{字符}   &   \textbf{Rust字符字面量} \\
         \hline
-        单引号，\texttt{'}   &   \texttt{b'\textbackslash''} \\
+        单引号，\texttt{'}   &   \texttt{'\textbackslash''} \\
         \rowcolor{tablecolor}
-        反斜杠，\texttt{\textbackslash} &    \texttt{b'\textbackslash\textbackslash'} \\
-        换行        &    \texttt{b'\textbackslash n'} \\
+        反斜杠，\texttt{\textbackslash} &    \texttt{'\textbackslash\textbackslash'} \\
+        换行        &    \texttt{'\textbackslash n'} \\
         \rowcolor{tablecolor}
-        回车        &   \texttt{b'\textbackslash r'} \\
-        制表符      &   \texttt{b'\textbackslash t'} \\
+        回车        &   \texttt{'\textbackslash r'} \\
+        制表符      &   \texttt{'\textbackslash t'} \\
     \end{tabular}
 \end{table}
 
