@@ -331,7 +331,7 @@ Rust报错：
     assert_eq!(255_u8.overflowing_sub(2), (253, false));
     assert_eq!(255_u8.overflowing_add(2), (1, true));
     \end{minted}
-    \texttt{overflowing\_shl}和\texttt{overflowing\_shr}稍微有些偏离这个模式：只有当移位距离恰好等于类型的位宽度时\texttt{overflowed}才为true。实际的移位距离等于要求的距离对位宽度取余后的结果：
+    \texttt{overflowing\_shl}和\texttt{overflowing\_shr}稍微有些偏离这个模式：只有当位移距离大于等于类型的位宽度时\texttt{overflowed}才为true。实际的移位距离等于要求的距离对位宽度取余后的结果：
     \begin{minted}{Rust}
     // 对`u16`来说移动17位太多了，17对16取余等于1。
     assert_eq!(5_u16.overflowing_shl(17), (10, true));
