@@ -503,7 +503,7 @@ Rust不会隐式为结构体类型实现\texttt{Default}，但如果一个结构
 \texttt{Borrow}的定义和\texttt{AsRef}的定义几乎完全相同，只有名字变了：
 \begin{minted}{Rust}
     trait Borrow<Borrowed: ?Sized> {
-        fn borrow(&self) -> &Borrow;
+        fn borrow(&self) -> &Borrowed;
     }
 \end{minted}
 
