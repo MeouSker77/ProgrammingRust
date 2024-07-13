@@ -34,7 +34,7 @@
 
     在Python和JavaScript中，所有的函数天然都是泛型的：一个函数可以操作任何类型的值，只要这个类型有函数体中需要的属性和方法。（这种特性通常被称作\emph{鸭子类型}：如果它像鸭子一样叫，那它就是一只鸭子。）但正是这种灵活性也导致这些语言很难检测出类型错误，在这些语言里测试通常是唯一一种捕捉类型错误的方式。Rust的泛型函数给予了这门语言某种程度上和动态类型同样的灵活性，并且仍能在编译期捕获所有的类型错误。
 
-    除了灵活性之外，泛型函数和非泛型的函数一样高效。例如，为每个整数类型都编写一个\texttt{sum}函数与编写一个处理所有整数类型的泛型\texttt{sum}函数相比，并没有性能上的优势。我们将在\hyperref[ch11]{第11章}种详细讨论泛型函数。
+    除了灵活性之外，泛型函数和非泛型的函数一样高效。例如，为每个整数类型都编写一个\texttt{sum}函数与编写一个处理所有整数类型的泛型\texttt{sum}函数相比，并没有性能上的损失。我们将在\hyperref[ch11]{第11章}种详细讨论泛型函数。
 \end{itemize}
 
 这一章的剩余部分将会自上而下的覆盖Rust的类型，从最简单的数字类型例如整数和浮点数到持有多个值的复合类型：box、tuple、数组和字符串。
@@ -331,7 +331,7 @@ Rust报错：
     assert_eq!(255_u8.overflowing_sub(2), (253, false));
     assert_eq!(255_u8.overflowing_add(2), (1, true));
     \end{minted}
-    \texttt{overflowing\_shl}和\texttt{overflowing\_shr}稍微有些偏离这个模式：只有当移位距离恰好等于类型的位宽度时\texttt{overflowed}才为true。实际的移位距离等于要求的距离对位宽度取余后的结果：
+    \texttt{overflowing\_shl}和\texttt{overflowing\_shr}稍微有些偏离这个模式：只有当位移距离大于等于类型的位宽度时\texttt{overflowed}才为true。实际的移位距离等于要求的距离对位宽度取余后的结果：
     \begin{minted}{Rust}
     // 对`u16`来说移动17位太多了，17对16取余等于1。
     assert_eq!(5_u16.overflowing_shl(17), (10, true));
