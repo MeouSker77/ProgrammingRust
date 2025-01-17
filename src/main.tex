@@ -78,8 +78,38 @@
 
 % \includeonly{ch02.tex}
 
+\usepackage{tikz}
+
 % Document
 \begin{document}
+  \begin{sloppypar} %latex中一行文字出现溢出问题的解决方法
+    %\maketitle
+
+    \begin{center}
+      \thispagestyle{empty}
+      %\includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{cover.jpg}
+      \begin{tikzpicture}[remember picture, overlay, inner sep=0pt]
+        \node at (current page.center)
+        {\includegraphics[width=\paperwidth, keepaspectratio=false]{cover.jpg}};
+      \end{tikzpicture}
+      \newpage
+      \thispagestyle{empty}
+      \huge
+      \textbf{Programming Rust, 2nd Edition}
+      \\[10pt]
+      \normalsize
+      Fast, Safe Systems Development
+      \\[9pt]
+      \normalsize
+      作者: Jim Blandy, Jason Orendorff, Leonora F. S. Tindall
+      \\[8pt]
+      \normalsize
+      译者：\href{https://github.com/MeouSker77/ProgrammingRust}{MeouSker77}
+      \\[8pt]
+      \normalsize
+      版本：\href{https://www.oreilly.com/library/view/programming-rust-2nd/9781492052586/}{2021-06-11}
+    \end{center}
+
     \frontmatter
     \setcounter{secnumdepth}{0}
     \pagestyle{front}
@@ -116,4 +146,5 @@
     \include{ch22}
     \include{ch23}
     \backmatter
+  \end{sloppypar}
 \end{document}
