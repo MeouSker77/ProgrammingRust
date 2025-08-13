@@ -74,7 +74,7 @@
     \texttt{Vec<f64>}                               & 可变长度的vector，所有元素的类型都必须相同 & \texttt{vec![0.367, 2.718, 7.389]} \\
     \rowcolor{tablecolor}
     \texttt{\&[u8], \&mut [u8]}                     & 切片的引用：指向数组或vector的一部分，包含指针和长度 & \texttt{\&v[10..20], \&mut a[..]} \\
-    \texttt{Option<\&str>}      & 可选值：\texttt{None}(无值)或\texttt{Some(v)}(有值，值为\texttt{v})   & \texttt{Some("Dr.", None)} \\
+    \texttt{Option<\&str>}      & 可选值：\texttt{None}(无值)或\texttt{Some(v)}(有值，值为\texttt{v})   & \texttt{Some("Dr."), None} \\
     \rowcolor{tablecolor}
     \texttt{Result<u64, Error>} & 可能会失败的操作的结果：成功时是\texttt{Ok(v)}，失败时是\texttt{Err(e)} & \texttt{Ok(4096), Err(Error::last\_os\_error())} \\
     \texttt{\&dyn Any, \&mut dyn Read}  & trait对象：指向一个实现了给定方法的任何值 & \texttt{value as \&dyn Any, \&mut file as \&mut dyn Read} \\
