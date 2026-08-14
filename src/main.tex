@@ -16,6 +16,7 @@
 \usepackage[pagestyles,clearempty]{titlesec}   % 设置页眉格式
 \usepackage[a4paper,left=2cm,right=2cm,bottom=3.67cm]{geometry} % 设置页边距
 \usepackage{pifont}     % 带圈数字
+\usepackage{newunicodechar}  % 自定义字符映射
 
 \linespread{1.25}\linespread{1.4}   % 设置行距
 \CJKsetecglue{\,}                   % 设置中英文间的空格
@@ -23,9 +24,41 @@
 \setminted{fontsize=\small}  % 设置代码字体大小
 \usemintedstyle{solarized-light}    % 设置代码环境高亮主题
 
-% 取消中文字体设置，因为只有windows才有宋体和楷体这两个字体
-% \setCJKmainfont[ItalicFont=楷体,BoldItalicFont=楷体]{宋体}  % 设置中文正文字体
-% \setCJKmonofont{宋体}                                       % 设置中文等宽字体
+% 保留原默认中文字体（不设置\setCJKmainfont，即原书默认的Fandol外观）
+% 仅对原字体缺少的字形逐字符用Noto Serif CJK显示
+\newfontfamily\notofont[Path=../fonts/]{NotoSerifCJK-Regular.ttc}
+\xeCJKDeclareCharClass{Default}{"9942, "9306, "30FC, "5570, "2460->"2469, "2282, "2220}  % 饂、錆、ー、啰、带圈数字①-⑩、⊂、∠移出CJK类，改由\newunicodechar处理
+\newunicodechar{饂}{{\notofont 饂}}
+\newunicodechar{錆}{{\notofont 錆}}
+\newunicodechar{①}{{\notofont ①}}
+\newunicodechar{②}{{\notofont ②}}
+\newunicodechar{③}{{\notofont ③}}
+\newunicodechar{④}{{\notofont ④}}
+\newunicodechar{⑤}{{\notofont ⑤}}
+\newunicodechar{⑥}{{\notofont ⑥}}
+\newunicodechar{⑦}{{\notofont ⑦}}
+\newunicodechar{⑧}{{\notofont ⑧}}
+\newunicodechar{⑨}{{\notofont ⑨}}
+\newunicodechar{⑩}{{\notofont ⑩}}
+\newunicodechar{⊂}{{\notofont ⊂}}
+\newunicodechar{∠}{{\notofont ∠}}
+\newunicodechar{β}{{\notofont β}}
+\newunicodechar{■}{{\notofont ■}}
+\newunicodechar{☉}{{\notofont ☉}}
+\newunicodechar{ー}{{\notofont ー}}
+\newunicodechar{啰}{{\notofont 啰}}
+
+% 替换字符U+FFFD('�')，Noto没有该字形，用DejaVu Sans显示
+\newfontfamily\replfont[Path=../fonts/]{DejaVuSans.ttf}
+\newunicodechar{�}{{\replfont �}}
+
+% 希伯来文字符（用于代码示例中的"טוב ערב"）
+\newfontfamily\hebfont[Path=../fonts/,Extension=.ttf,UprightFont=NotoSerifHebrew-Regular]{NotoSerifHebrew-Regular}
+\newunicodechar{ט}{{\hebfont ט}}
+\newunicodechar{ו}{{\hebfont ו}}
+\newunicodechar{ב}{{\hebfont ב}}
+\newunicodechar{ע}{{\hebfont ע}}
+\newunicodechar{ר}{{\hebfont ר}}
 
 % \setmainfont{Times New Roman}                               % 设置英文正文字体
 \setmonofont[Path=../fonts/,BoldFont=Inconsolata-Bold.ttf]{Inconsolata-Regular.ttf}       % 设置英文等宽字体
