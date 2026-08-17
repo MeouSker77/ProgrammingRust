@@ -21,25 +21,1636 @@
 
 本书是关于Rust的，而不是关于Unicode的，事实上已经有整本专门介绍它的书了。但Rust的字符和字符串类型被设计为Unicode。这里有一些有助于理解Rust的Unicode知识。
 
-\subsection{ASCII, Latin-1, Unicode}
-在所有ASCII码点范围（\texttt{0}到\texttt{0x7f}）内Unicode和ASCII完全相同：例如，这两种编码中字符\texttt{*}都是码点\texttt{42}。
+\subsection{ASCII、Latin-1和Unicode}
+
+在所有ASCII码点范围（\texttt{0}到\texttt{0x7f}）内Unicode和ASCII完全相同：例如，这两种编码中字符\texttt{*}都是码点\texttt{42}。类似的，Unicode把\texttt{0}到\texttt{0xff}分配给与ISO/IEC 8859-1字符集相同的字符，这个字符集是ASCII的八位超集，用于西欧语言。Unicode把这个码点范围称为Latin-1代码块，因此我们采用更有表现力的名称Latin-1来指代ISO/IEC 8859-1。
+
+由于Unicode是Latin-1的超集，把Latin-1转换为Unicode甚至不需要一张表：
+\begin{minted}{Rust}
+    fn latin1_to_char(latin1: u8) -> char {
+        latin1 as char
+    }
+\end{minted}
+
+反向转换同样很简单，前提是码点落在Latin-1的范围内：
+\begin{minted}{Rust}
+    fn char_to_latin1(c: char) -> Option<u8> {
+        if c as u32 <= 0xff {
+            Some(c as u8)
+        } else {
+            None
+        }
+    }
+\end{minted}
 
 \subsection{UTF-8}\label{utf8}
 
+Rust的\texttt{String}和\texttt{str}类型使用UTF-8编码形式来表示文本。UTF-8把一个字符编码为一个一到四字节的序列（图\hyperref[f17-1]{17-1}）。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f17-1.jpg}
+    \caption{UTF-8编码}
+    \label{f17-1}
+\end{figure}
+
+对于良构的（well-formed）UTF-8序列有两条限制。第一，任何给定的码点只有最短的编码被认为是良构的；你不能用四个字节去编码一个只需要三个字节就能表示的码点。这条规则确保了一个给定的码点有且仅有一种UTF-8编码。第二，良构的UTF-8不能编码\texttt{0xd800}到\texttt{0xdfff}或者超过\texttt{0x10ffff}的数字：这些数字要么被保留用于非字符目的，要么完全超出了Unicode的范围。
+
+图\hyperref[f17-2]{17-2}展示了一些例子。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f17-2.jpg}
+    \caption{UTF-8示例}
+    \label{f17-2}
+\end{figure}
+
+注意，即使螃蟹emoji有一个首字节只给码点贡献了零的编码，它仍然需要一个四字节的编码：三字节的UTF-8编码只能表示16位的码点，而\texttt{0x1f980}有17位长。
+
+下面是一个包含不同长度编码的字符的字符串示例：
+\begin{minted}{Rust}
+    assert_eq!("うどん: udon".as_bytes(),
+               &[0xe3, 0x81, 0x86, // う
+                 0xe3, 0x81, 0xa9, // ど
+                 0xe3, 0x82, 0x93, // ん
+                 0x3a, 0x20, 0x75, 0x64, 0x6f, 0x6e // : udon
+               ]);
+\end{minted}
+
+图\hyperref[f17-2]{17-2}还展示了一些UTF-8非常有用的特性：
+\begin{itemize}
+    \item 由于UTF-8把\texttt{0}到\texttt{0x7f}的码点编码为恰好是\texttt{0}到\texttt{0x7f}的字节，因此持有ASCII文本的字节范围是有效的UTF-8。而且如果一段UTF-8字符串只包含ASCII字符，那么反过来也成立：它的UTF-8编码也是有效的ASCII。
+
+    对于Latin-1则不成立：例如，Latin-1把é编码为字节\texttt{0xe9}，而UTF-8会把\texttt{0xe9}解释为某个三字节编码的第一个字节。
+    \item 通过查看任意字节的高位，你可以立即判断出它是某个字符的UTF-8编码的开头，还是该编码中间的某个字节。
+    \item 仅凭一个编码的首字节，通过它的前导位就能知道编码的完整长度。
+    \item 由于没有编码长于四个字节，UTF-8处理永远不需要无界循环，这在处理不可信数据时非常方便。
+    \item 在良构的UTF-8中，即使你从字节序列中间的任意位置开始，也总能明确地判断出字符编码在哪里开始、在哪里结束。UTF-8的首字节和后续字节总是可以区分的，因此一个编码不可能在另一个编码的中间开始。首字节决定了编码的总长度，因此没有任何编码是另一个编码的前缀。这带来很多不错的结果。例如，在UTF-8字符串中搜索一个ASCII分隔符字符只需要简单扫描分隔符的字节即可。它永远不会作为任何多字节编码的一部分出现，所以完全不需要跟踪UTF-8的结构。类似地，在一个字节串中搜索另一个字节串的算法，可以直接用于UTF-8字符串而不需要任何修改，即使有些算法并不会检查被搜索文本的每一个字节。
+\end{itemize}
+
+虽然可变宽度的编码比固定宽度的编码更复杂，但正是这些特性让UTF-8比你可能预期的更加易于使用。标准库为你处理了大多数方面。
+
+\subsection{文本方向}
+
+像拉丁、西里尔和泰语这样的文字是从左到右书写的，而希伯来语和阿拉伯语等其他文字则是从右到左书写的。Unicode按照文本通常书写或阅读的顺序存储字符，因此持有（比如说）希伯来文本的字符串的起始字节编码的是会写在最右边的那个字符：
+\begin{minted}{Rust}
+    assert_eq!("טוב ערב".chars().next(), Some('ע'));
+\end{minted}
 \section{字符(\texttt{char})}
 
+一个Rust的\texttt{char}是一个持有Unicode码点的32位值。\texttt{char}被保证落在\texttt{0}到\texttt{0xd7ff}或\texttt{0xe000}到\texttt{0x10ffff}的范围内；所有创建和操作\texttt{char}值的方法都确保这一点成立。\texttt{char}类型实现了\texttt{Copy}和\texttt{Clone}，以及所有通常用于比较、哈希和格式化的trait。
+
+字符串切片可以用\texttt{slice.chars()}产生一个遍历其字符的迭代器：
+\begin{minted}{Rust}
+    assert_eq!("カニ".chars().next(), Some('カ'));
+\end{minted}
+
+在下面的描述中，变量\texttt{ch}的类型始终是\texttt{char}。
+
+\subsection{字符分类}
+
+\texttt{char}类型有把字符划分为几个常见类别的方法，如表\hyperref[t17-1]{17-1}所列。它们都依据Unicode中的定义。
+
+\begin{longtable}{p{0.22\textwidth}p{0.3\textwidth}p{0.38\textwidth}}
+    \caption{\texttt{char}类型的分类方法}
+    \label{t17-1}\\
+    \hline
+    \textbf{方法} & \textbf{说明} & \textbf{示例} \\
+    \hline
+    \texttt{ch.is\_numeric()} & 数字字符。包括Unicode通用类别“Number; digit”和“Number; letter”，但不包括“Number; other”。 &
+    \makecell[l]{\texttt{'4'.is\_numeric()}\\ \texttt{'四'.is\_numeric()}\\ \texttt{'⑧'.is\_numeric()}} \\
+    \hline
+    \rowcolor{tablecolor}
+    \texttt{ch.is\_alphabetic()} & 字母字符：Unicode的“Alphabetic”派生属性。 &
+    \makecell[l]{\texttt{'q'.is\_alphabetic()}\\ \texttt{'七'.is\_alphabetic()}} \\
+    \hline
+    \makecell[l]{\texttt{ch.is\_}\\ \texttt{alphanumeric()}} & 数字或字母，如前所述。 &
+    \makecell[l]{\texttt{'9'.is\_alphanumeric()}\\ \texttt{'饂'.is\_alphanumeric()}\\ \texttt{!'*'.is\_alphanumeric()}} \\
+    \hline
+    \rowcolor{tablecolor}
+    \texttt{ch.is\_whitespace()} & 空白字符：Unicode字符属性“WSpace=Y”。 &
+    \makecell[l]{\texttt{' '.is\_whitespace()}\\ \texttt{'\textbackslash n'.is\_whitespace()}\\ \texttt{'\textbackslash u\{A0\}'.is\_whitespace()}} \\
+    \hline
+    \texttt{ch.is\_control()} & 控制字符：Unicode的“Other, control”通用类别。 &
+    \makecell[l]{\texttt{'\textbackslash n'.is\_control()}\\ \texttt{'\textbackslash u\{85\}'.is\_control()}} \\
+    \hline
+\end{longtable}
+
+一组与之平行的方法只限于ASCII，对任何非ASCII的\texttt{char}都返回false（表\hyperref[t17-2]{17-2}）。
+
+\begin{longtable}{p{0.24\textwidth}p{0.3\textwidth}p{0.36\textwidth}}
+    \caption{\texttt{char}类型的ASCII分类方法}
+    \label{t17-2}\\
+    \hline
+    \textbf{方法} & \textbf{说明} & \textbf{示例} \\
+    \hline
+    \texttt{ch.is\_ascii()} & 一个ASCII字符：码点在\texttt{0}到\texttt{127}（含）之间。 &
+    \makecell[l]{\texttt{'n'.is\_ascii()}\\ \texttt{!'ñ'.is\_ascii()}} \\
+    \rowcolor{tablecolor}
+    \makecell[l]{\texttt{ch.is\_ascii\_}\\ \texttt{alphabetic()}} & 大写或小写的ASCII字母，在\texttt{'A'..='Z'}或\texttt{'a'..='z'}范围内。 &
+    \makecell[l]{\texttt{'n'.is\_ascii\_alphabetic()}\\ \texttt{!'1'.is\_ascii\_alphabetic()}\\ \texttt{!'ñ'.is\_ascii\_alphabetic()}} \\
+    \texttt{ch.is\_ascii\_digit()} & 一个ASCII数字，在\texttt{'0'..='9'}范围内。 &
+    \makecell[l]{\texttt{'8'.is\_ascii\_digit()}\\ \texttt{!'-'.is\_ascii\_digit()}\\ \texttt{!'⑧'.is\_ascii\_digit()}} \\
+    \rowcolor{tablecolor}
+    \makecell[l]{\texttt{ch.is\_ascii\_}\\ \texttt{hexdigit()}} & \texttt{'0'..='9'}、\texttt{'A'..='F'}或\texttt{'a'..='f'}范围内的任意字符。 & \\
+    \makecell[l]{\texttt{ch.is\_ascii\_}\\ \texttt{alphanumeric()}} & 一个ASCII数字或大写或小写字母。 &
+    \makecell[l]{\texttt{'q'.is\_ascii\_alphanumeric()}\\ \texttt{'0'.is\_ascii\_alphanumeric()}} \\
+    \rowcolor{tablecolor}
+    \texttt{ch.is\_ascii\_control()} & 一个ASCII控制字符，包括“DEL”。 &
+    \makecell[l]{\texttt{'\textbackslash n'.is\_ascii\_control()}\\ \texttt{'\textbackslash x7f'.is\_ascii\_control()}} \\
+    \texttt{ch.is\_ascii\_graphic()} & 任何在页面上留下墨迹的ASCII字符：既不是空格也不是控制字符。 &
+    \makecell[l]{\texttt{'Q'.is\_ascii\_graphic()}\\ \texttt{'\textasciitilde{}'.is\_ascii\_graphic()}\\ \texttt{!' '.is\_ascii\_graphic()}} \\
+    \rowcolor{tablecolor}
+    \makecell[l]{\texttt{ch.is\_ascii\_}\\ \texttt{uppercase(),}\\ \texttt{ch.is\_ascii\_}\\ \texttt{lowercase()}} & ASCII大写和小写字母。 &
+    \makecell[l]{\texttt{'z'.is\_ascii\_lowercase()}\\ \texttt{'Z'.is\_ascii\_uppercase()}} \\
+    \makecell[l]{\texttt{ch.is\_ascii\_}\\ \texttt{punctuation()}} & 既不是字母也不是数字的ASCII图形字符。 & \\
+    \rowcolor{tablecolor}
+    \makecell[l]{\texttt{ch.is\_ascii\_}\\ \texttt{whitespace()}} & 一个ASCII空白字符：空格、水平制表符、换行符、换页符或回车符。 &
+    \makecell[l]{\texttt{' '.is\_ascii\_whitespace()}\\ \texttt{'\textbackslash n'.is\_ascii\_whitespace()}\\ \texttt{!'\textbackslash u\{A0\}'.is\_ascii\_whitespace()}} \\
+    \hline
+\end{longtable}
+
+所有的\texttt{is\_ascii\_...}方法在\texttt{u8}字节类型上也可以使用：
+\begin{minted}{Rust}
+    assert!(32u8.is_ascii_whitespace());
+    assert!(b'9'.is_ascii_digit());
+\end{minted}
+
+在把这些函数用于实现现有的规范（比如某种编程语言的标准或文件格式）时要小心，因为分类可能有令人惊讶的差异。例如，注意\texttt{is\_whitespace}和\texttt{is\_ascii\_whitespace}对某些字符的处理是不同的：
+\begin{minted}{Rust}
+    let line_tab = '\u{000b}'; // 'line tab'，也叫'vertical tab'（垂直制表符）
+    assert_eq!(line_tab.is_whitespace(), true);
+    assert_eq!(line_tab.is_ascii_whitespace(), false);
+\end{minted}
+
+\texttt{char::is\_ascii\_whitespace}函数实现的是许多Web标准通用的空白字符定义，而\texttt{char::is\_whitespace}遵循的是Unicode标准。
+
+\subsection{处理数字}
+
+对于处理数字，你可以使用下面的方法：
+
+\codeentry{ch.to\_digit(radix)}
+\hangparagraph{判断\texttt{ch}是不是\texttt{radix}进制中的数字。如果是，返回\texttt{Some(num)}，其中\texttt{num}是一个\texttt{u32}；否则返回\texttt{None}。它只识别ASCII数字，而不识别\texttt{char::is\_numeric}覆盖的更广泛的字符类别。\texttt{radix}参数的范围可以是2到36。对于大于10的进制，两种大小写的ASCII字母都被视为数字，值从10到35。}
+
+\codeentry{std::char::from\_digit(num, radix)}
+\hangparagraph{一个自由函数，如果可能的话，把\texttt{u32}数字值\texttt{num}转换为\texttt{char}。如果\texttt{num}可以表示为\texttt{radix}进制中的一个数字，\texttt{from\_digit}返回\texttt{Some(ch)}，其中\texttt{ch}就是这个数字；当\texttt{radix}大于10时，\texttt{ch}可能是小写字母。否则返回\texttt{None}。}
+
+\hangparagraph{这是\texttt{to\_digit}的逆操作。如果\texttt{std::char::from\_digit(num, radix)}是\texttt{Some(ch)}，那么\texttt{ch.to\_digit(radix)}就是\texttt{Some(num)}。如果\texttt{ch}是一个ASCII数字或小写字母，那么反过来也成立。}
+
+\codeentry{ch.is\_digit(radix)}
+\hangparagraph{如果\texttt{ch}是\texttt{radix}进制中的一个ASCII数字，返回\texttt{true}。这等价于\texttt{ch.to\_digit(radix) != None}。}
+
+
+所以，例如：
+
+\begin{minted}{Rust}
+    assert_eq!('F'.to_digit(16), Some(15));
+    assert_eq!(std::char::from_digit(15, 16), Some('f'));
+    assert!(char::is_digit('f', 16));
+\end{minted}
+
+\subsection{字符大小写转换}\label{CaseConv}
+
+对于处理字符大小写：
+
+\codeentry{ch.is\_lowercase(), ch.is\_uppercase()}
+\hangparagraph{指示\texttt{ch}是小写还是大写字母字符。它们遵循Unicode的Lowercase和Uppercase派生属性，因此覆盖希腊语和西里尔语等非拉丁字母，并对ASCII给出预期的结果。}
+
+\codeentry{ch.to\_lowercase(), ch.to\_uppercase()}
+\hangparagraph{返回产生\texttt{ch}的小写和大写等价字符的迭代器，依据Unicode默认大小写转换算法：}
+\begin{minted}{Rust}
+    let mut upper = 's'.to_uppercase();
+    assert_eq!(upper.next(), Some('S'));
+    assert_eq!(upper.next(), None);
+\end{minted}
+
+\hangparagraph{这些方法返回一个迭代器而不是单个字符，因为Unicode中的大小写转换并不总是一对一的过程：}
+\begin{minted}{Rust}
+    // 德语字母"sharp S"的大写形式是"SS"：
+    let mut upper = 'ß'.to_uppercase();
+    assert_eq!(upper.next(), Some('S'));
+    assert_eq!(upper.next(), Some('S'));
+    assert_eq!(upper.next(), None);
+
+    // Unicode规定把土耳其语带点的首都'İ'转小写为'i'
+    // 后面跟着`'\u{307}'`（COMBINING DOT ABOVE，上方组合点），
+    // 这样之后再次转回大写时可以保留这个点。
+    let ch = 'İ'; // `'\u{130}'`
+    let mut lower = ch.to_lowercase();
+    assert_eq!(lower.next(), Some('i'));
+    assert_eq!(lower.next(), Some('\u{307}'));
+    assert_eq!(lower.next(), None);
+\end{minted}
+
+\hangparagraph{为了方便，这些迭代器实现了\texttt{std::fmt::Display} trait，所以你可以把它们直接传给\texttt{println!}或\texttt{write!}宏。}
+
+\subsection{与整数之间的转换}
+
+Rust的\texttt{as}运算符可以把\texttt{char}转换为任何整数类型，静默地截断任何高位的比特：
+\begin{minted}{Rust}
+    assert_eq!('B' as u32, 66);
+    assert_eq!('饂' as u8, 66);   // 高位比特被截断
+    assert_eq!('二' as i8, -116); // 同上
+\end{minted}
+
+\texttt{as}运算符可以把任何\texttt{u8}值转换为\texttt{char}，\texttt{char}也实现了\texttt{From<u8>}，但更宽的整数类型可以表示无效的码点，所以对于这些类型你必须使用\texttt{std::char::from\_u32}，它返回\texttt{Option<char>}：
+\begin{minted}{Rust}
+    assert_eq!(char::from(66), 'B');
+    assert_eq!(std::char::from_u32(0x9942), Some('饂'));
+    assert_eq!(std::char::from_u32(0xd800), None); // 保留给UTF-16
+\end{minted}
 \section{\texttt{String}和\texttt{str}}
+
+Rust的\texttt{String}和\texttt{str}类型被保证只持有良构的（well-formed）UTF-8。库通过限制你创建\texttt{String}和\texttt{str}值的方式以及你可以对它们执行的操作来确保这一点，使得值在被引入时是良构的，并且在你使用它们的过程中保持良构。它们的所有方法都保护这一保证：没有任何安全操作可以在它们上引入不良构的UTF-8。这简化了处理文本的代码。
+
+Rust根据方法是否需要可调整大小的缓冲区，或者是否满足于就地使用文本，把文本处理方法放在\texttt{str}或\texttt{String}上。由于\texttt{String}解引用到\texttt{\&str}，在\texttt{str}上定义的每个方法都可以直接在\texttt{String}上使用。本节呈现来自两种类型的方法，按大致功能分组。
+
+这些方法按字节偏移量索引文本，并按字节而非字符测量其长度。实际上，考虑到Unicode的性质，按字符索引并不像看起来那么有用，而字节偏移量更快、更简单。如果你试图使用一个落在某个字符的UTF-8编码中间的字节偏移量，方法会panic，所以你无法用这种方式引入不良构的UTF-8。
+
+\texttt{String}被实现为\texttt{Vec<u8>}的一个包装器，确保vector的内容总是良构的UTF-8。Rust永远不会改变\texttt{String}去使用更复杂的表示，所以你可以假设\texttt{String}具有与\texttt{Vec}相同的性能特征。
+
+在这些解释中，变量具有表\hyperref[t17-3]{17-3}中给出的类型。
+
+\begin{longtable}{p{0.18\textwidth}p{0.72\textwidth}}
+    \caption{解释中所用变量的类型}
+    \label{t17-3}\\
+    \hline
+    \textbf{变量} & \textbf{假定的类型} \\
+    \hline
+    \texttt{string} & \texttt{String} \\
+    \hline
+    \rowcolor{tablecolor}
+    \texttt{slice} & \texttt{\&str}，或任何解引用为\texttt{\&str}的类型，比如\texttt{String}或\texttt{Rc<String>} \\
+    \hline
+    \texttt{ch} & \texttt{char} \\
+    \hline
+    \rowcolor{tablecolor}
+    \texttt{n} & \texttt{usize}，一个长度 \\
+    \hline
+    \texttt{i, j} & \texttt{usize}，一个字节偏移量 \\
+    \hline
+    \rowcolor{tablecolor}
+    \texttt{range} & 一个\texttt{usize}字节偏移量的范围，可以是像\texttt{i..j}这样完全有界的，或像\texttt{i..}、\texttt{..j}或\texttt{..}这样部分有界的 \\
+    \hline
+    \texttt{pattern} & 任何模式类型：\texttt{char}、\texttt{String}、\texttt{\&str}、\texttt{\&[char]}或\texttt{FnMut(char) -> bool} \\
+    \hline
+\end{longtable}
+
+我们在\nameref{Patterns}中描述模式类型。
 
 \subsection{创建\texttt{String}值}
 
-\subsection{简单的视图}
+有几种常见的方法可以创建\texttt{String}值：
+
+\codeentry{String::new()}
+\hangparagraph{返回一个新的空字符串。它没有堆分配的缓冲区，但会按需分配一个。}
+
+\codeentry{String::with\_capacity(n)}
+\hangparagraph{返回一个新的空字符串，其缓冲区被预先分配以容纳至少\texttt{n}个字节。如果你事先知道要构建的字符串的长度，这个构造函数让你从一开始就把缓冲区大小调整正确，而不是在构建字符串的过程中调整缓冲区大小。如果字符串的长度超过\texttt{n}个字节，字符串仍然会按需增长其缓冲区。和vector一样，字符串有\texttt{capacity}、\texttt{reserve}和\texttt{shrink\_to\_fit}方法，但通常默认的分配逻辑就足够了。}
+
+\codeentry{str\_slice.to\_string()}
+\hangparagraph{分配一个新的\texttt{String}，其内容是\texttt{str\_slice}的副本。我们已经在整本书中一直使用像\texttt{"literal text".to\_string()}这样的表达式来从字符串字面量创建\texttt{String}。}
+
+\codeentry{iter.collect()}
+\hangparagraph{通过连接迭代器的条目来构造一个字符串，这些条目可以是\texttt{char}、\texttt{\&str}或\texttt{String}值。例如，要删除字符串中的所有空格，你可以写：}
+\begin{minted}{Rust}
+    let spacey = "man hat tan";
+    let spaceless: String =spacey.chars().filter(|c| !c.is_whitespace()).collect();
+    assert_eq!(spaceless, "manhattan");
+\end{minted}
+
+\hangparagraph{这样使用\texttt{collect}利用了\texttt{String}对\texttt{std::iter::FromIterator} trait的实现。}
+
+\codeentry{slice.to\_owned()}
+\hangparagraph{返回\texttt{slice}的副本，作为一个新分配的\texttt{String}。\texttt{str}类型不能实现\texttt{Clone}：该trait会要求对\texttt{\&str}调用\texttt{clone}返回一个\texttt{str}值，但\texttt{str}是unsized的。不过，\texttt{\&str}确实实现了\texttt{ToOwned}，它允许实现者指定其有所有权的等价类型。}
+
+\subsection{简单的查看方法}
+
+这些方法从字符串切片获得基本信息：
+
+\codeentry{slice.len()}
+\hangparagraph{\texttt{slice}的长度，以字节为单位。}
+
+\codeentry{slice.is\_empty()}
+\hangparagraph{如果\texttt{slice.len() == 0}则为\texttt{true}。}
+
+\codeentry{slice[range]}
+\hangparagraph{返回借用\texttt{slice}的给定部分的切片。部分有界和无界的范围都可以；例如：}
+\begin{minted}{Rust}
+    let full = "bookkeeping";
+    assert_eq!(&full[..4], "book");
+    assert_eq!(&full[5..], "eeping");
+    assert_eq!(&full[2..4], "ok");
+    assert_eq!(full[..].len(), 11);
+    assert_eq!(full[5..].contains("boo"), false);
+\end{minted}
+
+\hangparagraph{注意你不能用单个位置索引字符串切片，比如\texttt{slice[i]}。在给定的字节偏移量处获取单个字符有点笨拙：你必须对切片产生一个\texttt{chars}迭代器，并要求它解析一个字符的UTF-8：}
+\begin{minted}{Rust}
+    let parenthesized = "Rust (饂)";
+    assert_eq!(parenthesized[6..].chars().next(), Some('饂'));
+\end{minted}
+
+\hangparagraph{不过，你应该很少需要这样做。Rust有更好的方式来迭代切片，我们将在\nameref{IterText}中描述。}
+
+\codeentry{slice.split\_at(i)}
+\hangparagraph{返回从\texttt{slice}借用的两个共享切片的元组：字节偏移量\texttt{i}之前的部分，以及它之后的部分。换句话说，这返回\texttt{(slice[..i], slice[i..])}。}
+
+\codeentry{slice.is\_char\_boundary(i)}
+\hangparagraph{如果字节偏移量\texttt{i}落在字符边界之间，因此适合作为\texttt{slice}的偏移量，则为\texttt{true}。}
+
+自然地，切片可以比较相等、排序和哈希。有序比较只是把字符串视为Unicode码点的序列，并按字典顺序比较它们。
 
 \subsection{附加和插入文本}\label{AppendText}
 
-\section{格式化}\label{format}
+下面的方法向\texttt{String}添加文本：
 
+\codeentry{string.push(ch)}
+\hangparagraph{把字符\texttt{ch}附加到\texttt{string}的末尾。}
+
+\codeentry{string.push\_str(slice)}
+\hangparagraph{附加\texttt{slice}的全部内容。}
+
+\codeentry{string.extend(iter)}
+\hangparagraph{把迭代器\texttt{iter}产生的条目附加到字符串中。迭代器可以产生\texttt{char}、\texttt{str}或\texttt{String}值。这些是\texttt{String}对\texttt{std::iter::Extend}的实现：}
+\begin{minted}{Rust}
+    let mut also_spaceless = "con".to_string();
+    also_spaceless.extend("tri but ion".split_whitespace());
+    assert_eq!(also_spaceless, "contribution");
+\end{minted}
+
+\codeentry{string.insert(i, ch)}
+\hangparagraph{在\texttt{string}的字节偏移量\texttt{i}处插入单个字符\texttt{ch}。这需要把\texttt{i}之后的任何字符向后移动，为\texttt{ch}腾出空间，所以用这种方式构建字符串可能需要与字符串长度成二次方的时间。}
+
+\codeentry{string.insert\_str(i, slice)}
+\hangparagraph{这对\texttt{slice}做同样的事情，并有相同的性能警告。}
+
+\texttt{String}实现了\texttt{std::fmt::Write}，这意味着\texttt{write!}和\texttt{writeln!}宏可以把格式化文本附加到\texttt{String}上：
+\begin{minted}{Rust}
+    use std::fmt::Write;
+
+    let mut letter = String::new();
+    writeln!(letter, "Whose {} these are I think I know", "rutabagas")?;
+    writeln!(letter, "His house is in the village though;")?;
+    assert_eq!(letter, "Whose rutabagas these are I think I know\n\
+                        His house is in the village though;\n");
+\end{minted}
+
+由于\texttt{write!}和\texttt{writeln!}是为写入输出流而设计的，它们返回一个\texttt{Result}，如果你忽略它，Rust会抱怨。这段代码使用\texttt{?}运算符来处理它，但写入\texttt{String}实际上是不会失败的，所以在这种情况下调用\texttt{.unwrap()}也没问题。
+
+由于\texttt{String}实现了\texttt{Add<\&str>}和\texttt{AddAssign<\&str>}，你可以写这样的代码：
+\begin{minted}{Rust}
+    let left = "partners".to_string();
+    let mut right = "crime".to_string();
+    assert_eq!(left + " in " + &right, "partners in crime");
+
+    right += " doesn't pay";
+    assert_eq!(right, "crime doesn't pay");
+\end{minted}
+
+当应用于字符串时，\texttt{+}运算符按值获取其左操作数，所以它实际上可以复用该\texttt{String}作为加法的结果。因此，如果左操作数的缓冲区足够大以容纳结果，就不需要分配。
+
+一个不幸的不对称之处是，\texttt{+}的左操作数不能是\texttt{\&str}，所以你不能写：
+\begin{minted}{Rust}
+    let parenthetical = "(" + string + ")";
+\end{minted}
+
+你必须改写成：
+\begin{minted}{Rust}
+    let parenthetical = "(".to_string() + &string + ")";
+\end{minted}
+
+然而，这个限制确实不鼓励从末尾向前构建字符串。这种方法性能很差，因为文本必须被反复地向缓冲区末尾移动。
+
+然而，从头到尾附加小块来构建字符串是高效的。\texttt{String}的行为和vector一样，当它需要更多容量时，总是至少把缓冲区的大小翻倍。这使重新复制的开销与最终大小成比例。即便如此，使用\texttt{String::with\_capacity}从一开始就以正确的缓冲区大小创建字符串，可以完全避免调整大小，并可以减少对堆分配器的调用次数。
+
+\subsection{移除和替换文本}
+
+\texttt{String}有一些移除文本的方法（这些方法不影响字符串的容量；如果你需要释放内存，使用\texttt{shrink\_to\_fit}）：
+
+\codeentry{string.clear()}
+\hangparagraph{把\texttt{string}重置为空字符串。}
+
+\codeentry{string.truncate(n)}
+\hangparagraph{丢弃字节偏移量\texttt{n}之后的所有字符，使\texttt{string}的长度最多为\texttt{n}。如果\texttt{string}短于\texttt{n}个字节，这没有效果。}
+
+\codeentry{string.pop()}
+\hangparagraph{从\texttt{string}移除最后一个字符（如果有的话），并把它作为\texttt{Option<char>}返回。}
+
+\codeentry{string.remove(i)}
+\hangparagraph{从\texttt{string}移除字节偏移量\texttt{i}处的字符并返回它，把后面的任何字符向前移动。这需要的时间与后面字符的数量成线性关系。}
+
+\codeentry{string.drain(range)}
+\hangparagraph{返回对给定字节索引范围的一个迭代器，并在迭代器被丢弃时移除这些字符。范围之后的字符被向前移动：}
+\begin{minted}{Rust}
+    let mut choco = "chocolate".to_string();
+    assert_eq!(choco.drain(3..6).collect::<String>(), "col");
+    assert_eq!(choco, "choate");
+\end{minted}
+
+\hangparagraph{如果你只想移除这个范围，你可以立即丢弃迭代器，而不从中提取任何条目：}
+
+\begin{minted}{Rust}
+    let mut winston = "Churchill".to_string();
+    winston.drain(2..6);
+    assert_eq!(winston, "Chill");
+\end{minted}
+
+\codeentry{string.replace\_range(range, replacement)}
+\hangparagraph{用给定的替换字符串切片替换\texttt{string}中的给定范围。这个切片不必与要替换的范围长度相同，但除非被替换的范围一直延伸到\texttt{string}的末尾，否则这将需要移动范围末尾之后的所有字节：}
+\begin{minted}{Rust}
+    let mut beverage = "a piña colada".to_string();
+    beverage.replace_range(2..7, "kahlua"); // 'ñ'是两个字节！
+    assert_eq!(beverage, "a kahlua colada");
+\end{minted}
+
+\subsection{搜索和迭代的约定}
+
+Rust标准库中用于搜索文本和迭代文本的函数遵循一些命名约定，使它们更容易记忆：
+\begin{itemize}
+    \item \texttt{r}：大多数操作从头到尾处理文本，但名称以\texttt{r}开头的操作从尾到头工作。例如，\texttt{rsplit}是\texttt{split}的从尾到头版本。在某些情况下，改变方向不仅会影响产生值的顺序，还会影响值本身。关于这个的例子见图\hyperref[f17-3]{17-3}。
+    \item \texttt{n}：名称以\texttt{n}结尾的迭代器把自己限制在给定数量的匹配上。
+    \item \texttt{\_indices}：名称以\texttt{\_indices}结尾的迭代器连同它们通常的迭代值一起产生它们在切片中出现的字节偏移量。
+\end{itemize}
+
+标准库并没有为每个操作提供所有组合。例如，许多操作不需要\texttt{n}变体，因为提前结束迭代很容易。
+
+\subsection{搜索文本的模式}\label{Patterns}
+
+当标准库函数需要搜索、匹配、分割或修剪文本时，它接受几种不同的类型来表示要查找的内容：
+\begin{minted}{Rust}
+    let haystack = "One fine day, in the middle of the night";
+
+    assert_eq!(haystack.find(','), Some(12));
+    assert_eq!(haystack.find("night"), Some(35));
+    assert_eq!(haystack.find(char::is_whitespace), Some(3));
+\end{minted}
+
+这些类型被称为模式（pattern），大多数操作都支持它们：
+\begin{minted}{Rust}
+    assert_eq!("## Elephants"
+               .trim_start_matches(|ch: char| ch == '#' || ch.is_whitespace()), "Elephants");
+\end{minted}
+
+标准库支持四种主要的模式：
+\begin{itemize}
+    \item 一个\texttt{char}作为模式匹配该字符。
+    \item 一个\texttt{String}或\texttt{\&str}或\texttt{\&\&str}作为模式匹配与模式相等的子字符串。
+    \item 一个\texttt{FnMut(char) -> bool}闭包作为模式匹配闭包返回\texttt{true}的单个字符。
+    \item 一个\texttt{\&[char]}（不是\texttt{\&str}，而是一个\texttt{char}值的切片）作为模式匹配列表中出现的任何单个字符。注意，如果你把列表写成数组字面量，你可能需要调用\texttt{as\_ref()}来把类型弄对：
+\begin{minted}{Rust}
+    let code = "\t    function noodle() { ";
+    assert_eq!(code.trim_start_matches([' ', '\t'].as_ref()), "function noodle() { ");
+    // 更短的等价写法：&[' ', '\t'][..]
+\end{minted}
+
+    否则，Rust会被固定大小数组类型\texttt{\&[char; 2]}弄糊涂，它不幸地不是一个模式类型。
+\end{itemize}
+
+在库自己的代码中，一个模式是任何实现了\texttt{std::str::Pattern} trait的类型。\texttt{Pattern}的细节还不稳定，所以你不能在稳定版Rust中为你自己的类型实现它，但门是敞开的，以便将来允许正则表达式和其他复杂的模式。Rust确实保证现在支持的模式类型将来会继续工作。
+
+\subsection{搜索和替换}
+
+Rust有几个方法用于在切片中搜索模式，并可能用新文本替换它们：
+
+\codeentry{slice.contains(pattern)}
+\hangparagraph{如果\texttt{slice}包含\texttt{pattern}的一个匹配，返回\texttt{true}。}
+
+\codeentry{slice.starts\_with(pattern), slice.ends\_with(pattern)}
+\hangparagraph{如果\texttt{slice}的起始或结尾文本匹配\texttt{pattern}，返回\texttt{true}：}
+\begin{minted}{Rust}
+    assert!("2017".starts_with(char::is_numeric));
+\end{minted}
+
+\codeentry{slice.find(pattern), slice.rfind(pattern)}
+\hangparagraph{如果\texttt{slice}包含\texttt{pattern}的一个匹配，返回\texttt{Some(i)}，其中\texttt{i}是模式出现的字节偏移量。\texttt{find}方法返回第一个匹配，\texttt{rfind}返回最后一个：}
+\begin{minted}{Rust}
+    let quip = "We also know there are known unknowns";
+    assert_eq!(quip.find("know"), Some(8));
+    assert_eq!(quip.rfind("know"), Some(31));
+    assert_eq!(quip.find("ya know"), None);
+    assert_eq!(quip.rfind(char::is_uppercase), Some(0));
+\end{minted}
+
+\codeentry{slice.replace(pattern, replacement)}
+\hangparagraph{返回一个新的\texttt{String}，通过急切地（eagerly）用\texttt{replacement}替换\texttt{pattern}的所有匹配而形成：}
+\begin{minted}{Rust}
+    assert_eq!("The only thing we have to fear is fear itself"
+               .replace("fear", "spin"),
+               "The only thing we have to spin is spin itself");
+
+    assert_eq!("`Borrow` and `BorrowMut`"
+               .replace(|ch:char| !ch.is_alphanumeric(), ""),
+               "BorrowandBorrowMut");
+\end{minted}
+
+\hangparagraph{因为替换是急切地完成的，\texttt{.replace()}在重叠匹配上的行为可能会令人惊讶。这里，模式\texttt{"aba"}有四个实例，但在第一个和第三个被替换后，第二个和第四个不再匹配：}
+\begin{minted}{Rust}
+    assert_eq!("cabababababbage".replace("aba", "***"),"c***b***babbage");
+\end{minted}
+
+\codeentry{slice.replacen(pattern, replacement, n)}
+\hangparagraph{这做同样的事情，但最多替换前\texttt{n}个匹配。}
+
+\subsection{迭代文本}\label{IterText}
+
+标准库提供了几种迭代切片的文本的方式。图\hyperref[f17-3]{17-3}展示了一些例子。
+
+你可以把\texttt{split}和\texttt{match}家族看作互为补充：split是匹配之间的范围。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../img/f17-3.jpg}
+    \caption{在切片上迭代的一些方式}
+    \label{f17-3}
+\end{figure}
+
+这些方法中的大多数返回可逆的迭代器（也就是说，它们实现了\texttt{DoubleEndedIterator}）：调用它们的\texttt{.rev()}适配器方法给你一个产生相同条目但顺序相反的迭代器。
+
+\codeentry{slice.chars()}
+\hangparagraph{返回遍历\texttt{slice}字符的迭代器。}
+
+\codeentry{slice.char\_indices()}
+\hangparagraph{返回遍历\texttt{slice}的字符及其字节偏移量的迭代器：}
+\begin{minted}{Rust}
+    assert_eq!("élan".char_indices().collect::<Vec<_>>(),
+               vec![(0, 'é'), // 有一个两字节的UTF-8编码
+                    (2, 'l'),
+                    (3, 'a'),
+                    (4, 'n')]);
+\end{minted}
+
+\hangparagraph{注意，这并不等同于\texttt{.chars().enumerate()}，因为它提供每个字符在\texttt{slice}内的字节偏移量，而不仅仅是给字符编号。}
+
+\codeentry{slice.bytes()}
+\hangparagraph{返回遍历\texttt{slice}的单个字节的迭代器，暴露UTF-8编码：}
+\begin{minted}{Rust}
+    assert_eq!("élan".bytes().collect::<Vec<_>>(),
+               vec![195, 169, b'l', b'a', b'n']);
+\end{minted}
+
+\codeentry{slice.lines()}
+\hangparagraph{返回遍历\texttt{slice}各行的迭代器。行以\texttt{"\textbackslash n"}或\texttt{"\textbackslash r\textbackslash n"}结束。产生的每个条目都是借用\texttt{slice}的\texttt{\&str}。这些条目不包括行的结束字符。}
+
+\codeentry{slice.split(pattern)}
+\hangparagraph{返回遍历\texttt{slice}被\texttt{pattern}的匹配分隔开的各个部分的迭代器。对于紧邻的匹配之间，以及\texttt{slice}开头和结尾处的匹配，这会产生空字符串。}
+
+\hangparagraph{如果\texttt{pattern}是\texttt{\&str}，返回的迭代器不可逆。这样的模式根据你从哪个方向扫描可以产生不同的匹配序列，而可逆迭代器被禁止这样做。相反，你可能可以使用\texttt{rsplit}方法，接下来描述。}
+
+\codeentry{slice.rsplit(pattern)}
+\hangparagraph{这个方法相同，但是从尾到头扫描\texttt{slice}，按这个顺序产生匹配。}
+
+\codeentry{slice.split\_terminator(pattern), slice.rsplit\_terminator(pattern)}
+\hangparagraph{这些类似，但把\texttt{pattern}视为终止符而不是分隔符：如果\texttt{pattern}正好在\texttt{slice}的末尾匹配，迭代器不会产生一个表示该匹配与\texttt{slice}末尾之间空字符串的空切片，正如\texttt{split}和\texttt{rsplit}所做的那样。例如：}
+\begin{minted}{Rust}
+    // 这里的':'字符是分隔符。注意最后的""。
+    assert_eq!("jimb:1000:Jim Blandy:".split(':').collect::<Vec<_>>(),
+               vec!["jimb", "1000", "Jim Blandy", ""]);
+
+    // 这里的'\n'字符是终止符。
+    assert_eq!("127.0.0.1  localhost\n\
+                127.0.0.1  www.reddit.com\n"
+               .split_terminator('\n').collect::<Vec<_>>(),
+               vec!["127.0.0.1  localhost",
+                    "127.0.0.1  www.reddit.com"]);
+               // 注意，没有最后的""！
+\end{minted}
+
+\codeentry{slice.splitn(n, pattern), slice.rsplitn(n, pattern)}
+\hangparagraph{这些和\texttt{split}与\texttt{rsplit}类似，除了它们把字符串分割成最多\texttt{n}个切片，在\texttt{pattern}的前\texttt{n-1}个或后\texttt{n-1}个匹配处分割。}
+
+\codeentry{slice.split\_whitespace(), slice.split\_ascii\_whitespace()}
+\hangparagraph{返回遍历\texttt{slice}被空白分隔的各部分的迭代器。一段多个空白字符被视为单个分隔符。尾部的空白被忽略。}
+
+\hangparagraph{\texttt{split\_whitespace}方法使用Unicode对空白的定义，正如\texttt{char}上的\texttt{is\_whitespace}方法所实现的。\texttt{split\_ascii\_whitespace}方法改用\texttt{char::is\_ascii\_whitespace}，它只识别ASCII空白字符。}
+\begin{minted}{Rust}
+    let poem = "This  is  just  to say\n\
+                I have eaten\n\
+                the plums\n\
+                again\n";
+
+    assert_eq!(poem.split_whitespace().collect::<Vec<_>>(),
+               vec!["This", "is", "just", "to", "say",
+                    "I", "have", "eaten", "the", "plums",
+                    "again"]);
+\end{minted}
+
+\codeentry{slice.matches(pattern)}
+\hangparagraph{返回遍历\texttt{slice}中\texttt{pattern}的匹配的迭代器。\texttt{slice.rmatches(pattern)}相同，但从尾到头迭代。}
+
+\codeentry{slice.match\_indices(pattern), slice.rmatch\_indices(pattern)}
+\hangparagraph{这些类似，除了产生的条目是\texttt{(offset, match)}对，其中\texttt{offset}是匹配开始的字节偏移量，\texttt{match}是匹配的切片。}
+
+\subsection{修剪}
+
+修剪字符串就是移除文本，通常是空白，从字符串的开头或结尾。在清理从文件读取的输入时通常很有用，用户可能为了可读性缩进了文本，或者无意中在一行末尾留下尾随空白。
+
+\codeentry{slice.trim()}
+\hangparagraph{返回\texttt{slice}的一个子切片，省略任何前导和尾随的空白。\texttt{slice.trim\_start()}只省略前导空白，\texttt{slice.trim\_end()}只省略尾随空白：}
+\begin{minted}{Rust}
+    assert_eq!("\t*.rs  ".trim(), "*.rs");
+    assert_eq!("\t*.rs  ".trim_start(), "*.rs  ");
+    assert_eq!("\t*.rs  ".trim_end(), "\t*.rs");
+\end{minted}
+
+\codeentry{slice.trim\_matches(pattern)}
+\hangparagraph{返回\texttt{slice}的一个子切片，省略开头和结尾处\texttt{pattern}的所有匹配。\texttt{trim\_start\_matches}和\texttt{trim\_end\_matches}方法对只在前导或尾随匹配做同样的事情：}
+\begin{minted}{Rust}
+    assert_eq!("001990".trim_start_matches('0'), "1990");
+\end{minted}
+
+\subsection{字符串大小写转换}
+
+方法\texttt{slice.to\_uppercase()}和\texttt{slice.to\_lowercase()}返回一个新分配的字符串，持有\texttt{slice}的文本转换后的大写或小写形式。结果可能与\texttt{slice}的长度不同；详情见\nameref{CaseConv}。
+\subsection{从字符串解析其他类型}
+
+Rust提供了从字符串解析值和产生值的文本表示的标准trait。
+
+如果一个类型实现了\texttt{std::str::FromStr} trait，那么它提供了一种从字符串切片解析值的标准方式：
+\begin{minted}{Rust}
+    pub trait FromStr: Sized {
+        type Err;
+        fn from_str(s: &str) -> Result<Self, Self::Err>;
+    }
+\end{minted}
+
+所有常用的机器类型都实现了\texttt{FromStr}：
+\begin{minted}{Rust}
+    use std::str::FromStr;
+
+    assert_eq!(usize::from_str("3628800"), Ok(3628800));
+    assert_eq!(f64::from_str("128.5625"), Ok(128.5625));
+    assert_eq!(bool::from_str("true"), Ok(true));
+
+    assert!(f64::from_str("not a float at all").is_err());
+    assert!(bool::from_str("TRUE").is_err());
+\end{minted}
+
+\texttt{char}类型也实现了\texttt{FromStr}，用于只含一个字符的字符串：
+\begin{minted}{Rust}
+    assert_eq!(char::from_str("é"), Ok('é'));
+    assert!(char::from_str("abcdefg").is_err());
+\end{minted}
+
+\texttt{std::net::IpAddr}类型，一个持有IPv4或IPv6互联网地址的枚举，也实现了\texttt{FromStr}：
+\begin{minted}{Rust}
+    use std::net::IpAddr;
+
+    let address =
+        IpAddr::from_str("fe80::0000:3ea9:f4ff:fe34:7a50")?;
+    assert_eq!(address,
+               IpAddr::from([0xfe80, 0, 0, 0, 0x3ea9, 0xf4ff, 0xfe34,
+                             0x7a50]));
+\end{minted}
+
+字符串切片有一个\texttt{parse}方法，可以把切片解析为你喜欢的任何类型，前提是它实现了\texttt{FromStr}。和\texttt{Iterator::collect}一样，你有时需要写出你想要的具体类型，所以\texttt{parse}并不总是比直接调用\texttt{from\_str}更易读：
+\begin{minted}{Rust}
+    let address = "fe80::0000:3ea9:f4ff:fe34:7a50".parse::<IpAddr>()?;
+\end{minted}
+
+\subsection{把其他类型转换为字符串}
+
+有三种主要的方式把非文本值转换为字符串：
+
+\begin{itemize}
+    \item 具有自然的人类可读打印形式的类型可以实现\texttt{std::fmt::Display} trait，它让你在\texttt{format!}宏中使用\texttt{\{\}}格式说明符：
+\begin{minted}{Rust}
+    assert_eq!(format!("{}, wow", "doge"), "doge, wow");
+    assert_eq!(format!("{}", true), "true");
+    assert_eq!(format!("({:.3}, {:.3})", 0.5, f64::sqrt(3.0)/2.0), "(0.500, 0.866)");
+
+    // 使用上面的`address`。
+    let formatted_addr: String = format!("{}", address);
+    assert_eq!(formatted_addr, "fe80::3ea9:f4ff:fe34:7a50");
+\end{minted}
+
+    Rust的所有机器数值类型都实现\texttt{Display}，字符、字符串和切片也是如此。智能指针类型\texttt{Box<T>}、\texttt{Rc<T>}和\texttt{Arc<T>}在\texttt{T}本身实现\texttt{Display}时也实现\texttt{Display}：它们的显示形式就是其指向内容的显示形式。像\texttt{Vec}和\texttt{HashMap}这样的容器不实现\texttt{Display}，因为这些类型没有单一的自然人类可读形式。
+
+    \item 如果一个类型实现了\texttt{Display}，标准库会自动为它实现\texttt{std::str::ToString} trait，当你不需要\texttt{format!}的灵活性时，其唯一的方法\texttt{to\_string}可能更方便：
+\begin{minted}{Rust}
+    // 继续上面的代码。
+    assert_eq!(address.to_string(), "fe80::3ea9:f4ff:fe34:7a50");
+\end{minted}
+
+    \texttt{ToString} trait先于\texttt{Display}的引入，并且灵活性较低。对于你自己的类型，你通常应该实现\texttt{Display}而不是\texttt{ToString}。
+
+    \item 标准库中的每个公共类型都实现了\texttt{std::fmt::Debug}，它以对程序员有帮助的方式把一个值格式化为字符串。使用\texttt{Debug}产生字符串的最简单方式是通过\texttt{format!}宏的\texttt{\{:?\}}格式说明符：
+\begin{minted}{Rust}
+    // 继续上面的代码。
+    let addresses = vec![address,IpAddr::from_str("192.168.0.1")?];
+    assert_eq!(format!("{:?}", addresses),"[fe80::3ea9:f4ff:fe34:7a50, 192.168.0.1]");
+\end{minted}
+
+    这利用了\texttt{Debug}对\texttt{Vec<T>}的覆盖性（blanket）实现，对任何本身实现\texttt{Debug}的\texttt{T}都成立。Rust的所有集合类型都有这样的实现。
+
+    \item 你也应该为你自己的类型实现\texttt{Debug}。通常最好让Rust派生一个实现，正如我们在\hyperref[ch12]{第12章}中对\texttt{Complex}类型所做的那样：
+\begin{minted}{Rust}
+    #[derive(Copy, Clone, Debug)]
+    struct Complex { re: f64, im: f64 }
+\end{minted}
+\end{itemize}
+
+\texttt{Display}和\texttt{Debug}格式化trait只是\texttt{format!}宏及其同类用于把值格式化为文本的几个trait中的两个。我们将在\nameref{format}中介绍其他的，并解释如何全部实现它们。
+
+\subsection{借用为其他文本类类型}
+
+你可以用几种不同的方式借用切片的内容：
+
+\begin{itemize}
+    \item 切片和\texttt{String}实现\texttt{AsRef<str>}、\texttt{AsRef<[u8]>}、\texttt{AsRef<Path>}和\texttt{AsRef<OsStr>}。许多标准库函数使用这些trait作为其参数类型的约束，所以你可以直接把切片和字符串传给它们，即使它们真正想要的是某种其他类型。更详细的解释见\nameref{asref}。
+    \item 切片和字符串也实现了\texttt{std::borrow::Borrow<str>} trait。\texttt{HashMap}和\texttt{BTreeMap}使用\texttt{Borrow}使\texttt{String}作为表中的键工作得很好。详情见\nameref{borrow}。
+\end{itemize}
+
+\subsection{以UTF-8的形式访问文本}
+
+有两种主要的方式获取表示文本的字节，取决于你是想拥有字节还是只借用它们：
+
+\codeentry{slice.as\_bytes()}
+\hangparagraph{把\texttt{slice}的字节借用为\texttt{\&[u8]}。由于这不是可变引用，\texttt{slice}可以假设其字节将保持良构的UTF-8。}
+
+\codeentry{string.into\_bytes()}
+\hangparagraph{获取\texttt{string}的所有权，并按值返回字符串字节的\texttt{Vec<u8>}。这是一个廉价的转换，因为它只是交出\texttt{string}一直用作其缓冲区的那个\texttt{Vec<u8>}。由于\texttt{string}不再存在，这些字节不需要继续保持良构的UTF-8，调用者可以随意修改这个\texttt{Vec<u8>}。}
+
+\subsection{从UTF-8数据产生文本}
+
+如果你有一块你认为包含UTF-8数据的字节，你有几个选项把它们转换为\texttt{String}或切片，取决于你想如何处理错误：
+
+\codeentry{str::from\_utf8(byte\_slice)}
+\hangparagraph{取一个\texttt{\&[u8]}字节切片并返回一个\texttt{Result}：如果\texttt{byte\_slice}包含良构的UTF-8则返回\texttt{Ok(\&str)}，否则返回一个错误。}
+
+\codeentry{String::from\_utf8(vec)}
+\hangparagraph{尝试从一个按值传入的\texttt{Vec<u8>}构造一个字符串。如果\texttt{vec}持有良构的UTF-8，\texttt{from\_utf8}返回\texttt{Ok(string)}，其中\texttt{string}已经接管\texttt{vec}用作其缓冲区。不会发生堆分配或复制文本。}
+
+\hangparagraph{如果字节不是有效的UTF-8，这返回\texttt{Err(e)}，其中\texttt{e}是一个\texttt{FromUtf8Error}错误值。调用\texttt{e.into\_bytes()}给你返回原来的vector \texttt{vec}，所以转换失败时它不会丢失：}
+\begin{minted}{Rust}
+    let good_utf8: Vec<u8> = vec![0xe9, 0x8c, 0x86];
+    assert_eq!(String::from_utf8(good_utf8).ok(), Some("錆".to_string()));
+
+    let bad_utf8:  Vec<u8> = vec![0x9f, 0xf0, 0xa6, 0x80];
+    let result = String::from_utf8(bad_utf8);
+    assert!(result.is_err());
+    // 由于String::from_utf8失败了，它没有消耗原来的
+    // vector，错误值把它毫发无损地交还给我们。
+    assert_eq!(result.unwrap_err().into_bytes(), vec![0x9f, 0xf0, 0xa6, 0x80]);
+\end{minted}
+
+\codeentry{String::from\_utf8\_lossy(byte\_slice)}
+\hangparagraph{尝试从一个\texttt{\&[u8]}共享字节切片构造一个\texttt{String}或\texttt{\&str}。这个转换总是成功，用Unicode替换字符替换任何不良构的UTF-8。返回值是一个\texttt{Cow<str>}，如果\texttt{byte\_slice}包含良构的UTF-8，它直接借用一个\texttt{\&str}；否则拥有一个新分配的、用替换字符替换了不良构字节的\texttt{String}。因此，当\texttt{byte\_slice}良构时，不会发生堆分配或复制。我们在\nameref{PutOffAlloc}中更详细地讨论\texttt{Cow<str>}。}
+
+\codeentry{String::from\_utf8\_unchecked}
+\hangparagraph{如果你确定你的\texttt{Vec<u8>}包含良构的UTF-8，那么你可以调用这个unsafe函数。它只是把\texttt{Vec<u8>}包装成一个\texttt{String}并返回，完全不检查字节。你有责任确保你没有向系统引入不良构的UTF-8，这就是为什么这个函数被标记为unsafe。}
+
+\codeentry{str::from\_utf8\_unchecked}
+\hangparagraph{类似地，这取一个\texttt{\&[u8]}并把它作为\texttt{\&str}返回，不检查它是否持有良构的UTF-8。和\texttt{String::from\_utf8\_unchecked}一样，你有责任确保这是安全的。}
+
+\subsection{推迟分配}\label{PutOffAlloc}
+
+假设你想让你的程序向用户打招呼。在Unix上，你可以写：
+\begin{minted}{Rust}
+    fn get_name() -> String {
+        std::env::var("USER") // Windows使用"USERNAME"
+            .unwrap_or("whoever you are".to_string())
+    }
+
+    println!("Greetings, {}!", get_name());
+\end{minted}
+
+对于Unix用户，这用用户名向他们打招呼。对于Windows用户和不幸没有名字的人，它提供备用的固定文本。
+
+\texttt{std::env::var}函数返回一个\texttt{String}——并且有很好的理由这样做，我们在这里不深入探讨。但那意味着备用的固定文本也必须作为\texttt{String}返回。这令人失望：当\texttt{get\_name}返回一个静态字符串时，根本不应该需要分配。
+
+问题的核心是，有时\texttt{get\_name}的返回值应该是一个有所有权的\texttt{String}，有时应该是一个\texttt{\&'static str}，在程序运行之前我们无法知道会是哪一种。这种动态的特性暗示我们考虑使用\texttt{std::borrow::Cow}，这个写时克隆（clone-on-write）类型可以持有有所有权的或借用的数据。
+
+正如在\nameref{Cow}中解释的，\texttt{Cow<'a, T>}是一个有两个变体的枚举：\texttt{Owned}和\texttt{Borrowed}。\texttt{Borrowed}持有一个\texttt{\&'a T}引用，\texttt{Owned}持有\texttt{\&T}的有所有权版本：\texttt{\&str}对应\texttt{String}，\texttt{\&[i32]}对应\texttt{Vec<i32>}，等等。无论是\texttt{Owned}还是\texttt{Borrowed}，\texttt{Cow<'a, T>}总是可以产生一个\texttt{\&T}供你使用。事实上，\texttt{Cow<'a, T>}解引用到\texttt{\&T}，表现得像一种智能指针。
+
+把\texttt{get\_name}改为返回一个\texttt{Cow}会得到下面的结果：
+\begin{minted}{Rust}
+    use std::borrow::Cow;
+
+    fn get_name() -> Cow<'static, str> {
+        std::env::var("USER")
+            .map(|v| Cow::Owned(v))
+            .unwrap_or(Cow::Borrowed("whoever you are"))
+    }
+\end{minted}
+
+如果这成功读取了“USER”环境变量，\texttt{map}把得到的\texttt{String}作为\texttt{Cow::Owned}返回。如果失败，\texttt{unwrap\_or}返回它的静态\texttt{\&str}作为\texttt{Cow::Borrowed}。调用者可以保持不变：
+\begin{minted}{Rust}
+    println!("Greetings, {}!", get_name());
+\end{minted}
+
+只要\texttt{T}实现\texttt{std::fmt::Display} trait，显示\texttt{Cow<'a, T>}会产生与显示\texttt{T}相同的结果。
+
+\texttt{Cow}在你可能或可能不需要修改你借用的某些文本时也很有用。当不需要修改时，你可以继续借用它。但\texttt{Cow}的同名写时克隆行为可以按需给你一个有所有权的、可变的值的副本。\texttt{Cow}的\texttt{to\_mut}方法确保\texttt{Cow}是\texttt{Cow::Owned}，必要时应用值的\texttt{ToOwned}实现，然后返回对值的可变引用。
+
+所以如果你发现你的某些用户（但不是全部）有他们更愿意被称呼的头衔，你可以说：
+\begin{minted}{Rust}
+    fn get_title() -> Option<&'static str> { ... }
+
+    let mut name = get_name();
+    if let Some(title) = get_title() {
+        name.to_mut().push_str(", ");
+        name.to_mut().push_str(title);
+    }
+
+    println!("Greetings, {}!", name);
+\end{minted}
+
+这可能会产生如下输出：
+\begin{minted}{text}
+    $ cargo run
+    Greetings, jimb, Esq.!
+    $
+\end{minted}
+
+这里不错的地方在于，如果\texttt{get\_name()}返回一个静态字符串且\texttt{get\_title}返回\texttt{None}，\texttt{Cow}把静态字符串一路带到\texttt{println!}。你已经设法推迟了分配，除非确实需要，同时仍然写出直截了当的代码。
+
+由于\texttt{Cow}经常用于字符串，标准库对\texttt{Cow<'a, str>}有一些特殊的支持。它提供从\texttt{String}和\texttt{\&str}的\texttt{From}和\texttt{Into}转换，所以你可以更简洁地写\texttt{get\_name}：
+\begin{minted}{Rust}
+    fn get_name() -> Cow<'static, str> {
+        std::env::var("USER")
+            .map(|v| v.into())
+            .unwrap_or("whoever you are".into())
+    }
+\end{minted}
+
+\texttt{Cow<'a, str>}也实现\texttt{std::ops::Add}和\texttt{std::ops::AddAssign}，所以要把头衔加到名字上，你可以写：
+\begin{minted}{Rust}
+    if let Some(title) = get_title() {
+        name += ", ";
+        name += title;
+    }
+\end{minted}
+
+或者，由于\texttt{String}可以是\texttt{write!}宏的目标：
+\begin{minted}{Rust}
+    use std::fmt::Write;
+
+    if let Some(title) = get_title() {
+        write!(name.to_mut(), ", {}", title).unwrap();
+    }
+\end{minted}
+
+和之前一样，在你试图修改\texttt{Cow}之前不会发生分配。
+
+请记住，并不是每个\texttt{Cow<..., str>}都必须是\texttt{'static}：你可以使用\texttt{Cow}借用之前计算出来的文本，直到必须复制的那一刻。
+
+\subsection{字符串作为泛型集合}
+
+\texttt{String}实现了\texttt{std::default::Default}和\texttt{std::iter::Extend}：\texttt{default}返回一个空字符串，\texttt{extend}可以把字符、字符串切片、\texttt{Cow<..., str>}或字符串附加到字符串的末尾。这与Rust的其他集合类型如\texttt{Vec}和\texttt{HashMap}实现的trait组合相同，用于诸如\texttt{collect}和\texttt{partition}的泛型构建模式。
+
+\texttt{\&str}类型也实现\texttt{Default}，返回一个空切片。这在一些边界情况下很方便；例如，它让你为包含字符串切片的结构体派生\texttt{Default}。
+\section{格式化值}\label{format}
+
+在整本书中，我们一直在使用像\texttt{println!}这样的文本格式化宏：
+\begin{minted}{Rust}
+    println!("{:.3}µs: relocated {} at {:#x} to {:#x}, {} bytes",
+             0.84391, "object",
+             140737488346304_usize, 6299664_usize, 64);
+\end{minted}
+
+调用产生如下输出：
+\begin{minted}{text}
+    0.844µs: relocated object at 0x7fffffffdcc0 to 0x602010, 64 bytes
+\end{minted}
+
+字符串字面量作为输出的模板：模板中的每个\texttt{\{...\}}都被替换为后面其中一个参数的格式化形式。模板字符串必须是常量，以便Rust可以在编译时根据参数的类型检查它。每个参数都必须被使用；否则Rust会报告一个编译时错误。
+
+几个标准库的特性共享这种用于格式化字符串的小语言：
+\begin{itemize}
+    \item \texttt{format!}宏用它构建\texttt{String}。
+    \item \texttt{println!}和\texttt{print!}宏把格式化文本写入标准输出流。
+    \item \texttt{writeln!}和\texttt{write!}宏把它写入指定的输出流。
+    \item \texttt{panic!}宏用它构建一个（理想情况下有信息量的）最终绝望的表达。
+\end{itemize}
+
+Rust的格式化设施被设计为开放式的。你可以通过实现\texttt{std::fmt}模块的格式化trait来扩展这些宏以支持你自己的类型。你也可以使用\texttt{format\_args!}宏和\texttt{std::fmt::Arguments}类型让你的函数和宏支持格式化语言。
+
+格式化宏总是借用其参数的共享引用；它们从不获取它们的所有权或修改它们。
+
+模板的\texttt{\{...\}}形式被称为格式参数（format parameter），具有\texttt{\{which:how\}}的形式。两个部分都是可选的；\texttt{\{\}}经常被使用。
+
+\texttt{which}值选择模板之后哪个参数占据该参数的位置。你可以按索引或名称选择参数。没有\texttt{which}值的参数只是从左到右与参数配对。
+
+\texttt{how}值说明参数应该如何格式化：多少填充、什么精度、什么数字进制，等等。如果\texttt{how}存在，它前面的冒号是必需的。表\hyperref[t17-4]{17-4}给出了一些例子。
+
+\begin{longtable}{p{0.28\textwidth}p{0.26\textwidth}p{0.32\textwidth}}
+    \caption{格式化字符串示例}
+    \label{t17-4}\\
+    \hline
+    \textbf{模板字符串} & \textbf{参数列表} & \textbf{结果} \\
+    \hline
+    \texttt{"number of \{\}: \{\}"} & \texttt{"elephants", 19} & \texttt{"number of elephants: 19"} \\
+    \hline
+    \rowcolor{tablecolor}
+    \texttt{"from \{1\} to \{0\}"} & \texttt{"the grave", "the cradle"} & \texttt{"from the cradle to the grave"} \\
+    \hline
+    \texttt{"v = \{:?\}"} & \texttt{vec![0,1,2,5,12,29]} & \texttt{"v = [0, 1, 2, 5, 12, 29]"} \\
+    \hline
+    \rowcolor{tablecolor}
+    \texttt{"name = \{:?\}"} & \texttt{"Nemo"} & \texttt{"name = \textbackslash "Nemo\textbackslash""} \\
+    \hline
+    \texttt{"\{:8.2\} km/s"} & \texttt{11.186} & \texttt{"\ 11.19 km/s"} \\
+    \hline
+    \rowcolor{tablecolor}
+    \texttt{"\{:20\} \{:02x\} \{:02x\}"} & \texttt{"adc \#42", 105, 42} & \texttt{"adc \#42 69 2a"} \\
+    \hline
+    \texttt{"\{1:02x\} \{2:02x\} \{0\}"} & \texttt{"adc \#42", 105, 42} & \texttt{"69 2a adc \#42"} \\
+    \hline
+    \rowcolor{tablecolor}
+    \texttt{"\{lsb:02x\} \{msb:02x\} \{insn\}"} & \texttt{insn="adc \#42", lsb=105, msb=42} & \texttt{"69 2a adc \#42"} \\
+    \hline
+    \texttt{"\{:02?\}"} & \texttt{[110, 11, 9]} & \texttt{"[110, 11, 09]"} \\
+    \hline
+    \rowcolor{tablecolor}
+    \texttt{"\{:02x?\}"} & \texttt{[110, 11, 9]} & \texttt{"[6e, 0b, 09]"} \\
+    \hline
+\end{longtable}
+
+如果你想把\texttt{\{}或\texttt{\}}字符包含在输出中，请在模板中把字符加倍：
+\begin{minted}{Rust}
+    assert_eq!(format!("{{a, c}} ⊂ {{a, b, c}}"), "{a, c} ⊂ {a, b, c}");
+\end{minted}
+
+\subsection{格式化文本值}
+
+当格式化像\texttt{\&str}或\texttt{String}这样的文本类型时（\texttt{char}被视为单字符字符串），参数的\texttt{how}值有几个部分，都是可选的：
+\begin{itemize}
+    \item 文本长度限制。如果你的参数比这个长，Rust会截断它。如果你不指定限制，Rust使用完整文本。
+    \item 最小字段宽度。在任何截断之后，如果你的参数比这个短，Rust会在右边（默认）用空格（默认）填充，以形成这个宽度的字段。如果省略，Rust不填充你的参数。
+    \item 对齐方式。如果你的参数需要填充以达到最小字段宽度，这说明你的文本应该放在字段中的什么位置。\texttt{<}、\texttt{\^{}}和\texttt{>}分别把你的文本放在开头、中间和末尾。
+    \item 在这个填充过程中使用的填充字符。如果省略，Rust使用空格。如果你指定了填充字符，你也必须指定对齐方式。
+\end{itemize}
+
+表\hyperref[t17-5]{17-5}说明了一些如何写出来的例子和它们的效果。全部使用相同的八个字符的参数“bookends”。
+
+\begin{longtable}{p{0.32\textwidth}p{0.22\textwidth}p{0.32\textwidth}}
+    \caption{文本的格式化字符串指令}
+    \label{t17-5}\\
+    \hline
+    \textbf{使用的特性} & \textbf{模板字符串} & \textbf{结果} \\
+    \hline
+    默认 & \texttt{"\{\}"} & \texttt{"bookends"} \\
+    \hline
+
+    \multirow{2}{*}{最小字段宽度} & \texttt{"\{:4\}"} \cellcolor{tablecolor} & \texttt{"bookends"} \cellcolor{tablecolor} \\
+    & \texttt{"\{:12\}"} & \texttt{"bookends\ \ \ \ "} \\
+    \hline
+    \multirow{2}{*}{文本长度限制} & \texttt{"\{:.4\}"} & \texttt{"book"} \\
+
+    & \texttt{"\{:.12\}"} \cellcolor{tablecolor} & \texttt{"bookends"} \cellcolor{tablecolor} \\
+    \hline
+    \multirow{4}{*}{字段宽度、长度限制} & \texttt{"\{:12.20\}"} & \texttt{"bookends\ \ \ \ "} \\
+
+    & \texttt{"\{:4.20\}"} \cellcolor{tablecolor} & \texttt{"bookends"} \cellcolor{tablecolor} \\
+    & \texttt{"\{:4.6\}"} & \texttt{"booken"} \\
+
+    & \texttt{"\{:6.4\}"} \cellcolor{tablecolor} & \texttt{"book\ \ "} \cellcolor{tablecolor} \\
+    \hline
+
+    左对齐，宽度 & \texttt{"\{:<12\}"} \cellcolor{tablecolor} & \texttt{"bookends\ \ \ \ "} \cellcolor{tablecolor} \\
+    \hline
+    居中，宽度 & \texttt{"\{:\^{}12\}"} & \texttt{"\ \ bookends\ \ "} \\
+    \hline
+
+    右对齐，宽度 & \texttt{"\{:>12\}"} \cellcolor{tablecolor} & \texttt{"\ \ \ \ bookends"} \cellcolor{tablecolor} \\
+    \hline
+    用\texttt{'='}填充，居中，宽度 & \texttt{"\{:=\^{}12\}"} & \texttt{"==bookends=="} \\
+    \hline
+
+    用\texttt{'*'}填充，右对齐，宽度，限制 & \texttt{"\{:*>12.4\}"} \cellcolor{tablecolor} & \texttt{"********book"} \cellcolor{tablecolor} \\
+    \hline
+\end{longtable}
+
+Rust的格式化器对宽度有一个天真的理解：它假设每个字符占据一列，不考虑组合字符、半角片假名、零宽空格或Unicode的其他混乱现实。例如：
+\begin{minted}{Rust}
+    assert_eq!(format!("{:4}", "th\u{e9}"),   "th\u{e9} ");
+    assert_eq!(format!("{:4}", "the\u{301}"), "the\u{301}");
+\end{minted}
+
+虽然Unicode说这两个字符串都等价于thé，但Rust的格式化器不知道像\texttt{\textbackslash u\{301\}}（组合尖锐重音）这样的字符需要特殊处理。它正确填充第一个字符串，但假设第二个是四列宽而不添加填充。虽然很容易看出Rust在这个具体情况下如何改进，但为所有Unicode文字进行真正的多语言文本格式化是一项艰巨的任务，最好依靠你平台的用户界面工具包来处理，或者也许通过生成HTML和CSS让web浏览器来整理。有一个流行的crate，\texttt{unicode-width}，处理了这个问题的某些方面。
+
+除了\texttt{\&str}和\texttt{String}，你还可以把具有文本指向内容的智能指针类型传给格式化宏，比如\texttt{Rc<String>}或\texttt{Cow<'a, str>}，无需任何仪式。
+
+由于文件路径不一定是良构的UTF-8，\texttt{std::path::Path}不完全是文本类型；你不能直接把\texttt{std::path::Path}传给格式化宏。然而，\texttt{Path}的\texttt{display}方法返回一个你可以格式化的值，它以平台适当的方式解决了这个问题：
+\begin{minted}{Rust}
+    println!("processing file: {}", path.display());
+\end{minted}
+
+\subsection{格式化数字}
+
+当格式化参数具有像\texttt{usize}或\texttt{f64}这样的数字类型时，参数的\texttt{how}值有下面的部分，都是可选的：
+\begin{itemize}
+    \item 填充和对齐，与文本类型的工作方式相同。
+    \item 一个\texttt{+}字符，请求总是显示数字的符号，即使参数是正数。
+    \item 一个\texttt{\#}字符，请求一个显式的进制前缀，如\texttt{0x}或\texttt{0b}。见结束这个列表的“notation”要点。
+    \item 一个\texttt{0}字符，请求通过把前导零包含在数字中来满足最小字段宽度，而不是通常的填充方式。
+    \item 最小字段宽度。如果格式化后的数字没有至少这么宽，Rust在左边（默认）用空格（默认）填充，以形成给定宽度的字段。
+    \item 浮点参数的精度，指示Rust应该在小数点后包含多少位数字。Rust按需四舍五入或补零，以产生恰好这么多的小数位。如果省略精度，Rust尝试用尽可能少的数字准确地表示这个值。对于整数类型的参数，精度被忽略。
+    \item 记法。对于整数类型，可以是\texttt{b}表示二进制，\texttt{o}表示八进制，或\texttt{x}或\texttt{X}表示小写或大写字母的十六进制。如果你包含\texttt{\#}字符，这些包括一个显式的Rust风格进制前缀\texttt{0b}、\texttt{0o}、\texttt{0x}或\texttt{0X}。对于浮点类型，\texttt{e}或\texttt{E}的进制请求科学记数法，具有归一化的系数，用\texttt{e}或\texttt{E}表示指数。如果你不指定任何记法，Rust以十进制格式化数字。
+\end{itemize}
+
+表\hyperref[t17-6]{17-6}展示了一些格式化\texttt{i32}值\texttt{1234}的例子。
+
+\begin{longtable}{p{0.32\textwidth}p{0.24\textwidth}p{0.3\textwidth}}
+    \caption{整数的格式化字符串指令}
+    \label{t17-6}\\
+    \hline
+    \textbf{使用的特性} & \textbf{模板字符串} & \textbf{结果} \\
+    \hline
+    默认 & \texttt{"\{\}"} & \texttt{"1234"} \\
+    \hline
+
+    强制符号 & \texttt{"\{:+\}"} \cellcolor{tablecolor} & \texttt{"+1234"} \cellcolor{tablecolor} \\
+    \hline
+    \multirow{2}{*}{最小字段宽度} & \texttt{"\{:12\}"} & \texttt{"\ \ \ \ \ \ \ \ 1234"} \\
+
+    & \texttt{"\{:2\}"} \cellcolor{tablecolor} & \texttt{"1234"} \cellcolor{tablecolor} \\
+    \hline
+
+    符号，宽度 & \texttt{"\{:+12\}"} \cellcolor{tablecolor} & \texttt{"\ \ \ \ \ \ \ +1234"} \cellcolor{tablecolor} \\
+    \hline
+    前导零，宽度 & \texttt{"\{:012\}"} & \texttt{"000000001234"} \\
+    \hline
+
+    符号，零，宽度 & \texttt{"\{:+012\}"} \cellcolor{tablecolor} & \texttt{"+00000001234"} \cellcolor{tablecolor} \\
+    \hline
+    左对齐，宽度 & \texttt{"\{:<12\}"} & \texttt{"1234\ \ \ \ \ \ \ \ "} \\
+    \hline
+
+    居中，宽度 & \texttt{"\{:\^{}12\}"} \cellcolor{tablecolor} & \texttt{"\ \ \ \ 1234\ \ \ \ "} \cellcolor{tablecolor} \\
+    \hline
+    右对齐，宽度 & \texttt{"\{:>12\}"} & \texttt{"\ \ \ \ \ \ \ \ 1234"} \\
+    \hline
+
+    左对齐，符号，宽度 & \texttt{"\{:<+12\}"} \cellcolor{tablecolor} & \texttt{"+1234\ \ \ \ \ \ \ "} \cellcolor{tablecolor} \\
+    \hline
+    居中，符号，宽度 & \texttt{"\{:\^{}+12\}"} & \texttt{"\ \ \ +1234\ \ \ \ "} \\
+    \hline
+
+    右对齐，符号，宽度 & \texttt{"\{:>+12\}"} \cellcolor{tablecolor} & \texttt{"\ \ \ \ \ \ \ +1234"} \cellcolor{tablecolor} \\
+    \hline
+    用\texttt{'='}填充，居中，宽度 & \texttt{"\{:=\^{}12\}"} & \texttt{"====1234===="} \\
+    \hline
+
+    二进制记法 & \texttt{"\{:b\}"} \cellcolor{tablecolor} & \texttt{"10011010010"} \cellcolor{tablecolor} \\
+    \hline
+    宽度，八进制记法 & \texttt{"\{:12o\}"} & \texttt{"\ \ \ \ \ \ \ \ 2322"} \\
+    \hline
+
+    符号，宽度，十六进制记法 & \texttt{"\{:+12x\}"} \cellcolor{tablecolor} & \texttt{"\ \ \ \ \ \ \ \ +4d2"} \cellcolor{tablecolor} \\
+    \hline
+    符号，宽度，大写十六进制 & \texttt{"\{:+12X\}"} & \texttt{"\ \ \ \ \ \ \ \ +4D2"} \\
+    \hline
+
+    符号，显式进制前缀，宽度，十六进制 & \texttt{"\{:+\#12x\}"} \cellcolor{tablecolor} & \texttt{"\ \ \ \ \ \ +0x4d2"} \cellcolor{tablecolor} \\
+    \hline
+    \multirow{2}{*}{\shortstack[l]{符号，进制，零，宽度，\\ 十六进制}} & \texttt{"\{:+\#012x\}"} & \texttt{"+0x0000004d2"} \\
+
+    & \texttt{"\{:+\#06x\}"} \cellcolor{tablecolor} & \texttt{"+0x4d2"} \cellcolor{tablecolor} \\
+    \hline
+\end{longtable}
+
+正如最后两个例子所示，最小字段宽度应用于整个数字，包括符号、进制前缀等等。负数总是包含它们的符号。结果就像“强制符号”例子中显示的那样。
+
+当你请求前导零时，对齐和填充字符被简单地忽略，因为零把数字扩展以填满整个字段。
+
+使用参数\texttt{1234.5678}，我们可以展示浮点类型特有的效果（表\hyperref[t17-7]{17-7}）。
+
+\begin{longtable}{p{0.32\textwidth}p{0.24\textwidth}p{0.3\textwidth}}
+    \caption{浮点数的格式化字符串指令}
+    \label{t17-7}\\
+    \hline
+    \textbf{使用的特性} & \textbf{模板字符串} & \textbf{结果} \\
+    \hline
+    默认 & \texttt{"\{\}"} & \texttt{"1234.5678"} \\
+    \hline
+
+    \multirow{2}{*}{精度} & \texttt{"\{:.2\}"} \cellcolor{tablecolor} & \texttt{"1234.57"} \cellcolor{tablecolor} \\
+    & \texttt{"\{:.6\}"} & \texttt{"1234.567800"} \\
+    \hline
+    最小字段宽度 & \texttt{"\{:12\}"} & \texttt{"\ \ \ 1234.5678"} \\
+    \hline
+
+    \multirow{2}{*}{最小，精度} & \texttt{"\{:12.2\}"} \cellcolor{tablecolor} & \texttt{"\ \ \ \ \ 1234.57"} \cellcolor{tablecolor} \\
+    & \texttt{"\{:12.6\}"} & \texttt{"\ 1234.567800"} \\
+    \hline
+    前导零，最小，精度 & \texttt{"\{:012.6\}"} & \texttt{"01234.567800"} \\
+    \hline
+
+    科学记数法 & \texttt{"\{:e\}"} \cellcolor{tablecolor} & \texttt{"1.2345678e3"} \cellcolor{tablecolor} \\
+    \hline
+    科学记数法，精度 & \texttt{"\{:.3e\}"} & \texttt{"1.235e3"} \\
+    \hline
+
+    \multirow{2}{*}{科学记数法，最小，精度} & \texttt{"\{:12.3e\}"} \cellcolor{tablecolor} & \texttt{"\ \ \ \ \ \ 1.235e3"} \cellcolor{tablecolor} \\
+    & \texttt{"\{:12.3E\}"} & \texttt{"\ \ \ \ \ \ 1.235E3"} \\
+    \hline
+\end{longtable}
+
+\subsection{格式化其他类型}
+
+除了字符串和数字，你还可以格式化几种其他标准库类型：
+\begin{itemize}
+    \item 错误类型都可以直接格式化，使它们很容易包含在错误消息中。每个错误类型都应该实现\texttt{std::error::Error} trait，它扩展了默认的格式化trait \texttt{std::fmt::Display}。因此，任何实现\texttt{Error}的类型都可以格式化。
+    \item 你可以格式化互联网协议地址类型，如\texttt{std::net::IpAddr}和\texttt{std::net::SocketAddr}。
+    \item 布尔值\texttt{true}和\texttt{false}可以被格式化，尽管这些通常不是直接呈现给最终用户的最佳字符串。
+\end{itemize}
+
+你应该使用与字符串相同种类的格式参数。长度限制、字段宽度和对齐控制都按预期工作。
+
+\subsection{格式化用于调试的值}
+
+为了帮助调试和记录，\texttt{\{:?\}}参数以一种旨在对程序员有帮助的方式格式化Rust标准库中的任何公共类型。你可以用它检查vector、切片、元组、哈希表、线程和数百种其他类型。
+
+例如，你可以写下面的代码：
+\begin{minted}{text}
+    use std::collections::HashMap;
+
+    let mut map = HashMap::new();
+    map.insert("Portland", (45.5237606,-122.6819273));
+    map.insert("Taipei",   (25.0375167, 121.5637));
+    println!("{:?}", map);
+\end{minted}
+
+这会打印：
+\begin{minted}{text}
+    {"Taipei": (25.0375167, 121.5637), "Portland": (45.5237606, -122.6819273)}
+\end{minted}
+
+\texttt{HashMap}和\texttt{(f64, f64)}类型已经知道如何格式化自己，无需你付出任何努力。
+
+如果你在格式参数中包含\texttt{\#}字符，Rust将pretty-print这个值。把这段代码改为\texttt{println!("{:\#?}", map)}会导致这个输出：
+\begin{minted}{Rust}
+    {
+        "Taipei": (
+            25.0375167,
+            121.5637
+        ),
+        "Portland": (
+            45.5237606,
+            -122.6819273
+        )
+    }
+\end{minted}
+
+这些确切的形式不保证，并且确实有时从一个Rust版本到下一个版本会改变。
+
+调试格式化通常以十进制打印数字，但你可以把\texttt{x}或\texttt{X}放在问号之前，以请求十六进制。前导零和字段宽度语法也受尊重。例如，你可以写：
+\begin{minted}{Rust}
+    println!("ordinary: {:02?}",  [9, 15, 240]);
+    println!("hex:      {:02x?}", [9, 15, 240]);
+\end{minted}
+
+这会打印：
+\begin{minted}{text}
+    ordinary: [09, 15, 240]
+    hex:      [09, 0f, f0]
+\end{minted}
+
+正如我们提到的，你可以使用\texttt{\#[derive(Debug)]}语法使你自己的类型与\texttt{\{:?\}}一起工作：
+\begin{minted}{Rust}
+    #[derive(Copy, Clone, Debug)]
+    struct Complex { re: f64, im: f64 }
+\end{minted}
+
+有了这个定义，我们可以使用\texttt{\{:?\}}格式打印\texttt{Complex}值：
+\begin{minted}{Rust}
+    let third = Complex { re: -0.5, im: f64::sqrt(0.75) };
+    println!("{:?}", third);
+\end{minted}
+
+这会打印：
+\begin{minted}{text}
+    Complex { re: -0.5, im: 0.8660254037844386 }
+\end{minted}
+
+这对调试很好，但如果\texttt{\{\}}能以更传统的形式打印它们会更好，比如\texttt{-0.5 + 0.8660254037844386i}。在\nameref{FmtOwnTypes}中，我们将展示如何精确地做到这一点。
+
+\subsection{格式化指针用于调试}
+
+通常，如果你把任何种类的指针传给格式化宏——引用、\texttt{Box}、\texttt{Rc}——宏只是跟随指针并格式化其指向内容；指针本身不令人感兴趣。但当你在调试时，有时看看指针是有帮助的：一个地址可以作为单个值的粗略“名称”，在检查有环或共享的结构时可能很有启发性。
+
+\texttt{\{:p\}}记法把引用、box和其他类似指针的类型格式化为地址：
+\begin{minted}{Rust}
+    use std::rc::Rc;
+
+    let original = Rc::new("mazurka".to_string());
+    let cloned = original.clone();
+    let impostor = Rc::new("mazurka".to_string());
+    println!("text:     {}, {}, {}",       original, cloned, impostor);
+    println!("pointers: {:p}, {:p}, {:p}", original, cloned, impostor);
+\end{minted}
+
+这段代码打印：
+\begin{minted}{text}
+    text:     mazurka, mazurka, mazurka
+    pointers: 0x7f99af80e000, 0x7f99af80e000, 0x7f99af80e030
+\end{minted}
+
+当然，具体的指针值会随运行而不同，但即使如此，比较地址也清楚地表明前两个是对同一个\texttt{String}的引用，而第三个指向一个不同的值。
+
+地址确实往往看起来像十六进制汤，所以更精细的可视化可能是值得的，但\texttt{\{:p\}}风格仍然可以是一个有效的快速而粗糙的解决方案。
+
+\subsection{按索引或名称引用参数}
+
+一个格式参数可以显式选择它使用的参数。例如：
+\begin{minted}{Rust}
+    assert_eq!(format!("{1},{0},{2}", "zeroth", "first", "second"),
+               "first,zeroth,second");
+\end{minted}
+
+你可以在冒号后面包含格式参数：
+\begin{minted}{Rust}
+    assert_eq!(format!("{2:#06x},{1:b},{0:=>10}", "first", 10, 100),
+               "0x0064,1010,=====first");
+\end{minted}
+
+你也可以按名称选择参数。这使有许多参数的复杂模板更具可读性。例如：
+\begin{minted}{Rust}
+    assert_eq!(format!("{description:.<25}{quantity:2} @ {price:5.2}",
+                       price=3.25,
+                       quantity=3,
+                       description="Maple Turmeric Latte"),
+               "Maple Turmeric Latte..... 3 @  3.25");
+\end{minted}
+
+（这里的命名参数类似于Python中的关键字参数，但这只是格式化宏的一个特殊功能，不是Rust函数调用语法的一部分。）
+
+你可以在单个格式化宏使用中混合索引、命名和位置（即没有索引或名称）参数。位置参数与参数从左到右配对，好像索引和命名参数不存在一样：
+\begin{minted}{Rust}
+    assert_eq!(format!("{mode} {2} {} {}",
+                       "people", "eater", "purple", mode="flying"),
+               "flying purple people eater");
+\end{minted}
+
+命名参数必须出现在列表的末尾。
+
+\subsection{动态宽度和精度}
+
+参数的最小字段宽度、文本长度限制和数字精度不一定总是固定值；你可以在运行时选择它们。
+
+我们一直在看这样的表达式，它把字符串内容右对齐在一个20个字符宽的字段中：
+\begin{minted}{Rust}
+    format!("{:>20}", content)
+\end{minted}
+
+但如果你想在运行时选择字段宽度，你可以写：
+\begin{minted}{Rust}
+    format!("{:>1$}", content, get_width())
+\end{minted}
+
+写\texttt{1\$}作为最小字段宽度告诉\texttt{format!}使用第二个参数的值作为宽度。被引用的参数必须是\texttt{usize}。你也可以按名称引用参数：
+\begin{minted}{Rust}
+    format!("{:>width$}", content, width=get_width())
+\end{minted}
+
+同样的方法也适用于文本长度限制：
+\begin{minted}{Rust}
+    format!("{:>width$.limit$}", content,
+            width=get_width(), limit=get_limit())
+\end{minted}
+
+在文本长度限制或浮点精度的位置，你也可以写\texttt{*}，它说把下一个位置参数作为精度。下面的代码把\texttt{content}裁剪为最多\texttt{get\_limit()}个字符：
+\begin{minted}{Rust}
+    format!("{:.*}", get_limit(), content)
+\end{minted}
+
+作为精度获取的参数必须是\texttt{usize}。没有对应的字段宽度语法。
+
+\subsection{格式化你自己的类型}\label{FmtOwnTypes}
+
+格式化宏使用\texttt{std::fmt}模块中定义的一组trait把值转换为文本。你可以通过自己实现一个或多个这些trait，使Rust的格式化宏格式化你自己的类型。
+
+格式参数的记法指示其参数的类型必须实现哪个trait，如表\hyperref[t17-8]{17-8}所示。
+
+\begin{longtable}{p{0.12\textwidth}p{0.16\textwidth}p{0.3\textwidth}p{0.3\textwidth}}
+    \caption{格式化字符串记法}
+    \label{t17-8}\\
+    \hline
+    \textbf{记法} & \textbf{示例} & \textbf{trait} & \textbf{用途} \\
+    \hline
+    无 & \texttt{\{\}} & \texttt{std::fmt::Display} & 文本、数字、错误：包罗万象的trait \\
+    \rowcolor{tablecolor}
+    \texttt{b} & \texttt{\{bits:\#b\}} & \texttt{std::fmt::Binary} & 二进制数字 \\
+    \texttt{o} & \texttt{\{:\#5o\}} & \texttt{std::fmt::Octal} & 八进制数字 \\
+    \rowcolor{tablecolor}
+    \texttt{x} & \texttt{\{:4x\}} & \texttt{std::fmt::LowerHex} & 十六进制数字，小写字母 \\
+    \texttt{X} & \texttt{\{:016X\}} & \texttt{std::fmt::UpperHex} & 十六进制数字，大写字母 \\
+    \rowcolor{tablecolor}
+    \texttt{e} & \texttt{\{:.3e\}} & \texttt{std::fmt::LowerExp} & 科学记数法的浮点数 \\
+    \texttt{E} & \texttt{\{:.3E\}} & \texttt{std::fmt::UpperExp} & 同上，大写E \\
+    \rowcolor{tablecolor}
+    \texttt{?} & \texttt{\{:\#?\}} & \texttt{std::fmt::Debug} & 调试视图，供开发者使用 \\
+    \texttt{p} & \texttt{\{:p\}} & \texttt{std::fmt::Pointer} & 指针作为地址，供开发者使用 \\
+    \hline
+\end{longtable}
+
+当你把\texttt{\#[derive(Debug)]}属性放在类型定义上，以便你可以使用\texttt{\{:?\}}格式参数时，你只是要求Rust为你实现\texttt{std::fmt::Debug} trait。
+
+所有格式化trait都有相同的结构，只在名称上有所不同。我们以\texttt{std::fmt::Display}作为代表：
+\begin{minted}{Rust}
+    trait Display {
+        fn fmt(&self, dest: &mut std::fmt::Formatter)
+            -> std::fmt::Result;
+    }
+\end{minted}
+
+\texttt{fmt}方法的职责是产生\texttt{self}的适当格式化的表示，并把它的字符写入\texttt{dest}。除了作为输出流之外，\texttt{dest}参数还携带从格式参数解析出来的细节，比如对齐和最小字段宽度。
+
+例如，在本章前面，我们建议如果\texttt{Complex}值能以通常的\texttt{a + bi}形式打印自己会很不错。这里有一个实现它的\texttt{Display}实现：
+\begin{minted}{Rust}
+    use std::fmt;
+
+    impl fmt::Display for Complex {
+        fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
+            let im_sign = if self.im < 0.0 { '-' } else { '+' };
+            write!(dest, "{} {} {}i", self.re, im_sign,
+                   f64::abs(self.im))
+        }
+    }
+\end{minted}
+
+这利用了\texttt{Formatter}本身就是一个输出流的事实，所以\texttt{write!}宏可以为我们完成大部分工作。有了这个实现，我们可以写下面的代码：
+\begin{minted}{Rust}
+    let one_twenty = Complex { re: -0.5, im: 0.866 };
+    assert_eq!(format!("{}", one_twenty), "-0.5 + 0.866i");
+
+    let two_forty = Complex { re: -0.5, im: -0.866 };
+    assert_eq!(format!("{}", two_forty), "-0.5 - 0.866i");
+\end{minted}
+
+有时以极坐标形式显示复数是有帮助的：如果你想象在复平面上从原点到这个数字画一条线，极坐标形式给出线的长度，以及它与正x轴的顺时针角度。格式参数中的\texttt{\#}字符通常选择某种替代显示形式；\texttt{Display}实现可以把它视为使用极坐标形式的请求：
+\begin{minted}{Rust}
+    impl fmt::Display for Complex {
+        fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
+            let (re, im) = (self.re, self.im);
+            if dest.alternate() {
+                let abs = f64::sqrt(re * re + im * im);
+                let angle = f64::atan2(im, re)
+                    / std::f64::consts::PI * 180.0;
+                write!(dest, "{} ∠ {}°", abs, angle)
+            } else {
+                let im_sign = if im < 0.0 { '-' } else { '+' };
+                write!(dest, "{} {} {}i", re, im_sign, f64::abs(im))
+            }
+        }
+    }
+\end{minted}
+
+使用这个实现：
+\begin{minted}{Rust}
+    let ninety = Complex { re: 0.0, im: 2.0 };
+    assert_eq!(format!("{}", ninety), "0 + 2i");
+    assert_eq!(format!("{:#}", ninety), "2 ∠ 90°");
+\end{minted}
+
+虽然格式化trait的\texttt{fmt}方法返回一个\texttt{fmt::Result}值（一个典型的模块特定\texttt{Result}类型），但你应该只传播来自对\texttt{Formatter}操作失败的信号，正如\texttt{fmt::Display}实现用其对\texttt{write!}的调用所做的那样；你的格式化函数绝不能自己产生错误。这允许像\texttt{format!}这样的宏简单地返回一个\texttt{String}而不是\texttt{Result<String, ...>}，因为把格式化文本附加到\texttt{String}永远不会失败。它还确保你从\texttt{write!}或\texttt{writeln!}得到的任何错误都反映了底层I/O流的真实问题，而不是格式化问题。
+
+\texttt{Formatter}有大量其他有用的方法，包括一些用于处理像map、list等结构化数据的方法，我们这里不介绍；查阅在线文档以获取完整细节。
+
+\subsection{在你自己的代码中使用格式化语言}
+
+你可以通过使用Rust的\texttt{format\_args!}宏和\texttt{std::fmt::Arguments}类型，编写你自己的接受格式模板和参数的函数和宏。
+
+例如，假设你的程序需要在运行时记录状态消息，并且你想使用Rust的文本格式化语言来产生它们。下面的内容将是一个开始：
+\begin{minted}{Rust}
+    fn logging_enabled() -> bool { ... }
+
+    use std::fs::OpenOptions;
+    use std::io::Write;
+
+    fn write_log_entry(entry: std::fmt::Arguments) {
+        if logging_enabled() {
+            // 为了简单起见，暂时每次都打开文件。
+            let mut log_file = OpenOptions::new()
+                .append(true)
+                .create(true)
+                .open("log-file-name")
+                .expect("failed to open log file");
+
+            log_file.write_fmt(entry)
+                .expect("failed to write to log");
+        }
+    }
+\end{minted}
+
+你可以这样调用\texttt{write\_log\_entry}：
+\begin{minted}{Rust}
+    write_log_entry(format_args!("Hark! {:?}\n", mysterious_value));
+\end{minted}
+
+在编译时，\texttt{format\_args!}宏解析模板字符串，并根据参数的类型检查它，如果有什么问题就报告错误。在运行时，它计算参数并构建一个携带格式化文本所需的所有信息的\texttt{Arguments}值：模板的预解析形式，以及参数值的共享引用。
+
+构建一个\texttt{Arguments}值很便宜：它只是收集一些指针。目前还没有发生格式化工作，只收集了以后需要的信息。这可能很重要：如果日志未启用，任何把数字转换为十进制、填充值等花费的时间都会浪费。
+
+\texttt{File}类型实现了\texttt{std::io::Write} trait，其\texttt{write\_fmt}方法接收一个\texttt{Arguments}并做格式化。它把结果写入底层流。
+
+对\texttt{write\_log\_entry}的调用不太漂亮。这就是宏可以提供帮助的地方：
+\begin{minted}{Rust}
+    macro_rules! log { // 宏定义中名称后不需要!
+        ($format:tt, $($arg:expr),*) => (
+            write_log_entry(format_args!($format, $($arg),*))
+        )
+    }
+\end{minted}
+
+我们将在\hyperref[ch21]{第21章}中详细介绍宏。目前，请相信这定义了一个新的\texttt{log!}宏，它把它的参数传递给\texttt{format\_args!}，然后在得到的\texttt{Arguments}值上调用你的\texttt{write\_log\_entry}函数。像\texttt{println!}、\texttt{writeln!}和\texttt{format!}这样的格式化宏大体上都是同一个想法。
+
+你可以这样使用\texttt{log!}：
+\begin{minted}{Rust}
+    log!("O day and night, but this is wondrous strange! {:?}\n",
+         mysterious_value);
+\end{minted}
+
+理想情况下，这看起来好一些。
 \section{正则表达式}
 
-\subsection{基本正则使用}
+外部的regex crate是Rust官方的正则表达式库。它提供通常的搜索和匹配函数。它对Unicode有很好的支持，但它也可以搜索字节字符串。虽然它不支持你在其他正则表达式包中经常发现的一些特性，比如反向引用（backreference）和环视（look-around）模式，但这些简化让regex可以确保搜索时间与表达式的大小和所搜索文本的长度成线性关系。这些保证，以及其他保证，使regex即使对不可信表达式搜索不可信文本也是安全的。
+
+在本书中，我们将只提供regex的概述；详情请查阅其在线文档。
+
+虽然regex crate不在std中，但它由Rust库团队维护，与负责std的是同一个团队。
+
+要使用regex，把下面这行放在你的crate的\texttt{Cargo.toml}文件的\texttt{[dependencies]}部分：
+\begin{minted}{Rust}
+    regex = "1"
+\end{minted}
+
+在接下来的部分中，我们假设你已经有了这个改变。
+
+\subsection{基本的正则使用}
+
+一个\texttt{Regex}值代表一个解析好的、随时可以使用的正则表达式。\texttt{Regex::new}构造函数尝试把一个\texttt{\&str}解析为正则表达式，并返回一个\texttt{Result}：
+\begin{minted}{Rust}
+    use regex::Regex;
+
+    // 一个semver版本号，比如0.2.1。
+    // 可能包含预发布版本后缀，比如0.2.1-alpha。
+    // （为简洁起见，没有构建元数据后缀。）
+    //
+    // 注意使用r"..."原始字符串语法，以避免反斜杠雪崩。
+    let semver = Regex::new(r"(\d+)\.(\d+)\.(\d+)(-[-.[:alnum:]]*)?")?;
+
+    // 简单的搜索，布尔结果。
+    let haystack = r#"regex = "0.2.5""#;
+    assert!(semver.is_match(haystack));
+\end{minted}
+
+\texttt{Regex::captures}方法搜索字符串中的第一个匹配，并返回一个持有表达式中每个组的匹配信息的\texttt{regex::Captures}值：
+\begin{minted}{Rust}
+    // 你可以检索捕获组：
+    let captures = semver.captures(haystack)
+        .ok_or("semver regex should have matched")?;
+    assert_eq!(&captures[0], "0.2.5");
+    assert_eq!(&captures[1], "0");
+    assert_eq!(&captures[2], "2");
+    assert_eq!(&captures[3], "5");
+\end{minted}
+
+对\texttt{Captures}值索引，如果请求的组没有匹配会panic。要测试某个特定的组是否匹配，你可以调用\texttt{Captures::get}，它返回一个\texttt{Option<regex::Match>}。\texttt{Match}值记录单个组的匹配：
+\begin{minted}{Rust}
+    assert_eq!(captures.get(4), None);
+    assert_eq!(captures.get(3).unwrap().start(), 13);
+    assert_eq!(captures.get(3).unwrap().end(), 14);
+    assert_eq!(captures.get(3).unwrap().as_str(), "5");
+\end{minted}
+
+你可以遍历字符串中的所有匹配：
+\begin{minted}{Rust}
+    let haystack = "In the beginning, there was 1.0.0. \
+                    For a while, we used 1.0.1-beta, \
+                    but in the end, we settled on 1.2.4.";
+
+    let matches: Vec<&str> = semver.find_iter(haystack)
+        .map(|match_| match_.as_str())
+        .collect();
+    assert_eq!(matches, vec!["1.0.0", "1.0.1-beta", "1.2.4"]);
+\end{minted}
+
+\texttt{find\_iter}迭代器从字符串开头到结尾为表达式的每个不重叠匹配产生一个\texttt{Match}值。\texttt{captures\_iter}方法类似，但产生记录所有捕获组的\texttt{Captures}值。当必须报告捕获组时搜索更慢，所以如果你不需要它们，最好使用不返回它们的方法之一。
 
 \subsection{惰性构建正则值}\label{LazyRegex}
+
+\texttt{Regex::new}构造函数可能很昂贵：为一个1200字符的正则表达式构造\texttt{Regex}，在快速的开发者机器上可能花费接近一毫秒，甚至一个简单的表达式也需要微秒。最好把\texttt{Regex}构造排除在繁重的计算循环之外；相反，你应该构造你的\texttt{Regex}一次，然后复用同一个。
+
+lazy\_static crate提供了一种很好的方式，在第一次使用的时候惰性地构造静态值。首先，注意你\texttt{Cargo.toml}文件中的依赖：
+\begin{minted}{Rust}
+    [dependencies]
+    lazy_static = "1"
+\end{minted}
+
+这个crate提供一个声明这种变量的宏：
+\begin{minted}{Rust}
+    use lazy_static::lazy_static;
+
+    lazy_static! {
+        static ref SEMVER: Regex
+            = Regex::new(r"(\d+)\.(\d+)\.(\d+)(-[-.[:alnum:]]*)?")
+                  .expect("error parsing regex");
+    }
+\end{minted}
+
+这个宏展开为一个名为\texttt{SEMVER}的静态变量的声明，但它的类型不完全是\texttt{Regex}。相反，它是一个宏生成的、实现\texttt{Deref<Target=Regex>}并因此暴露与\texttt{Regex}相同方法的类型。第一次解引用\texttt{SEMVER}时，初始化器被求值，值被保存供以后使用。由于\texttt{SEMVER}是一个静态变量，而不只是一个局部变量，初始化器在每次程序执行中最多运行一次。
+
+有了这个声明，使用\texttt{SEMVER}很简单：
+\begin{minted}{Rust}
+    use std::io::BufRead;
+
+    let stdin = std::io::stdin();
+    for line_result in stdin.lock().lines() {
+        let line = line_result?;
+        if let Some(match_) = SEMVER.find(&line) {
+            println!("{}", match_.as_str());
+        }
+    }
+\end{minted}
+
+你可以把\texttt{lazy\_static!}声明放在一个模块中，甚至放在使用\texttt{Regex}的函数内部，如果那是最合适的范围。正则表达式仍然总是只在每次程序执行中编译一次。
+
+\section{规范化}
+
+大多数用户会认为法语单词thé有3个字符长。然而，Unicode实际上有两种方式来表示这个文本：
+\begin{itemize}
+    \item 在组合形式中，thé由三个字符t、h和é组成，其中é是一个码点为\texttt{0xe9}的单个Unicode字符。
+    \item 在分解形式中，thé由四个字符t、h、e和\texttt{\textbackslash u\{301\}}组成，其中e是普通的ASCII字符，没有重音，码点\texttt{0x301}是“组合尖锐重音”字符，它给后面跟的任何字符加上尖锐重音。
+\end{itemize}
+
+Unicode并不认为é的组合形式或分解形式是“正确”的一种；相反，它认为它们都是同一个抽象字符的等价表示。Unicode说这两种形式都应该以相同的方式显示，文本输入方法被允许产生任何一种，所以用户通常不会知道他们看到或键入的是哪一种。（Rust让你直接在字符串字面量中使用Unicode字符，所以如果你不关心得到哪种编码，你可以直接写thé。为了清楚起见，这里我们使用\texttt{\textbackslash u}转义。）
+
+然而，作为Rust的\texttt{\&str}或\texttt{String}值考虑，\texttt{"th\textbackslash u\{e9\}"}和\texttt{"the\textbackslash u\{301\}"}是完全不同的。它们有不同的长度，比较不相等，有不同的哈希值，并且相对于其他字符串有不同的排序：
+\begin{minted}{Rust}
+    assert!("th\u{e9}" != "the\u{301}");
+    assert!("th\u{e9}" >  "the\u{301}");
+
+    // Hasher被设计为累积一系列值的哈希，
+    // 所以只哈希一个值有点笨拙。
+    use std::hash::{Hash, Hasher};
+    use std::collections::hash_map::DefaultHasher;
+    fn hash<T: ?Sized + Hash>(t: &T) -> u64 {
+        let mut s = DefaultHasher::new();
+        t.hash(&mut s);
+        s.finish()
+    }
+
+    // 这些值在未来的Rust版本中可能会改变。
+    assert_eq!(hash("th\u{e9}"),   0x53e2d0734eb1dff3);
+    assert_eq!(hash("the\u{301}"), 0x90d837f0a0928144);
+\end{minted}
+
+显然，如果你打算比较用户提供的文本或把它用作哈希表或B-tree中的键，你需要先把每个字符串放在某种规范形式中。
+
+幸运的是，Unicode为字符串指定了规范形式。每当两个字符串应该按照Unicode的规则被视为等价时，它们的规范形式逐字符相同。用UTF-8编码时，它们逐字节相同。这意味着你可以用\texttt{==}比较规范化的字符串，把它们用作\texttt{HashMap}或\texttt{HashSet}中的键，等等，你将得到Unicode意义上的相等。
+
+未能规范化甚至可能带来安全后果。例如，如果你的网站在某些情况下规范化用户名而在其他情况下不规范化，你最终可能有两个不同的用户名为bananasflambé，你代码的某些部分把它们视为同一个用户，而其他部分却区分它们，导致一个人的特权被错误地扩展到另一个人。当然，有很多方法可以避免这类问题，但历史表明也有许多方法不能。
+
+\subsection{规范形式}
+
+Unicode定义了四种规范形式，每种适用于不同的用途。有两个问题要回答：
+
+\begin{itemize}
+    \item 首先，你更喜欢字符尽可能组合还是尽可能分解？
+
+    例如，越南语单词Phở的最组合的表示是三字符的字符串\texttt{"Ph\textbackslash u\{1edf\}"}，其中声调标记和元音标记都应用于单个Unicode字符\texttt{'\textbackslash u\{1edf\}'}中的基本字符“o”，Unicode尽职尽责地把它命名为带角和上钩的拉丁小写字母o。
+
+    最分解的表示把基本字母和它的两个标记分成三个单独的Unicode字符：o、\texttt{\textbackslash u\{31b\}}（组合角）和\texttt{\textbackslash u\{309\}}（组合上钩），得到\texttt{Pho\textbackslash u\{31b\}\textbackslash u\{309\}}。（每当组合标记作为单独字符出现，而不是作为组合字符的一部分时，所有规范形式都指定它们必须出现的固定顺序，所以即使字符有多个重音，规范化也得到很好的指定。）
+
+    组合形式通常有较少的兼容性问题，因为它更接近大多数语言在Unicode确立之前用来表示文本的形式。它可能也更适合像Rust的\texttt{format!}宏这样的天真字符串格式化特性。另一方面，分解形式可能更适合显示文本或搜索，因为它使文本的详细结构更明确。
+
+    \item 第二个问题是：如果两个字符序列代表相同的基本文本，但在该文本的格式化方式上不同，你想把它们视为等价还是保持区分？
+
+    Unicode有单独的字符表示普通数字5、上标数字\textsuperscript{5}（或\texttt{\textbackslash u\{2075\}}）和带圈数字⑤（或\texttt{\textbackslash u\{2464\}}），但声明这三者兼容等价。类似地，Unicode有单个字符表示连字ffi（\texttt{\textbackslash u\{fb03\}}），但声明它与三字符序列ffi兼容等价。
+
+    兼容等价对搜索有意义：使用仅ASCII字符搜索“difficult”应该匹配使用ffi连字的字符串\texttt{"di\textbackslash u\{fb03\}cult"}。对后者应用兼容分解会把连字替换为三个普通字母“ffi”，使搜索更容易。但把文本规范化为兼容等价形式可能会丢失基本信息，所以不应该轻率地应用。例如，在大多数情况下把“2\textsuperscript{5}”存储为“25”是不正确的。
+\end{itemize}
+
+Unicode规范形式C和规范形式D（NFC和NFD）使用每个字符的最大组合和最大分解形式，但不尝试统一兼容等价的序列。NFKC和NFKD规范形式类似于NFC和NFD，但把所有兼容等价序列规范化为其类的某个简单代表。
+
+万维网联盟的“World Wide Web字符模型”推荐对所有内容使用NFC。Unicode标识符和模式语法附录建议在编程语言中对标识符使用NFKC，并在必要时提供调整该形式的原理。
+
+\subsection{unicode-normalization crate}
+
+Rust的unicode-normalization crate提供了一个trait，向\texttt{\&str}添加把文本放入四种规范形式中任何一种的方法。要使用它，把下面这行添加到你的\texttt{Cargo.toml}文件的\texttt{[dependencies]}部分：
+\begin{minted}{Rust}
+    unicode-normalization = "0.1.17"
+\end{minted}
+
+有了这个声明，一个\texttt{\&str}有四个新方法，返回对字符串特定规范形式的迭代器：
+\begin{minted}{Rust}
+    use unicode_normalization::UnicodeNormalization;
+
+    // 无论左手边的字符串使用哪种表示
+    //（你不应该能仅凭观察分辨出来），
+    // 这些断言都会成立。
+    assert_eq!("Phở".nfd().collect::<String>(), "Pho\u{31b}\u{309}");
+    assert_eq!("Phở".nfc().collect::<String>(), "Ph\u{1edf}");
+
+    // 左手边这里使用"ffi"连字字符。
+    assert_eq!("① Di\u{fb03}culty".nfkc().collect::<String>(), "1 Difficulty");
+\end{minted}
+
+取一个规范化的字符串，再用相同的形式规范化它，保证返回相同的文本。
+
+虽然规范化字符串的任何子字符串本身都是规范化的，但两个规范化字符串的拼接不一定是规范化的：例如，第二个字符串可能以组合字符开头，这些组合字符应该放在第一个字符串末尾的组合字符之前。
+
+只要文本在规范化时没有使用未分配的码点，Unicode就承诺其规范化形式在未来版本的标准中不会改变。这意味着规范化形式通常可以安全地用于持久存储，即使Unicode标准在演变。
