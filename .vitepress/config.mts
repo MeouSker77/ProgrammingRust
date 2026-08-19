@@ -1,0 +1,62 @@
+import { defineConfig } from 'vitepress'
+import footnote from 'markdown-it-footnote'
+
+export default defineConfig({
+  lang: 'zh-CN',
+  title: 'Programming Rust',
+  description: '《Programming Rust - Fast, Safe Systems Development》第二版 中文翻译',
+  base: '/ProgrammingRust/',
+  lastUpdated: true,
+  cleanUrls: true,
+  srcDir: 'site-src',
+  outDir: 'dist',
+  markdown: {
+    config(md) {
+      md.use(footnote)
+    },
+  },
+  ignoreDeadLinks: [/localhost/],
+  rewrites: {
+    'preface.md': 'index.md',
+  },
+  themeConfig: {
+    siteTitle: 'Programming Rust',
+    nav: [],
+    sidebar: [
+      { text: '前言', link: '/' },
+      { text: '译者序', link: '/translator' },
+      { text: '第一章 系统程序员的福音', link: '/ch01' },
+      { text: '第二章 Rust概览', link: '/ch02' },
+      { text: '第三章 基本类型', link: '/ch03' },
+      { text: '第四章 所有权与move', link: '/ch04' },
+      { text: '第五章 引用', link: '/ch05' },
+      { text: '第六章 表达式', link: '/ch06' },
+      { text: '第七章 错误处理', link: '/ch07' },
+      { text: '第八章 crate与模块', link: '/ch08' },
+      { text: '第九章 结构体', link: '/ch09' },
+      { text: '第十章 枚举与模式', link: '/ch10' },
+      { text: '第十一章 trait与泛型', link: '/ch11' },
+      { text: '第十二章 运算符重载', link: '/ch12' },
+      { text: '第十三章 实用trait', link: '/ch13' },
+      { text: '第十四章 闭包', link: '/ch14' },
+      { text: '第十五章 迭代器', link: '/ch15' },
+      { text: '第十六章 集合', link: '/ch16' },
+      { text: '第十七章 字符串与文本', link: '/ch17' },
+      { text: '第十八章 输入输出', link: '/ch18' },
+      { text: '第十九章 并发', link: '/ch19' },
+      { text: '第二十章 异步编程', link: '/ch20' },
+      { text: '第二十一章 宏', link: '/ch21' },
+      { text: '第二十二章 unsafe代码', link: '/ch22' },
+      { text: '第二十三章 外部函数', link: '/ch23' },
+    ],
+    sidebarDepth: 2,
+    docFooter: { prev: '上一篇', next: '下一篇' },
+    outlineTitle: '本页目录',
+    lastUpdatedText: '最后更新',
+    returnToTopLabel: '回到顶部',
+    sidebarMenuLabel: '目录',
+    darkModeSwitchLabel: '主题',
+    lightModeSwitchTitle: '切换到浅色模式',
+    darkModeSwitchTitle: '切换到深色模式',
+  },
+})
