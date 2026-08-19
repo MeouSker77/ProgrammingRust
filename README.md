@@ -1,4 +1,4 @@
-# Programming Rust
+<img width="684" height="562" alt="image" src="https://github.com/user-attachments/assets/2dd17381-c801-4641-a4bb-9eaca9cb91bb" /># Programming Rust
 
 本书为《Programming Rust - Fast, Safe Systems Development》第2版的个人中文翻译，仅供学习和交流使用，如有侵权请联系作者删除
 
@@ -16,6 +16,10 @@
 ---
 
 ## 在线阅读
+
+见[前言](https://meousker77.github.io/ProgrammingRust/index.html)
+
+感谢 @knowaywood 提供了静态网站的部署方案。
 
 本站点由 [VitePress](https://vitepress.dev/) 从 `src/*.tex` 自动构建并部署到 GitHub Pages。
 
