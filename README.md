@@ -1,4 +1,4 @@
-<img width="684" height="562" alt="image" src="https://github.com/user-attachments/assets/2dd17381-c801-4641-a4bb-9eaca9cb91bb" /># Programming Rust
+# Programming Rust
 
 本书为《Programming Rust - Fast, Safe Systems Development》第2版的个人中文翻译，仅供学习和交流使用，如有侵权请联系作者删除
 
@@ -23,9 +23,7 @@
 
 本站点由 [VitePress](https://vitepress.dev/) 从 `src/*.tex` 自动构建并部署到 GitHub Pages。
 
-> 部署地址见仓库 `Settings -> Pages`，发布分支为 `gh-pages`。
-
-内容来源是 `src/` 下的 LaTeX 源码（`main.tex` 及各章 `ch*.tex`），构建时用 pandoc 转为 Markdown，再由 VitePress 生成静态站点。章节更新会通过 GitHub Actions 自动重新构建并发布。
+构建时用 pandoc 转为 Markdown，再由 VitePress 生成静态站点。章节更新会通过 GitHub Actions 自动重新构建并发布。
 
 ---
 
