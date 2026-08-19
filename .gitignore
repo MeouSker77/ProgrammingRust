@@ -1,2 +1,7 @@
 src/*
 !src/*.tex
+site-src/
+dist/
+node_modules/
+.vitepress/cache/
+.vitepress/dist/

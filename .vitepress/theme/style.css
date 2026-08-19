@@ -1,0 +1,111 @@
+:root {
+  --vp-c-brand-1: #2980b9;
+  --vp-c-brand-2: #3498db;
+  --vp-c-brand-3: #2980b9;
+  --vp-c-brand-soft: rgba(52, 152, 219, 0.16);
+
+  --vp-font-family-base: "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", "SimSun", Georgia, serif;
+  --vp-font-family-mono: "Inconsolata", "JetBrains Mono", Consolas, monospace;
+
+  --vp-sidebar-width: 300px;
+}
+
+:root {
+  color-scheme: light;
+  --vp-c-bg: #ffffff;
+  --vp-c-bg-alt: #f6f8fa;
+  --vp-c-bg-soft: #f6f8fa;
+  --vp-c-divider: #e1e4e8;
+}
+
+:root.dark {
+  color-scheme: dark;
+}
+
+/* 顶部导航栏 RTD 蓝 */
+.VPNav .VPNavBar {
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+/* 让侧边栏始终占据左侧，正文居中，营造书籍阅读感 */
+.VPContent.has-sidebar .VPDoc.has-aside .content-container {
+  max-width: 46rem;
+  line-height: 1.9;
+  font-size: 1.02rem;
+}
+
+/* 正文标题层级 */
+.vp-doc h1 {
+  font-size: 1.9rem;
+  border-bottom: 1px solid var(--vp-c-divider);
+  padding-bottom: 0.4rem;
+}
+.vp-doc h2 {
+  font-size: 1.45rem;
+  border-bottom: 1px solid var(--vp-c-divider);
+  padding-bottom: 0.3rem;
+  margin-top: 2.2rem;
+}
+.vp-doc h3 {
+  font-size: 1.2rem;
+}
+
+/* 代码块 */
+.vp-doc div[class*="language-"] {
+  border-radius: 6px;
+  border: 1px solid var(--vp-c-divider);
+}
+
+/* 侧边栏章节名间距 */
+.VPSidebar .nav-group-title {
+  font-size: 0.8rem;
+  color: var(--vp-c-text-2);
+}
+
+/* 上一篇/下一篇 书籍翻页感 */
+.vp-doc .prev-next {
+  margin-top: 3rem;
+  border-top: 1px solid var(--vp-c-divider);
+  padding-top: 1.5rem;
+}
+
+/* NOTE 提示框 */
+.vp-doc blockquote {
+  background: var(--vp-c-bg-soft);
+  border-left: 4px solid var(--vp-c-brand-1);
+  border-radius: 0 4px 4px 0;
+  color: var(--vp-c-text-1);
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+}
+.vp-doc blockquote p {
+  margin: 0.25rem 0;
+}
+
+/* 插图与图注 */
+.vp-doc figure {
+  margin: 1.5rem auto;
+  text-align: center;
+}
+.vp-doc figure img {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 4px;
+  max-width: 100%;
+  height: auto;
+}
+.vp-doc figure figcaption {
+  margin-top: 0.5rem;
+  color: var(--vp-c-text-2);
+  font-size: 0.9rem;
+}
+
+/* 表格 */
+.vp-doc table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+}
+.vp-doc th,
+.vp-doc td {
+  padding: 0.45rem 0.75rem;
+}

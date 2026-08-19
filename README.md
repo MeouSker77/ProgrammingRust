@@ -15,33 +15,13 @@
 
 ---
 
-## 目录（markdown）
+## 在线阅读
 
-- [前言](md/preface.md)
-- [译者序](md/translator.md)
-- [第一章 系统程序员的福音](md/ch01.md)
-- [第二章 Rust概览](md/ch02.md)
-- [第三章 基本类型](md/ch03.md)
-- [第四章 所有权与move](md/ch04.md)
-- [第五章 引用](md/ch05.md)
-- [第六章 表达式](md/ch06.md)
-- [第七章 错误处理](md/ch07.md)
-- [第八章 crate与模块](md/ch08.md)
-- [第九章 结构体](md/ch09.md)
-- [第十章 枚举与模式](md/ch10.md)
-- [第十一章 trait与泛型](md/ch11.md)
-- [第十二章 运算符重载](md/ch12.md)
-- [第十三章 实用trait](md/ch13.md)
-- [第十四章 闭包](md/ch14.md)
-- [第十五章 迭代器](md/ch15.md)
-- [第十六章 集合](md/ch16.md)
-- 第十七章 字符串与文本
-- [第十八章 输入输出](md/ch18.md)
-- [第十九章 并发](md/ch19.md)
-- [第二十章 异步编程](md/ch20.md)
-- [第二十一章 宏](md/ch21.md)
-- [第二十二章 unsafe代码](md/ch22.md)
-- [第二十三章 外部函数](md/ch23.md)
+本站点由 [VitePress](https://vitepress.dev/) 从 `src/*.tex` 自动构建并部署到 GitHub Pages。
+
+> 部署地址见仓库 `Settings -> Pages`，发布分支为 `gh-pages`。
+
+内容来源是 `src/` 下的 LaTeX 源码（`main.tex` 及各章 `ch*.tex`），构建时用 pandoc 转为 Markdown，再由 VitePress 生成静态站点。章节更新会通过 GitHub Actions 自动重新构建并发布。
 
 ---
 
@@ -52,11 +32,11 @@
 - 如果发现错误，欢迎提出issue或PR。
 - Github Action会每天自动从最新的代码编译pdf，并上传到release的Nightly Build标签里。
 - 有些字体并不是所有系统上都有并且不方便传播，所以在github上编译的本书没有指定字体，你可以自己修改指定的字体，然后自己编译。
-- md版是从pdf版直接转换+校对生成的，除了失去了文内链接之外，还可能有很多错误没有发现，因此还是更推荐pdf版。
 
 ---
 
-## 编译
+
+## 编译 pdf
 
 1. 安装`tectonic`
 2. 安装`python`
@@ -75,3 +55,25 @@
 - note: 安装`Pygements`之后必须确保pip安装的可执行文件在`PATH`中，即`pygmentize -V`必须能正常打印出版本信息
 - note: 如果安装`tectonic`之后`tectonic`不在`PATH`中，请把第5步中的`tectonic`替换成完整的路径
 - note: 如果所有步骤都正确操作仍编译失败，欢迎提issue
+
+
+---
+
+
+## 本地构建网站
+
+需要 `node`、`npm` 和 `pandoc`。
+
+```bash
+# 安装依赖
+npm install
+
+# 构建（生成静态站点到 dist/）
+npm run build
+
+# 预览构建产物
+npm run preview
+```
+
+> 提示：本地预览请用 `npm run preview` 或 `npm run dev`，不要用 `python -m http.server`，
+> 因为站点配置了 `base`（`/ProgrammingRust/`），直接 serve dist 会丢失样式和资源。

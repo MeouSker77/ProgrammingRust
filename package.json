@@ -1,0 +1,15 @@
+{
+  "name": "programming-rust-site",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bash scripts/build-md.sh && vitepress build",
+    "dev": "bash scripts/build-md.sh && vitepress dev",
+    "preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "markdown-it-footnote": "^4.0.0",
+    "vitepress": "^1.6.3"
+  }
+}
