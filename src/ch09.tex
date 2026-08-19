@@ -741,4 +741,4 @@ Rust还可以派生\texttt{PartialOrd}，它可以支持比较运算符\texttt{<
 
 Cell很容易使用。虽然必须调用\texttt{.get()}和\texttt{.set()}或者\texttt{.borrow()}和\texttt{.borrow\_mut()}有点麻烦，但那只是我们扭曲可变性规则的代价。还有一些不是很明显但却更严重的问题：Cell——和任何包含了它们的类型——都不是线程安全的。因此Rust\hyperref[threadsafe]{不允许}多个线程直接访问它们。我们将在\hyperref[ch19]{第19章}中讨论到\nameref{mutex}、\nameref{atomic}和\nameref{globalvar}时介绍多线程中的内部可变性。
 
-不管一个结构体有命名字段还是类元组结构体，它都是一些其他值的聚合体：如果我有一个\texttt{SpiderSenses}结构体，那么我就有一个指向共享的\texttt{SpiderRobot}结构体的\texttt{Rc}指针、同时还有了eyes、accelerometer等等。因此结构体的本质是单词“和(and)”：我有一个X\emph{和(and)}一个Y。但是否有另一种类型用于单词“或(or)”呢？换句话说，当你有了一个这种类型的值时，你有了一个X\emph{或(or)}一个Y？这样的类型太有用了以至于它们在Rust中无处不在，它们就是我们下一章要讨论的主题。
+不管一个结构体有命名字段还是类元组结构体，它都是一些其他值的聚合体：如果我有一个\texttt{SpiderSenses}结构体，那么我就有一个指向共享的\texttt{SpiderRobot}结构体的\texttt{Rc}指针、同时还有了eyes、accelerometer等等。因此结构体的本质是单词“和(and)”：我有一个X \emph{和(and)} 一个Y。但是否有另一种类型用于单词“或(or)”呢？换句话说，当你有了一个这种类型的值时，你有了一个X \emph{或(or)} 一个Y？这样的类型太有用了以至于它们在Rust中无处不在，它们就是我们下一章要讨论的主题。
