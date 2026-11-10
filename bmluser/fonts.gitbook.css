@@ -1,0 +1,72 @@
+/* BookML's supported bmluser font override; the GitBook layout is unchanged. */
+@font-face {
+  font-family: "Book Latin Modern";
+  src: url("lmroman10-regular.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Book Latin Modern";
+  src: url("lmroman10-bold.otf") format("opentype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Book Latin Modern";
+  src: url("lmroman10-italic.otf") format("opentype");
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Book Latin Modern";
+  src: url("lmroman10-bolditalic.otf") format("opentype");
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Book Fandol Song";
+  src: url("FandolSong-Regular.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Book Fandol Song";
+  src: url("FandolSong-Bold.otf") format("opentype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Book Inconsolata";
+  src: url("Inconsolata-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Book Inconsolata";
+  src: url("Inconsolata-Bold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+.book.font-family-0 {
+  --bml-font-family: "Book Latin Modern", "Book Fandol Song", serif;
+}
+.book.font-family-1 {
+  --bml-font-family: "Helvetica Neue", Helvetica, Arial, "Book Fandol Song", sans-serif;
+}
+.book .book-header,
+.book .book-summary {
+  font-family: "Helvetica Neue", Helvetica, Arial, "Book Fandol Song", sans-serif;
+}
+.book .book-body .page-wrapper .page-inner section.normal code,
+.book .book-body .page-wrapper .page-inner section.normal pre {
+  font-family: "Book Inconsolata", "Book Fandol Song", monospace;
+}

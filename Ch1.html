@@ -1,0 +1,272 @@
+<!DOCTYPE html><html class="bml_mathjax4" lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>Chapter 1 系统程序员的福音 ‣ Programming Rust, 2nd Edition</title>
+<!--Generated on Tue Nov 10 11:46:44 2026 by LaTeXML (version 0.8.8) http://dlmf.nist.gov/LaTeXML/.-->
+
+<link rel="stylesheet" href="LaTeXML.css" type="text/css">
+<link rel="stylesheet" href="ltx-book.css" type="text/css">
+<link rel="stylesheet" href="bookml/gitbook/css/style.css" type="text/css">
+<link rel="stylesheet" href="bookml/gitbook/css/plugin-table.css" type="text/css">
+<link rel="stylesheet" href="bookml/gitbook/css/plugin-search.css" type="text/css">
+<link rel="stylesheet" href="bookml/gitbook/css/plugin-bookdown.css" type="text/css">
+<link rel="stylesheet" href="bookml/gitbook/css/plugin-fontsettings.css" type="text/css">
+<link rel="stylesheet" href="ltx-listings.css" type="text/css">
+<link rel="stylesheet" href="bookml/CSS/style.css" type="text/css">
+<link rel="stylesheet" href="bookml/CSS/style.gitbook,plain.css" type="text/css">
+<link rel="stylesheet" href="bookml/CSS/style.gitbook.css" type="text/css">
+<link rel="stylesheet" href="bmluser/colors.gitbook-book.css" type="text/css">
+<link rel="stylesheet" href="bmluser/fonts.gitbook.css" type="text/css">
+<link rel="stylesheet" href="bmluser/navigation.gitbook.css" type="text/css">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script><script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6"></script>
+<link rel="up" href="index.html" title="Programming Rust, 2nd Edition">
+<link rel="start" href="index.html" title="Programming Rust, 2nd Edition">
+<link rel="prev" href="Chx2.html" title="译者序 ‣ Programming Rust, 2nd Edition">
+<link rel="next" href="Ch2.html" title="Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Chx1.html" title="前言 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Chx2.html" title="译者序 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch2.html" title="Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch3.html" title="Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch4.html" title="Chapter 4 所有权与move ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch5.html" title="Chapter 5 引用 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch6.html" title="Chapter 6 表达式 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch7.html" title="Chapter 7 错误处理 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch8.html" title="Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch9.html" title="Chapter 9 结构体 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch10.html" title="Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch11.html" title="Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch12.html" title="Chapter 12 运算符重载 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch13.html" title="Chapter 13 实用trait ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch14.html" title="Chapter 14 闭包 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch15.html" title="Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch16.html" title="Chapter 16 集合 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch17.html" title="Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch18.html" title="Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch19.html" title="Chapter 19 并发 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch20.html" title="Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch21.html" title="Chapter 21 宏 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch22.html" title="Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch23.html" title="Chapter 23 外部函数 ‣ Programming Rust, 2nd Edition">
+<style>:root{--bml-ltx-font-size:10;--bml-ltxml-dpi:96.36}</style>
+<script src="bookml/js/mathjax4.js" defer></script>
+</head>
+<body class="bml_class_book">
+<div class="book without-animation font-size-2 font-family-0" data-basepath=".">
+<a href="#bml-main-content" tabindex="0" class="bml-skip-to-content">Skip to content.</a>
+<div class="book-summary"><nav class="ltx_page_navbar">
+<ul class="ltx_toclist summary">
+<li>
+<a href="index.html" title="" class="ltx_ref" rel="start">Programming Rust, 2nd Edition</a>
+</li>
+<li class="divider" aria-hidden="true"></li>
+<li data-level="" data-path="Chx1.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Chx1.html" title="In Programming Rust, 2nd Edition" class="ltx_ref">前言</a></li>
+<li data-level="" data-path="Chx2.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Chx2.html" title="In Programming Rust, 2nd Edition" class="ltx_ref">译者序</a></li>
+<li data-level="" data-path="" class="ltx_tocentry ltx_tocentry_chapter ltx_ref_self  chapter active">
+<a href="" title="In Programming Rust, 2nd Edition" aria-current="page" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">1</span> </span></b><span class="ltx_text" style="font-size:120%;">系统程序员的福音</span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li data-level="1.1" data-path="" class="ltx_tocentry ltx_tocentry_section  chapter "><a href="#S1" title="In Chapter 1 系统程序员的福音 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref">1.1 </span></b>Rust替你承担责任</a></li>
+<li data-level="1.2" data-path="" class="ltx_tocentry ltx_tocentry_section  chapter "><a href="#S2" title="In Chapter 1 系统程序员的福音 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref">1.2 </span></b>安全的并发编程</a></li>
+<li data-level="1.3" data-path="" class="ltx_tocentry ltx_tocentry_section  chapter "><a href="#S3" title="In Chapter 1 系统程序员的福音 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref">1.3 </span></b>Rust的速度很快</a></li>
+<li data-level="1.4" data-path="" class="ltx_tocentry ltx_tocentry_section  chapter "><a href="#S4" title="In Chapter 1 系统程序员的福音 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref">1.4 </span></b>Rust使协作变得更简单</a></li>
+</ol>
+</li>
+<li data-level="" data-path="Ch2.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch2.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">2</span> </span></b><span class="ltx_text" style="font-size:120%;">Rust概览</span></a></li>
+<li data-level="" data-path="Ch3.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch3.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">3</span> </span></b><span class="ltx_text" style="font-size:120%;">基本类型</span></a></li>
+<li data-level="" data-path="Ch4.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch4.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">4</span> </span></b><span class="ltx_text" style="font-size:120%;">所有权与move</span></a></li>
+<li data-level="" data-path="Ch5.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch5.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">5</span> </span></b><span class="ltx_text" style="font-size:120%;">引用</span></a></li>
+<li data-level="" data-path="Ch6.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch6.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">6</span> </span></b><span class="ltx_text" style="font-size:120%;">表达式</span></a></li>
+<li data-level="" data-path="Ch7.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch7.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">7</span> </span></b><span class="ltx_text" style="font-size:120%;">错误处理</span></a></li>
+<li data-level="" data-path="Ch8.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch8.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">8</span> </span></b><span class="ltx_text" style="font-size:120%;">crate与模块</span></a></li>
+<li data-level="" data-path="Ch9.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch9.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">9</span> </span></b><span class="ltx_text" style="font-size:120%;">结构体</span></a></li>
+<li data-level="" data-path="Ch10.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch10.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">10</span> </span></b><span class="ltx_text" style="font-size:120%;">枚举与模式</span></a></li>
+<li data-level="" data-path="Ch11.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch11.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">11</span> </span></b><span class="ltx_text" style="font-size:120%;">trait与泛型</span></a></li>
+<li data-level="" data-path="Ch12.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch12.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">12</span> </span></b><span class="ltx_text" style="font-size:120%;">运算符重载</span></a></li>
+<li data-level="" data-path="Ch13.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch13.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">13</span> </span></b><span class="ltx_text" style="font-size:120%;">实用trait</span></a></li>
+<li data-level="" data-path="Ch14.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch14.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">14</span> </span></b><span class="ltx_text" style="font-size:120%;">闭包</span></a></li>
+<li data-level="" data-path="Ch15.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch15.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">15</span> </span></b><span class="ltx_text" style="font-size:120%;">迭代器</span></a></li>
+<li data-level="" data-path="Ch16.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch16.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">16</span> </span></b><span class="ltx_text" style="font-size:120%;">集合</span></a></li>
+<li data-level="" data-path="Ch17.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch17.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">17</span> </span></b><span class="ltx_text" style="font-size:120%;">字符串与文本</span></a></li>
+<li data-level="" data-path="Ch18.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch18.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">18</span> </span></b><span class="ltx_text" style="font-size:120%;">输入输出</span></a></li>
+<li data-level="" data-path="Ch19.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch19.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">19</span> </span></b><span class="ltx_text" style="font-size:120%;">并发</span></a></li>
+<li data-level="" data-path="Ch20.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch20.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">20</span> </span></b><span class="ltx_text" style="font-size:120%;">异步编程</span></a></li>
+<li data-level="" data-path="Ch21.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch21.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">21</span> </span></b><span class="ltx_text" style="font-size:120%;">宏</span></a></li>
+<li data-level="" data-path="Ch22.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch22.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">22</span> </span></b><span class="ltx_text" style="font-size:120%;">unsafe代码</span></a></li>
+<li data-level="" data-path="Ch23.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch23.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">23</span> </span></b><span class="ltx_text" style="font-size:120%;">外部函数</span></a></li>
+</ul>
+</nav></div>
+
+<div class="ltx_page_main book-body fixed">
+<div class="body-inner">
+<header class="book-header fixed" aria-label="toolbar"><span class="bml-separator"></span></header>
+<div class="page-wrapper" tabindex="-1" role="main">
+<div class="ltx_page_content page-inner" id="bml-main-content">
+<script src="bookml/gitbook/js/app.min.js"></script>
+<script src="bookml/gitbook/js/jquery.highlight.js"></script>
+<script src="bookml/gitbook/js/plugin-search.js"></script>
+<script src="bookml/gitbook/js/plugin-fontsettings.js"></script>
+<script src="bookml/gitbook/js/plugin-bookdown.js"></script>
+<script type="text/javascript">
+                  gitbook.require(["gitbook"], function(gitbook) {
+                  gitbook.start({
+                    "fontsettings": {
+                      "theme": "white",
+                      "family": "sans",
+                      "size": 2
+                    },
+                    "download": [ [ "book.pdf", "PDF" ], ],
+                    "search": {
+                      "engine": "fuse"
+                    },
+                    "toc": {
+                      "collapse": "none"
+                    }
+                  });
+                });
+              </script>
+
+<section class="ltx_chapter normal">
+<div class="section level1">
+<h1 class="ltx_title ltx_title_chapter" style="font-size:120%;">
+<span class="ltx_tag ltx_tag_chapter header-section-number">Chapter 1</span> 系统程序员的福音</h1>
+
+<div id="p1" class="ltx_para">
+<p class="ltx_p"><em class="ltx_emph ltx_font_italic" style="font-size:120%;">在某些场景下——例如Rust的目标场景——比竞争对手快10x或者仅仅2x是足以决定成败的事情。它决定了一个系统在市场中的命运，就像在硬件市场中一样。</em><span class="ltx_text" style="font-size:120%;"></span></p>
+<p class="ltx_p ltx_align_right"><span class="ltx_text" style="font-size:120%;">——Graydon Hoare</span></p>
+</div>
+<div id="p2" class="ltx_para">
+<p class="ltx_p"><em class="ltx_emph ltx_font_italic" style="font-size:120%;">现在所有的计算机都是并行的……并行编程才是编程。</em><span class="ltx_text" style="font-size:120%;"></span></p>
+<p class="ltx_p ltx_align_right"><span class="ltx_text" style="font-size:120%;">——Michael McCool et al., Structured Parallel Programming</span></p>
+</div>
+<div id="p3" class="ltx_para">
+<p class="ltx_p"><em class="ltx_emph ltx_font_italic" style="font-size:120%;">TrueType解析器漏洞被一个国家级攻击者用于监控；所有软件都具有安全敏感性。</em><span class="ltx_text" style="font-size:120%;"></span></p>
+<p class="ltx_p ltx_align_right"><span class="ltx_text" style="font-size:120%;">——Andy Wingo</span></p>
+</div>
+<div id="p4" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">我们选择用以上三个引言来开始本书是有原因的。但首先让我们以一个谜题开始。下面的C程序做了什么？</span></p>
+<div class="bml_listing"><div class="ltx_listing ltx_lst_language_C ltx_lstlisting ltx_listing">
+<div class="ltx_listing_data"><div><span><button title="copy code" aria-label="copy code" onclick="const u=event.currentTarget.nextElementSibling.href;navigator.clipboard.writeText(atob(u.substring(u.indexOf(',')+1)))"><i class="fa fa-clone" aria-hidden="true"></i></button><a download="" title="download " href="data:text/plain;base64,ICAgIGludCBtYWluKGludCBhcmdjLCBjaGFyICoqYXJndikgewogICAgICAgIHVuc2lnbmVkIGxvbmcgYVsxXTsKICAgICAgICBhWzNdID0gMHg3ZmZmZjdiMzZjZWJVTDsKICAgICAgICByZXR1cm4gMDsKICAgIH0="><i class="fa fa-download" aria-hidden="true"></i></a></span></div></div>
+<div id="lstnumberx1" class="ltx_listingline"><code><span class="ltx_text ltx_lst_space" style="font-size:120%;">    </span><span class="ltx_text ltx_lst_keyword ltx_font_bold" style="font-size:120%;">int</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">main</span><span class="ltx_text" style="font-size:120%;">(</span><span class="ltx_text ltx_lst_keyword ltx_font_bold" style="font-size:120%;">int</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">argc</span><span class="ltx_text" style="font-size:120%;">,</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_keyword ltx_font_bold" style="font-size:120%;">char</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text" style="font-size:120%;">**</span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">argv</span><span class="ltx_text" style="font-size:120%;">)</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text" style="font-size:120%;">{</span></code></div>
+<div id="lstnumberx2" class="ltx_listingline"><code><span class="ltx_text ltx_lst_space" style="font-size:120%;">        </span><span class="ltx_text ltx_lst_keyword ltx_font_bold" style="font-size:120%;">unsigned</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_keyword ltx_font_bold" style="font-size:120%;">long</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">a</span><span class="ltx_text" style="font-size:120%;">[1];</span></code></div>
+<div id="lstnumberx3" class="ltx_listingline"><code><span class="ltx_text ltx_lst_space" style="font-size:120%;">        </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">a</span><span class="ltx_text" style="font-size:120%;">[3]</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text" style="font-size:120%;">=</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text" style="font-size:120%;">0</span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">x7ffff7b36cebUL</span><span class="ltx_text" style="font-size:120%;">;</span></code></div>
+<div id="lstnumberx4" class="ltx_listingline"><code><span class="ltx_text ltx_lst_space" style="font-size:120%;">        </span><span class="ltx_text ltx_lst_keyword ltx_font_bold" style="font-size:120%;">return</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text" style="font-size:120%;">0;</span></code></div>
+<div id="lstnumberx5" class="ltx_listingline"><code><span class="ltx_text ltx_lst_space" style="font-size:120%;">    </span><span class="ltx_text" style="font-size:120%;">}</span></code></div>
+</div></div>
+</div>
+<div id="p5" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">今天早上在Jim的笔记本电脑上，上面的程序输出了：</span></p>
+<div class="bml_listing"><div class="ltx_listing ltx_lstlisting ltx_listing">
+<div class="ltx_listing_data"><div><span><button title="copy code" aria-label="copy code" onclick="const u=event.currentTarget.nextElementSibling.href;navigator.clipboard.writeText(atob(u.substring(u.indexOf(',')+1)))"><i class="fa fa-clone" aria-hidden="true"></i></button><a download="" title="download " href="data:text/plain;base64,ICAgIHVuZGVmOiBFcnJvcjogLm5ldHJjIGZpbGUgaXMgcmVhZGFibGUgYnkgb3RoZXJzLgogICAgdW5kZWY6IFJlbW92ZSBwYXNzd29yZCBvciBtYWtlIGZpbGUgdW5yZWFkYWJsZSBieSBvdGhlcnMu"><i class="fa fa-download" aria-hidden="true"></i></a></span></div></div>
+<div id="lstnumberx6" class="ltx_listingline"><code><span class="ltx_text ltx_lst_space" style="font-size:120%;">    </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">undef</span><span class="ltx_text" style="font-size:120%;">:</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">Error</span><span class="ltx_text" style="font-size:120%;">:</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text" style="font-size:120%;">.</span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">netrc</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">file</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">is</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">readable</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">by</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">others</span><span class="ltx_text" style="font-size:120%;">.</span></code></div>
+<div id="lstnumberx7" class="ltx_listingline"><code><span class="ltx_text ltx_lst_space" style="font-size:120%;">    </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">undef</span><span class="ltx_text" style="font-size:120%;">:</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">Remove</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">password</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">or</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">make</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">file</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">unreadable</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">by</span><span class="ltx_text ltx_lst_space" style="font-size:120%;"> </span><span class="ltx_text ltx_lst_identifier" style="font-size:120%;">others</span><span class="ltx_text" style="font-size:120%;">.</span></code></div>
+</div></div>
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">然后它就崩溃了。如果你在自己的机器上尝试，它的行为可能会不同。这个过程中到底发生了什么呢？</span></p>
+</div>
+<div id="p6" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">这段代码是有漏洞的。数组</span><span class="ltx_text ltx_font_typewriter" style="font-size:120%;">a</span><span class="ltx_text" style="font-size:120%;">的长度为1，对</span><span class="ltx_text ltx_font_typewriter" style="font-size:120%;">a[3]</span><span class="ltx_text" style="font-size:120%;">的访问，根据C语言标准，是</span><em class="ltx_emph ltx_font_italic" style="font-size:120%;">未定义行为</em><span class="ltx_text" style="font-size:120%;">：</span></p>
+</div>
+<div id="p7" class="ltx_para">
+<p class="ltx_p"><em class="ltx_emph ltx_font_italic" style="font-size:120%;">对于使用不可移植或错误的程序结构或错误的数据的行为，本国际标准不做任何要求</em><span class="ltx_text" style="font-size:120%;"></span></p>
+</div>
+<div id="p8" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">未定义行为不仅仅会导致非预期的结果，语言标准甚至允许程序在这种情况下做</span><em class="ltx_emph ltx_font_italic" style="font-size:120%;">任何事情</em><span class="ltx_text" style="font-size:120%;">。在我们的例子中，把一个特定的值存在特定数组的第4个元素处恰巧破坏了函数的调用栈，因此导致</span><span class="ltx_text ltx_font_typewriter" style="font-size:120%;">main</span><span class="ltx_text" style="font-size:120%;">函数返回时，并没有正常的退出程序，而是跳转到了C标准库里从用户的家目录中的一个文件中读取密码的代码中。这显然是有问题的。</span></p>
+</div>
+<div id="p9" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">C和C++有几百条避免未定义行为的规则。它们大多都是一些常识：不要访问不应该访问的内存，不要让算术运算溢出，不要除以零等等。然而编译器并不强制这些规则，它没有义务去检测哪怕明目张胆的违反规则的行为。事实上，上述程序编译时不会有错误和警告。避免未定义行为的责任全部落到你——程序员身上。</span></p>
+</div>
+<div id="p10" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">根据经验，我们程序员并不能很好的识别出未定义行为。研究员Peng Li是Utah大学的学生，他修改了C和C++的编译器来让它们在编译时报告它们正在编译的程序中是否含有会导致未定义行为的模式。他发现几乎所有的程序都有，包括那些公认的优秀项目。想要在C和C++中避免未定义行为就和仅仅知道规则就想赢得国际象棋比赛一样不切实际。</span></p>
+</div>
+<div id="p11" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">各种偶然的奇怪信息或崩溃可能只属于质量问题，但自从1988年莫里斯蠕虫病毒使用前面显示的技术的一个变种在早期互联网上从一台计算机传播到另一台计算机以来，无意中的未定义行为就成了安全漏洞的一个主要原因。</span></p>
+</div>
+<div id="p12" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">C和C++让程序员陷入了一个尴尬的境地：这两种语言是系统编程的行业标准，但它们对程序员的要求几乎肯定会导致频繁的崩溃和安全问题。虽然我们可能已经找到了这些问题的解决方法，但这只是导致了一个更深、更复杂问题的提出：我们不能做的更好吗？</span></p>
+</div>
+<section id="S1" class="ltx_section normal">
+<div class="section level2">
+<h2 class="ltx_title ltx_title_section" style="font-size:120%;">
+<span class="ltx_tag ltx_tag_section header-section-number">1.1</span> Rust替你承担责任</h2>
+
+<div id="S1.p1" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">我们的答案对应着我们开头的三个引言。第三个引言引用自一篇报告，这篇报告中，一个叫做Stuxnet的计算机蠕虫在2010年被发现侵入了工业界的设备，并获取了受害计算机的控制权。它只是利用了解析word文档中嵌入的TrueType字体的代码中的未定义行为，没有使用任何其他技术。这段代码的作者显然没有预料到这段代码会被以这种形式利用，这说明不仅仅只有操作系统和服务器需要担心安全问题：任何需要处理来自不受信任来源的数据的软件都可能成为受害者。</span></p>
+</div>
+<div id="S1.p2" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">Rust语言做了一个简单的保证：如果你的代码通过了编译器的检查，那么它将不会遇到未定义行为。悬垂指针，两次释放，空指针解引用都会在编译期被捕捉到。对数组的引用通过编译期和运行期的双重检查保证安全，当索引越界时，Rust不会像不幸的C语言一样出现缓冲区溢出，而是会安全地退出程序并打印出错误消息。</span></p>
+</div>
+<div id="S1.p3" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">Rust旨在同时实现</span><em class="ltx_emph ltx_font_italic" style="font-size:120%;">安全</em><span class="ltx_text" style="font-size:120%;">和</span><em class="ltx_emph ltx_font_italic" style="font-size:120%;">易于使用</em><span class="ltx_text" style="font-size:120%;">。为了对你的程序行为做出更强的保证，Rust对你的代码施加了比C和C++更多的限制，这些限制需要通过一些实践和经验才能习惯。但总体来看这门语言的灵活性和表达力都是很强的。Rust的应用范围之广已经证明了这一点。</span></p>
+</div>
+<div id="S1.p4" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">根据我们的经验，在相信语言可以帮助我们捕获错误的情况下，我们将有勇气尝试更有挑战性的项目。修改复杂的大型程序的风险将会降低，因为我们不再需要关注内存管理和指针有效性的问题。调试起来也会简单得多，因为潜在的bug不会破坏不相关的代码部分。</span></p>
+</div>
+<div id="S1.p5" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">当然，还有很多Rust也不能检测出的bug。但在实践中，没有未定义行为可以显著改善开发的现状。</span></p>
+</div>
+</div>
+</section>
+<section id="S2" class="ltx_section normal">
+<div class="section level2">
+<h2 class="ltx_title ltx_title_section" style="font-size:120%;">
+<span class="ltx_tag ltx_tag_section header-section-number">1.2</span> 安全的并发编程</h2>
+
+<div id="S2.p1" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">在C和C++中并发是众所周知的难，开发者通常只有在已经证明了单线程代码无法达到所需性能的情况下才会考虑并发。但第二个引言则认为并行非常重要以至于现代计算机将它视为基本的操作。</span></p>
+</div>
+<div id="S2.p2" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">事实证明，Rust中保证内存安全的限制也可以保证Rust程序中不会出现数据竞争。你可以在线程间安全的共享数据，只要它不是正在被修改。被修改的数据只能通过同步原语来访问。你可以使用所有传统的工具：互斥锁、条件变量、通道、原子量等等，Rust会通过检查确保你正确地使用它们。</span></p>
+</div>
+<div id="S2.p3" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">这些使Rust能够充分利用现代多核机器的性能。Rust的生态还提供了普通并发原语之外的库来帮助你完成复杂的负载，包括处理器池、无锁同步机制例如Read-Copy-Update等。</span></p>
+</div>
+</div>
+</section>
+<section id="S3" class="ltx_section normal">
+<div class="section level2">
+<h2 class="ltx_title ltx_title_section" style="font-size:120%;">
+<span class="ltx_tag ltx_tag_section header-section-number">1.3</span> Rust的速度很快</h2>
+
+<div id="S3.p1" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">最后，对应我们的第一条引言。Rust遵循了Bjarne Stroustrup在他的文章“Abstraction and the C++ Machine Model”中提到的为C++设计的原则：</span></p>
+</div>
+<div id="S3.p2" class="ltx_para">
+<p class="ltx_p"><em class="ltx_emph ltx_font_italic" style="font-size:120%;">一般情况下，C++的实现遵循0开销原则：你没有用到的部分，将不会有开销。你用到的部分，你将不能找到更好的代码。</em><span class="ltx_text" style="font-size:120%;"></span></p>
+</div>
+<div id="S3.p3" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">系统编程经常需要考虑如何将机器性能发挥到极限。对于视频游戏，整个机器都需要投入工作来为玩家创造出最好的体验。对于网页浏览，浏览器的性能制约了内容发布者可以做的事情的上限，在机器本身的限制范围内，浏览器需要将尽可能多的内存和处理器资源留给内容本身。同样的原则也适用于操作系统：内核需要把机器的资源尽可能多的留给用户程序，而不是被它们自身消耗。</span></p>
+</div>
+<div id="S3.p4" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">但当我们说Rust很“快”的时候，到底是什么意思？一个人可以用任何通用语言写出非常慢的代码。更准确地说，如果你已经准备好认真设计你的程序来最大限度的利用底层机器的性能，那么Rust可以支撑你实现目标。这门语言的效率很高，并且能给予你控制使用多少内存和CPU资源的能力。</span></p>
+</div>
+</div>
+</section>
+<section id="S4" class="ltx_section normal">
+<div class="section level2">
+<h2 class="ltx_title ltx_title_section" style="font-size:120%;">
+<span class="ltx_tag ltx_tag_section header-section-number">1.4</span> Rust使协作变得更简单</h2>
+
+<div id="S4.p1" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">我们在标题中隐藏了第4条引言：“系统程序员的福音”。这是在暗示Rust对代码共享和重用的支持。</span></p>
+</div>
+<div id="S4.p2" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">Rust的包管理器和构建工具Cargo，使用户可以很容易地使用其他用户发布在Rust的公开仓库crates.io上的库。你只需要简单地在一个文件中加上库的名字和版本号，cargo将会自动下载该库和它的依赖，并把它们链接在一起。你可以将Rust的Cargo视为NPM或者RubyGems一类的东西，只不过还同时强调完善的版本控制和可复制的构建。有很多流行的Rust库可以提供从序列化到HTTP客户端和服务器再到现代图形API等几乎任何功能。</span></p>
+</div>
+<div id="S4.p3" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">进一步讲，这门语言本身就被设计为支持协作：Rust的trait和泛型让你能创建出拥有灵活接口的库，它们可以在很多不同的上下文中工作。Rust的标准库也提供了一组核心的基础类型，为常见的情况建立了共享的约定，使不同的库可以更容易地协同使用。</span></p>
+</div>
+<div id="S4.p4" class="ltx_para">
+<p class="ltx_p"><span class="ltx_text" style="font-size:120%;">下一章旨在更具体地说明我们在这一章中提出的观点，我们通过几个小的Rust程序作为示例来展示这门语言的强大之处。</span></p>
+</div>
+</div>
+</section>
+</div>
+</section>
+</div>
+</div>
+</div>
+<a href="Chx2.html" class="navigation navigation-prev" aria-label="Previous page"><i class="fa fa-angle-left"></i></a><a href="Ch2.html" class="navigation navigation-next" aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+</div>
+</div>
+</body>
+
+</html>

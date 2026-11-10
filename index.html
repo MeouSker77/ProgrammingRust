@@ -1,0 +1,881 @@
+<!DOCTYPE html><html class="bml_mathjax4" lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>Programming Rust, 2nd Edition</title>
+<!--Generated on Tue Nov 10 11:46:44 2026 by LaTeXML (version 0.8.8) http://dlmf.nist.gov/LaTeXML/.-->
+
+<link rel="stylesheet" href="LaTeXML.css" type="text/css">
+<link rel="stylesheet" href="ltx-book.css" type="text/css">
+<link rel="stylesheet" href="bookml/gitbook/css/style.css" type="text/css">
+<link rel="stylesheet" href="bookml/gitbook/css/plugin-table.css" type="text/css">
+<link rel="stylesheet" href="bookml/gitbook/css/plugin-search.css" type="text/css">
+<link rel="stylesheet" href="bookml/gitbook/css/plugin-bookdown.css" type="text/css">
+<link rel="stylesheet" href="bookml/gitbook/css/plugin-fontsettings.css" type="text/css">
+<link rel="stylesheet" href="ltx-listings.css" type="text/css">
+<link rel="stylesheet" href="bookml/CSS/style.css" type="text/css">
+<link rel="stylesheet" href="bookml/CSS/style.gitbook,plain.css" type="text/css">
+<link rel="stylesheet" href="bookml/CSS/style.gitbook.css" type="text/css">
+<link rel="stylesheet" href="bmluser/colors.gitbook-book.css" type="text/css">
+<link rel="stylesheet" href="bmluser/fonts.gitbook.css" type="text/css">
+<link rel="stylesheet" href="bmluser/navigation.gitbook.css" type="text/css">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script><script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6"></script>
+<link rel="next" href="Chx1.html" title="前言 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Chx1.html" title="前言 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Chx2.html" title="译者序 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch1.html" title="Chapter 1 系统程序员的福音 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch2.html" title="Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch3.html" title="Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch4.html" title="Chapter 4 所有权与move ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch5.html" title="Chapter 5 引用 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch6.html" title="Chapter 6 表达式 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch7.html" title="Chapter 7 错误处理 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch8.html" title="Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch9.html" title="Chapter 9 结构体 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch10.html" title="Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch11.html" title="Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch12.html" title="Chapter 12 运算符重载 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch13.html" title="Chapter 13 实用trait ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch14.html" title="Chapter 14 闭包 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch15.html" title="Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch16.html" title="Chapter 16 集合 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch17.html" title="Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch18.html" title="Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch19.html" title="Chapter 19 并发 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch20.html" title="Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch21.html" title="Chapter 21 宏 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch22.html" title="Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition">
+<link rel="chapter" href="Ch23.html" title="Chapter 23 外部函数 ‣ Programming Rust, 2nd Edition">
+<style>:root{--bml-ltx-font-size:10;--bml-ltxml-dpi:96.36}</style>
+<script src="bookml/js/mathjax4.js" defer></script>
+</head>
+<body class="bml_class_book">
+<div class="book without-animation font-size-2 font-family-0" data-basepath=".">
+<a href="#bml-main-content" tabindex="0" class="bml-skip-to-content">Skip to content.</a>
+<div class="book-summary"><nav class="ltx_page_navbar">
+<ul class="ltx_toclist summary">
+<li>
+<a href="" title="Programming Rust, 2nd Edition" class="ltx_ref">Programming Rust, 2nd Edition</a>
+</li>
+<li class="divider" aria-hidden="true"></li>
+<li data-level="" data-path="Chx1.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Chx1.html" title="In Programming Rust, 2nd Edition" class="ltx_ref">前言</a></li>
+<li data-level="" data-path="Chx2.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Chx2.html" title="In Programming Rust, 2nd Edition" class="ltx_ref">译者序</a></li>
+<li data-level="" data-path="Ch1.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch1.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">1</span> </span></b><span class="ltx_text" style="font-size:120%;">系统程序员的福音</span></a></li>
+<li data-level="" data-path="Ch2.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch2.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">2</span> </span></b><span class="ltx_text" style="font-size:120%;">Rust概览</span></a></li>
+<li data-level="" data-path="Ch3.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch3.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">3</span> </span></b><span class="ltx_text" style="font-size:120%;">基本类型</span></a></li>
+<li data-level="" data-path="Ch4.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch4.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">4</span> </span></b><span class="ltx_text" style="font-size:120%;">所有权与move</span></a></li>
+<li data-level="" data-path="Ch5.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch5.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">5</span> </span></b><span class="ltx_text" style="font-size:120%;">引用</span></a></li>
+<li data-level="" data-path="Ch6.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch6.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">6</span> </span></b><span class="ltx_text" style="font-size:120%;">表达式</span></a></li>
+<li data-level="" data-path="Ch7.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch7.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">7</span> </span></b><span class="ltx_text" style="font-size:120%;">错误处理</span></a></li>
+<li data-level="" data-path="Ch8.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch8.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">8</span> </span></b><span class="ltx_text" style="font-size:120%;">crate与模块</span></a></li>
+<li data-level="" data-path="Ch9.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch9.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">9</span> </span></b><span class="ltx_text" style="font-size:120%;">结构体</span></a></li>
+<li data-level="" data-path="Ch10.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch10.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">10</span> </span></b><span class="ltx_text" style="font-size:120%;">枚举与模式</span></a></li>
+<li data-level="" data-path="Ch11.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch11.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">11</span> </span></b><span class="ltx_text" style="font-size:120%;">trait与泛型</span></a></li>
+<li data-level="" data-path="Ch12.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch12.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">12</span> </span></b><span class="ltx_text" style="font-size:120%;">运算符重载</span></a></li>
+<li data-level="" data-path="Ch13.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch13.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">13</span> </span></b><span class="ltx_text" style="font-size:120%;">实用trait</span></a></li>
+<li data-level="" data-path="Ch14.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch14.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">14</span> </span></b><span class="ltx_text" style="font-size:120%;">闭包</span></a></li>
+<li data-level="" data-path="Ch15.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch15.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">15</span> </span></b><span class="ltx_text" style="font-size:120%;">迭代器</span></a></li>
+<li data-level="" data-path="Ch16.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch16.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">16</span> </span></b><span class="ltx_text" style="font-size:120%;">集合</span></a></li>
+<li data-level="" data-path="Ch17.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch17.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">17</span> </span></b><span class="ltx_text" style="font-size:120%;">字符串与文本</span></a></li>
+<li data-level="" data-path="Ch18.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch18.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">18</span> </span></b><span class="ltx_text" style="font-size:120%;">输入输出</span></a></li>
+<li data-level="" data-path="Ch19.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch19.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">19</span> </span></b><span class="ltx_text" style="font-size:120%;">并发</span></a></li>
+<li data-level="" data-path="Ch20.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch20.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">20</span> </span></b><span class="ltx_text" style="font-size:120%;">异步编程</span></a></li>
+<li data-level="" data-path="Ch21.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch21.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">21</span> </span></b><span class="ltx_text" style="font-size:120%;">宏</span></a></li>
+<li data-level="" data-path="Ch22.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch22.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">22</span> </span></b><span class="ltx_text" style="font-size:120%;">unsafe代码</span></a></li>
+<li data-level="" data-path="Ch23.html" class="ltx_tocentry ltx_tocentry_chapter  chapter "><a href="Ch23.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><b><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">23</span> </span></b><span class="ltx_text" style="font-size:120%;">外部函数</span></a></li>
+</ul>
+</nav></div>
+
+<div class="ltx_page_main book-body fixed">
+<div class="body-inner">
+<header class="book-header fixed" aria-label="toolbar"><span class="bml-separator"></span></header>
+<div class="page-wrapper" tabindex="-1" role="main">
+<div class="ltx_page_content page-inner" id="bml-main-content">
+<script src="bookml/gitbook/js/app.min.js"></script>
+<script src="bookml/gitbook/js/jquery.highlight.js"></script>
+<script src="bookml/gitbook/js/plugin-search.js"></script>
+<script src="bookml/gitbook/js/plugin-fontsettings.js"></script>
+<script src="bookml/gitbook/js/plugin-bookdown.js"></script>
+<script type="text/javascript">
+                  gitbook.require(["gitbook"], function(gitbook) {
+                  gitbook.start({
+                    "fontsettings": {
+                      "theme": "white",
+                      "family": "sans",
+                      "size": 2
+                    },
+                    "download": [ [ "book.pdf", "PDF" ], ],
+                    "search": {
+                      "engine": "fuse"
+                    },
+                    "toc": {
+                      "collapse": "none"
+                    }
+                  });
+                });
+              </script>
+
+<section class="ltx_document normal">
+<div class="section level0">
+<div class="ltx_titlepage">
+<p class="ltx_p"><span class="ltx_text ltx_font_bold" style="font-size:249%;">Programming Rust, 2nd Edition</span></p>
+<p class="ltx_p"><span class="ltx_text" style="font-size:144%;">Fast, Safe Systems Development</span></p>
+<p class="ltx_p">作者: Jim Blandy, Jason Orendorff, Leonora F. S. Tindall</p>
+<p class="ltx_p">译者：<a href="https://github.com/MeouSker77/ProgrammingRust" title="" class="ltx_ref ltx_href">MeouSker77</a></p>
+<p class="ltx_p">版本：<a href="https://www.oreilly.com/library/view/programming-rust-2nd/9781492052586/" title="" class="ltx_ref ltx_href">2021-06-11</a></p>
+</div>
+<nav class="ltx_TOC ltx_list_toc ltx_toc_toc"><h6 class="ltx_title ltx_title_contents">Contents</h6>
+<ol class="ltx_toclist">
+<li class="ltx_tocentry ltx_tocentry_chapter"><a href="Chx1.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title">前言</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_chapter"><a href="Chx2.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title">译者序</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch1.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">1</span> </span><span class="ltx_text" style="font-size:120%;">系统程序员的福音</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch1.html#S1" title="In Chapter 1 系统程序员的福音 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">1.1 </span>Rust替你承担责任</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch1.html#S2" title="In Chapter 1 系统程序员的福音 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">1.2 </span>安全的并发编程</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch1.html#S3" title="In Chapter 1 系统程序员的福音 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">1.3 </span>Rust的速度很快</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch1.html#S4" title="In Chapter 1 系统程序员的福音 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">1.4 </span>Rust使协作变得更简单</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch2.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">2</span> </span><span class="ltx_text" style="font-size:120%;">Rust概览</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch2.html#S1" title="In Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.1 </span>rustup和Cargo</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch2.html#S2" title="In Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.2 </span>Rust函数</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch2.html#S3" title="In Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.3 </span>编写并运行单元测试</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch2.html#S4" title="In Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.4 </span>处理命令行参数</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch2.html#S5" title="In Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.5 </span>提供web页面</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch2.html#S6" title="In Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.6 </span>并发</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch2.html#S6.SS1" title="In 2.6 并发 ‣ Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.6.1 </span>曼德勃罗集到底是什么</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch2.html#S6.SS2" title="In 2.6 并发 ‣ Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.6.2 </span>解析成对的命令行参数</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch2.html#S6.SS3" title="In 2.6 并发 ‣ Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.6.3 </span>将像素映射到复数</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch2.html#S6.SS4" title="In 2.6 并发 ‣ Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.6.4 </span>绘制曼德勃罗集</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch2.html#S6.SS5" title="In 2.6 并发 ‣ Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.6.5 </span>写入图片文件</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch2.html#S6.SS6" title="In 2.6 并发 ‣ Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.6.6 </span>一个并发的曼德勃罗集程序</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch2.html#S6.SS7" title="In 2.6 并发 ‣ Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.6.7 </span>运行曼德勃罗集绘制器</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch2.html#S6.SS8" title="In 2.6 并发 ‣ Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.6.8 </span>安全性是不可见的</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch2.html#S7" title="In Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.7 </span>文件系统和命令行工具</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch2.html#S7.SS1" title="In 2.7 文件系统和命令行工具 ‣ Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.7.1 </span>命令行接口</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch2.html#S7.SS2" title="In 2.7 文件系统和命令行工具 ‣ Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.7.2 </span>读写文件</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch2.html#S7.SS3" title="In 2.7 文件系统和命令行工具 ‣ Chapter 2 Rust概览 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">2.7.3 </span>查找和替换</span></a></li>
+</ol>
+</li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch3.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">3</span> </span><span class="ltx_text" style="font-size:120%;">基本类型</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch3.html#S1" title="In Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.1 </span>固定位数的数字类型</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch3.html#S1.SS1" title="In 3.1 固定位数的数字类型 ‣ Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.1.1 </span>整数类型</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch3.html#S1.SS2" title="In 3.1 固定位数的数字类型 ‣ Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.1.2 </span>Checked、Wrapping、Saturating、Overflowing算术</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch3.html#S1.SS3" title="In 3.1 固定位数的数字类型 ‣ Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.1.3 </span>浮点数</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch3.html#S2" title="In Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.2 </span>布尔类型</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch3.html#S3" title="In Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.3 </span>字符</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch3.html#S4" title="In Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.4 </span>元组</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch3.html#S5" title="In Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.5 </span>指针类型</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch3.html#S5.SS1" title="In 3.5 指针类型 ‣ Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.5.1 </span>引用</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch3.html#S5.SS2" title="In 3.5 指针类型 ‣ Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.5.2 </span><span class="ltx_text ltx_font_typewriter">Box</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch3.html#S5.SS3" title="In 3.5 指针类型 ‣ Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.5.3 </span>原始指针</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch3.html#S6" title="In Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.6 </span>数组、vector和切片</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch3.html#S6.SS1" title="In 3.6 数组、vector和切片 ‣ Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.6.1 </span>数组</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch3.html#S6.SS2" title="In 3.6 数组、vector和切片 ‣ Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.6.2 </span>vector</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch3.html#S6.SS3" title="In 3.6 数组、vector和切片 ‣ Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.6.3 </span>切片</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch3.html#S7" title="In Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.7 </span>字符串类型</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch3.html#S7.SS1" title="In 3.7 字符串类型 ‣ Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.7.1 </span>字符串字面量</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch3.html#S7.SS2" title="In 3.7 字符串类型 ‣ Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.7.2 </span>字节字符串</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch3.html#S7.SS3" title="In 3.7 字符串类型 ‣ Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.7.3 </span>内存中的字符串</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch3.html#S7.SS4" title="In 3.7 字符串类型 ‣ Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.7.4 </span><span class="ltx_text ltx_font_typewriter">String</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch3.html#S7.SS5" title="In 3.7 字符串类型 ‣ Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.7.5 </span>使用字符串</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch3.html#S7.SS6" title="In 3.7 字符串类型 ‣ Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.7.6 </span>其他类似字符串的类型</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch3.html#S8" title="In Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.8 </span>类型别名</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch3.html#S9" title="In Chapter 3 基本类型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">3.9 </span>基本类型之外</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch4.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">4</span> </span><span class="ltx_text" style="font-size:120%;">所有权与move</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch4.html#S1" title="In Chapter 4 所有权与move ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">4.1 </span>所有权</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch4.html#S2" title="In Chapter 4 所有权与move ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">4.2 </span>move</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch4.html#S2.SS1" title="In 4.2 move ‣ Chapter 4 所有权与move ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">4.2.1 </span>更多move的操作</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch4.html#S2.SS2" title="In 4.2 move ‣ Chapter 4 所有权与move ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">4.2.2 </span>move和控制流</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch4.html#S2.SS3" title="In 4.2 move ‣ Chapter 4 所有权与move ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">4.2.3 </span>move和索引</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch4.html#S3" title="In Chapter 4 所有权与move ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">4.3 </span>Copy类型：move的例外</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch4.html#S4" title="In Chapter 4 所有权与move ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">4.4 </span>Rc和Arc：共享所有权</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch5.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">5</span> </span><span class="ltx_text" style="font-size:120%;">引用</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch5.html#S1" title="In Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.1 </span>值的引用</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch5.html#S2" title="In Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.2 </span>使用引用</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch5.html#S2.SS1" title="In 5.2 使用引用 ‣ Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.2.1 </span>Rust的引用 vs C++的引用</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch5.html#S2.SS2" title="In 5.2 使用引用 ‣ Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.2.2 </span>对引用赋值</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch5.html#S2.SS3" title="In 5.2 使用引用 ‣ Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.2.3 </span>引用的引用</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch5.html#S2.SS4" title="In 5.2 使用引用 ‣ Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.2.4 </span>比较引用</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch5.html#S2.SS5" title="In 5.2 使用引用 ‣ Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.2.5 </span>引用永不为空</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch5.html#S2.SS6" title="In 5.2 使用引用 ‣ Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.2.6 </span>借用任意表达式的引用</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch5.html#S2.SS7" title="In 5.2 使用引用 ‣ Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.2.7 </span>切片和trait对象的引用</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch5.html#S3" title="In Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.3 </span>引用安全</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch5.html#S3.SS1" title="In 5.3 引用安全 ‣ Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.3.1 </span>借用一个局部变量</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch5.html#S3.SS2" title="In 5.3 引用安全 ‣ Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.3.2 </span>引用作为函数参数</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch5.html#S3.SS3" title="In 5.3 引用安全 ‣ Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.3.3 </span>向函数传递引用</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch5.html#S3.SS4" title="In 5.3 引用安全 ‣ Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.3.4 </span>返回引用</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch5.html#S3.SS5" title="In 5.3 引用安全 ‣ Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.3.5 </span>包含引用的结构体</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch5.html#S3.SS6" title="In 5.3 引用安全 ‣ Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.3.6 </span>不同的生命周期参数</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch5.html#S3.SS7" title="In 5.3 引用安全 ‣ Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.3.7 </span>省略生命周期参数</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch5.html#S4" title="In Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.4 </span>共享vs可变</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch5.html#S5" title="In Chapter 5 引用 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">5.5 </span>拿起武器对抗对象之海</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch6.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">6</span> </span><span class="ltx_text" style="font-size:120%;">表达式</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S1" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.1 </span>表达式语言</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S2" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.2 </span>优先级与结合性</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S3" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.3 </span>块和分号</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S4" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.4 </span>声明</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S5" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.5 </span><span class="ltx_text ltx_font_typewriter">if</span>与<span class="ltx_text ltx_font_typewriter">match</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S6" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.6 </span><span class="ltx_text ltx_font_typewriter">if let</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S7" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.7 </span>循环</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S8" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.8 </span>循环中的控制流</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S9" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.9 </span><span class="ltx_text ltx_font_typewriter">return</span>表达式</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S10" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.10 </span>Rust为什么会有loop循环</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S11" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.11 </span>函数和方法调用</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S12" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.12 </span>字段和元素</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S13" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.13 </span>引用运算符</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S14" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.14 </span>算术、位运算、比较、逻辑运算符</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S15" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.15 </span>赋值</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S16" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.16 </span>类型转换</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S17" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.17 </span>闭包</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch6.html#S18" title="In Chapter 6 表达式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">6.18 </span>继续</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch7.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">7</span> </span><span class="ltx_text" style="font-size:120%;">错误处理</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch7.html#S1" title="In Chapter 7 错误处理 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">7.1 </span>panic</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch7.html#S1.SS1" title="In 7.1 panic ‣ Chapter 7 错误处理 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">7.1.1 </span>栈展开</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch7.html#S1.SS2" title="In 7.1 panic ‣ Chapter 7 错误处理 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">7.1.2 </span>中止</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch7.html#S2" title="In Chapter 7 错误处理 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">7.2 </span>Result</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch7.html#S2.SS1" title="In 7.2 Result ‣ Chapter 7 错误处理 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">7.2.1 </span>捕捉错误</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch7.html#S2.SS2" title="In 7.2 Result ‣ Chapter 7 错误处理 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">7.2.2 </span>Result类型别名</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch7.html#S2.SS3" title="In 7.2 Result ‣ Chapter 7 错误处理 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">7.2.3 </span>打印错误</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch7.html#S2.SS4" title="In 7.2 Result ‣ Chapter 7 错误处理 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">7.2.4 </span>传播错误</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch7.html#S2.SS5" title="In 7.2 Result ‣ Chapter 7 错误处理 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">7.2.5 </span>处理多种错误类型</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch7.html#S2.SS6" title="In 7.2 Result ‣ Chapter 7 错误处理 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">7.2.6 </span>处理“不可能发生”的错误</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch7.html#S2.SS7" title="In 7.2 Result ‣ Chapter 7 错误处理 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">7.2.7 </span>忽略错误</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch7.html#S2.SS8" title="In 7.2 Result ‣ Chapter 7 错误处理 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">7.2.8 </span>在main()中处理错误</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch7.html#S2.SS9" title="In 7.2 Result ‣ Chapter 7 错误处理 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">7.2.9 </span>声明自定义错误类型</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch7.html#S2.SS10" title="In 7.2 Result ‣ Chapter 7 错误处理 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">7.2.10 </span>为什么选择Result</span></a></li>
+</ol>
+</li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch8.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">8</span> </span><span class="ltx_text" style="font-size:120%;">crate与模块</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch8.html#S1" title="In Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.1 </span>Crate</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch8.html#S1.SS1" title="In 8.1 Crate ‣ Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.1.1 </span>版本</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch8.html#S1.SS2" title="In 8.1 Crate ‣ Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.1.2 </span>构建配置</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch8.html#S2" title="In Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.2 </span>模块</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch8.html#S2.SS1" title="In 8.2 模块 ‣ Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.2.1 </span>嵌套模块</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch8.html#S2.SS2" title="In 8.2 模块 ‣ Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.2.2 </span>单独文件中的模块</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch8.html#S2.SS3" title="In 8.2 模块 ‣ Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.2.3 </span>路径和导入</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch8.html#S2.SS4" title="In 8.2 模块 ‣ Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.2.4 </span>标准prelude</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch8.html#S2.SS5" title="In 8.2 模块 ‣ Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.2.5 </span>pub use声明</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch8.html#S2.SS6" title="In 8.2 模块 ‣ Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.2.6 </span>pub结构体字段</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch8.html#S2.SS7" title="In 8.2 模块 ‣ Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.2.7 </span>静态量和常量</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch8.html#S3" title="In Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.3 </span>将程序变为库</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch8.html#S4" title="In Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.4 </span>src/bin目录</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch8.html#S5" title="In Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.5 </span>属性</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch8.html#S6" title="In Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.6 </span>测试和文档</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch8.html#S6.SS1" title="In 8.6 测试和文档 ‣ Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.6.1 </span>集成测试</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch8.html#S6.SS2" title="In 8.6 测试和文档 ‣ Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.6.2 </span>文档</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch8.html#S6.SS3" title="In 8.6 测试和文档 ‣ Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.6.3 </span>文档测试</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch8.html#S7" title="In Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.7 </span>指定依赖</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch8.html#S7.SS1" title="In 8.7 指定依赖 ‣ Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.7.1 </span>版本</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch8.html#S7.SS2" title="In 8.7 指定依赖 ‣ Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.7.2 </span>Cargo.lock</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch8.html#S8" title="In Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.8 </span>把crate发布到crates.io</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch8.html#S9" title="In Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.9 </span>工作空间</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch8.html#S10" title="In Chapter 8 crate与模块 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">8.10 </span>更多有趣的事</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch9.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">9</span> </span><span class="ltx_text" style="font-size:120%;">结构体</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch9.html#S1" title="In Chapter 9 结构体 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">9.1 </span>命名字段结构体</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch9.html#S2" title="In Chapter 9 结构体 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">9.2 </span>类元组结构体</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch9.html#S3" title="In Chapter 9 结构体 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">9.3 </span>类单元结构体</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch9.html#S4" title="In Chapter 9 结构体 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">9.4 </span>结构体布局</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch9.html#S5" title="In Chapter 9 结构体 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">9.5 </span>使用<span class="ltx_text ltx_font_typewriter">impl</span>定义方法</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch9.html#S5.SS1" title="In 9.5 使用impl定义方法 ‣ Chapter 9 结构体 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">9.5.1 </span>以<span class="ltx_text ltx_font_typewriter">Box</span>、<span class="ltx_text ltx_font_typewriter">Rc</span>、<span class="ltx_text ltx_font_typewriter">Arc</span>传递<span class="ltx_text ltx_font_typewriter">Self</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch9.html#S5.SS2" title="In 9.5 使用impl定义方法 ‣ Chapter 9 结构体 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">9.5.2 </span>类型关联函数</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch9.html#S6" title="In Chapter 9 结构体 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">9.6 </span>关联常量</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch9.html#S7" title="In Chapter 9 结构体 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">9.7 </span>泛型结构体</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch9.html#S8" title="In Chapter 9 结构体 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">9.8 </span>有生命周期参数的结构体</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch9.html#S9" title="In Chapter 9 结构体 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">9.9 </span>为结构体类型派生常见的trait</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch9.html#S10" title="In Chapter 9 结构体 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">9.10 </span>内部可变性</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch10.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">10</span> </span><span class="ltx_text" style="font-size:120%;">枚举与模式</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch10.html#S1" title="In Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">10.1 </span>枚举</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch10.html#S1.SS1" title="In 10.1 枚举 ‣ Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">10.1.1 </span>带有数据的枚举</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch10.html#S1.SS2" title="In 10.1 枚举 ‣ Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">10.1.2 </span>内存中的枚举</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch10.html#S1.SS3" title="In 10.1 枚举 ‣ Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">10.1.3 </span>使用枚举实现富数据结构</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch10.html#S1.SS4" title="In 10.1 枚举 ‣ Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">10.1.4 </span>泛型枚举</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch10.html#S2" title="In Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">10.2 </span>模式</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch10.html#S2.SS1" title="In 10.2 模式 ‣ Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">10.2.1 </span>模式中的字面量、变量和通配符</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch10.html#S2.SS2" title="In 10.2 模式 ‣ Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">10.2.2 </span>元组和结构体模式</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch10.html#S2.SS3" title="In 10.2 模式 ‣ Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">10.2.3 </span>数字和切片模式</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch10.html#S2.SS4" title="In 10.2 模式 ‣ Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">10.2.4 </span>引用模式</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch10.html#S2.SS5" title="In 10.2 模式 ‣ Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">10.2.5 </span>匹配守卫</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch10.html#S2.SS6" title="In 10.2 模式 ‣ Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">10.2.6 </span>匹配多种可能</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch10.html#S2.SS7" title="In 10.2 模式 ‣ Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">10.2.7 </span>绑定和<span class="ltx_text ltx_font_typewriter">@</span>模式</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch10.html#S2.SS8" title="In 10.2 模式 ‣ Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">10.2.8 </span>模式可以用在哪里</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch10.html#S2.SS9" title="In 10.2 模式 ‣ Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">10.2.9 </span>填充二叉树</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch10.html#S3" title="In Chapter 10 枚举与模式 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">10.3 </span>宏观视图</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch11.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">11</span> </span><span class="ltx_text" style="font-size:120%;">trait与泛型</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch11.html#S1" title="In Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.1 </span>使用trait</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch11.html#S1.SS1" title="In 11.1 使用trait ‣ Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.1.1 </span>trait对象</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch11.html#S1.SS2" title="In 11.1 使用trait ‣ Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.1.2 </span>泛型函数和类型参数</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch11.html#S1.SS3" title="In 11.1 使用trait ‣ Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.1.3 </span>选择哪一种</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch11.html#S2" title="In Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.2 </span>定义和实现trait</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch11.html#S2.SS1" title="In 11.2 定义和实现trait ‣ Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.2.1 </span>默认方法</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch11.html#S2.SS2" title="In 11.2 定义和实现trait ‣ Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.2.2 </span>trait和其他人的类型</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch11.html#S2.SS3" title="In 11.2 定义和实现trait ‣ Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.2.3 </span>trait中的<span class="ltx_text ltx_font_typewriter">Self</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch11.html#S2.SS4" title="In 11.2 定义和实现trait ‣ Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.2.4 </span>子trait</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch11.html#S2.SS5" title="In 11.2 定义和实现trait ‣ Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.2.5 </span>类型关联函数</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch11.html#S3" title="In Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.3 </span>完全限定方法调用</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch11.html#S4" title="In Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.4 </span>定义类型关系的trait</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch11.html#S4.SS1" title="In 11.4 定义类型关系的trait ‣ Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.4.1 </span>关联类型(或迭代器是如何工作的)</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch11.html#S4.SS2" title="In 11.4 定义类型关系的trait ‣ Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.4.2 </span>泛型trait（或运算符重载是如何工作的）</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch11.html#S4.SS3" title="In 11.4 定义类型关系的trait ‣ Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.4.3 </span><span class="ltx_text ltx_font_typewriter">impl Trait</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch11.html#S4.SS4" title="In 11.4 定义类型关系的trait ‣ Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.4.4 </span>关联常量</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch11.html#S5" title="In Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.5 </span>逆向工程约束</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch11.html#S6" title="In Chapter 11 trait与泛型 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">11.6 </span>trait作为基础</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch12.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">12</span> </span><span class="ltx_text" style="font-size:120%;">运算符重载</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch12.html#S1" title="In Chapter 12 运算符重载 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">12.1 </span>算术和位运算符</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch12.html#S1.SS1" title="In 12.1 算术和位运算符 ‣ Chapter 12 运算符重载 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">12.1.1 </span>一元运算符</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch12.html#S1.SS2" title="In 12.1 算术和位运算符 ‣ Chapter 12 运算符重载 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">12.1.2 </span>二元运算符</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch12.html#S1.SS3" title="In 12.1 算术和位运算符 ‣ Chapter 12 运算符重载 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">12.1.3 </span>复合赋值运算符</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch12.html#S2" title="In Chapter 12 运算符重载 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">12.2 </span>相等性比较</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch12.html#S3" title="In Chapter 12 运算符重载 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">12.3 </span>顺序性比较</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch12.html#S4" title="In Chapter 12 运算符重载 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">12.4 </span><span class="ltx_text ltx_font_typewriter">Index</span>与<span class="ltx_text ltx_font_typewriter">IndexMut</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch12.html#S5" title="In Chapter 12 运算符重载 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">12.5 </span>其他运算符</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch13.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">13</span> </span><span class="ltx_text" style="font-size:120%;">实用trait</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch13.html#S1" title="In Chapter 13 实用trait ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">13.1 </span><span class="ltx_text ltx_font_typewriter">Drop</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch13.html#S2" title="In Chapter 13 实用trait ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">13.2 </span><span class="ltx_text ltx_font_typewriter">Sized</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch13.html#S3" title="In Chapter 13 实用trait ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">13.3 </span><span class="ltx_text ltx_font_typewriter">Clone</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch13.html#S4" title="In Chapter 13 实用trait ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">13.4 </span><span class="ltx_text ltx_font_typewriter">Copy</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch13.html#S5" title="In Chapter 13 实用trait ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">13.5 </span><span class="ltx_text ltx_font_typewriter">Deref</span>与<span class="ltx_text ltx_font_typewriter">DerefMut</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch13.html#S6" title="In Chapter 13 实用trait ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">13.6 </span><span class="ltx_text ltx_font_typewriter">Default</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch13.html#S7" title="In Chapter 13 实用trait ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">13.7 </span><span class="ltx_text ltx_font_typewriter">AsRef</span>与<span class="ltx_text ltx_font_typewriter">AsMut</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch13.html#S8" title="In Chapter 13 实用trait ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">13.8 </span><span class="ltx_text ltx_font_typewriter">Borrow</span>与<span class="ltx_text ltx_font_typewriter">BorrowMut</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch13.html#S9" title="In Chapter 13 实用trait ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">13.9 </span><span class="ltx_text ltx_font_typewriter">From</span>与<span class="ltx_text ltx_font_typewriter">Into</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch13.html#S10" title="In Chapter 13 实用trait ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">13.10 </span><span class="ltx_text ltx_font_typewriter">TryFrom</span>与<span class="ltx_text ltx_font_typewriter">TryInto</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch13.html#S11" title="In Chapter 13 实用trait ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">13.11 </span><span class="ltx_text ltx_font_typewriter">ToOwned</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch13.html#S12" title="In Chapter 13 实用trait ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">13.12 </span><span class="ltx_text ltx_font_typewriter">Borrow</span>和<span class="ltx_text ltx_font_typewriter">ToOwned</span>的配合：<span class="ltx_text ltx_font_typewriter">Cow</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch14.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">14</span> </span><span class="ltx_text" style="font-size:120%;">闭包</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch14.html#S1" title="In Chapter 14 闭包 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">14.1 </span>捕获变量</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch14.html#S1.SS1" title="In 14.1 捕获变量 ‣ Chapter 14 闭包 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">14.1.1 </span>借用值的闭包</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch14.html#S1.SS2" title="In 14.1 捕获变量 ‣ Chapter 14 闭包 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">14.1.2 </span>偷取值的闭包</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch14.html#S2" title="In Chapter 14 闭包 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">14.2 </span>函数和闭包类型</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch14.html#S3" title="In Chapter 14 闭包 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">14.3 </span>闭包的性能</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch14.html#S4" title="In Chapter 14 闭包 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">14.4 </span>闭包和安全性</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch14.html#S4.SS1" title="In 14.4 闭包和安全性 ‣ Chapter 14 闭包 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">14.4.1 </span>杀死值的闭包</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch14.html#S4.SS2" title="In 14.4 闭包和安全性 ‣ Chapter 14 闭包 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">14.4.2 </span><span class="ltx_text ltx_font_typewriter">FnOnce</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch14.html#S4.SS3" title="In 14.4 闭包和安全性 ‣ Chapter 14 闭包 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">14.4.3 </span><span class="ltx_text ltx_font_typewriter">FnMut</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch14.html#S4.SS4" title="In 14.4 闭包和安全性 ‣ Chapter 14 闭包 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">14.4.4 </span>闭包的<span class="ltx_text ltx_font_typewriter">Copy</span>和<span class="ltx_text ltx_font_typewriter">Clone</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch14.html#S5" title="In Chapter 14 闭包 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">14.5 </span>回调</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch14.html#S6" title="In Chapter 14 闭包 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">14.6 </span>高效地使用闭包</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch15.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">15</span> </span><span class="ltx_text" style="font-size:120%;">迭代器</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch15.html#S1" title="In Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.1 </span><span class="ltx_text ltx_font_typewriter">Iterator</span>与<span class="ltx_text ltx_font_typewriter">IntoIterator trait</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch15.html#S2" title="In Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.2 </span>创建迭代器</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S2.SS1" title="In 15.2 创建迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.2.1 </span><span class="ltx_text ltx_font_typewriter">iter</span>和<span class="ltx_text ltx_font_typewriter">iter_mut</span>方法</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S2.SS2" title="In 15.2 创建迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.2.2 </span><span class="ltx_text ltx_font_typewriter">IntoIterator</span>实现</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S2.SS3" title="In 15.2 创建迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.2.3 </span><span class="ltx_text ltx_font_typewriter">from_fn</span>和<span class="ltx_text ltx_font_typewriter">successors</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S2.SS4" title="In 15.2 创建迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.2.4 </span><span class="ltx_text ltx_font_typewriter">drain</span>方法</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S2.SS5" title="In 15.2 创建迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.2.5 </span>其他迭代器源</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch15.html#S3" title="In Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.3 </span>迭代器适配器</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S3.SS1" title="In 15.3 迭代器适配器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.3.1 </span><span class="ltx_text ltx_font_typewriter">map</span>和<span class="ltx_text ltx_font_typewriter">filter</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S3.SS2" title="In 15.3 迭代器适配器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.3.2 </span><span class="ltx_text ltx_font_typewriter">filter_map</span>和<span class="ltx_text ltx_font_typewriter">flat_map</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S3.SS3" title="In 15.3 迭代器适配器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.3.3 </span><span class="ltx_text ltx_font_typewriter">flatten</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S3.SS4" title="In 15.3 迭代器适配器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.3.4 </span><span class="ltx_text ltx_font_typewriter">take</span>和<span class="ltx_text ltx_font_typewriter">take_while</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S3.SS5" title="In 15.3 迭代器适配器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.3.5 </span><span class="ltx_text ltx_font_typewriter">skip</span>和<span class="ltx_text ltx_font_typewriter">skip_while</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S3.SS6" title="In 15.3 迭代器适配器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.3.6 </span><span class="ltx_text ltx_font_typewriter">peekable</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S3.SS7" title="In 15.3 迭代器适配器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.3.7 </span><span class="ltx_text ltx_font_typewriter">fuse</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S3.SS8" title="In 15.3 迭代器适配器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.3.8 </span>可逆迭代器和<span class="ltx_text ltx_font_typewriter">rev</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S3.SS9" title="In 15.3 迭代器适配器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.3.9 </span><span class="ltx_text ltx_font_typewriter">inspect</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S3.SS10" title="In 15.3 迭代器适配器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.3.10 </span><span class="ltx_text ltx_font_typewriter">chain</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S3.SS11" title="In 15.3 迭代器适配器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.3.11 </span><span class="ltx_text ltx_font_typewriter">enumerate</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S3.SS12" title="In 15.3 迭代器适配器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.3.12 </span><span class="ltx_text ltx_font_typewriter">zip</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S3.SS13" title="In 15.3 迭代器适配器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.3.13 </span><span class="ltx_text ltx_font_typewriter">by_ref</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S3.SS14" title="In 15.3 迭代器适配器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.3.14 </span><span class="ltx_text ltx_font_typewriter">cloned</span>和<span class="ltx_text ltx_font_typewriter">copied</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S3.SS15" title="In 15.3 迭代器适配器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.3.15 </span><span class="ltx_text ltx_font_typewriter">cycle</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch15.html#S4" title="In Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.4 </span>消耗迭代器</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S4.SS1" title="In 15.4 消耗迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.4.1 </span>简单的累计：<span class="ltx_text ltx_font_typewriter">count, sum, product</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S4.SS2" title="In 15.4 消耗迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.4.2 </span><span class="ltx_text ltx_font_typewriter">max, min</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S4.SS3" title="In 15.4 消耗迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.4.3 </span><span class="ltx_text ltx_font_typewriter">max_by, min_by</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S4.SS4" title="In 15.4 消耗迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.4.4 </span><span class="ltx_text ltx_font_typewriter">max_by_key, min_by_key</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S4.SS5" title="In 15.4 消耗迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.4.5 </span>比较item序列</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S4.SS6" title="In 15.4 消耗迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.4.6 </span><span class="ltx_text ltx_font_typewriter">any</span>和<span class="ltx_text ltx_font_typewriter">all</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S4.SS7" title="In 15.4 消耗迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.4.7 </span><span class="ltx_text ltx_font_typewriter">position, rposition, ExactSizeIterator</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S4.SS8" title="In 15.4 消耗迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.4.8 </span><span class="ltx_text ltx_font_typewriter">fold</span>和<span class="ltx_text ltx_font_typewriter">rfold</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S4.SS9" title="In 15.4 消耗迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.4.9 </span><span class="ltx_text ltx_font_typewriter">try_fold</span>和<span class="ltx_text ltx_font_typewriter">try_rfold</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S4.SS10" title="In 15.4 消耗迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.4.10 </span><span class="ltx_text ltx_font_typewriter">nth, nth_back</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S4.SS11" title="In 15.4 消耗迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.4.11 </span><span class="ltx_text ltx_font_typewriter">last</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S4.SS12" title="In 15.4 消耗迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.4.12 </span><span class="ltx_text ltx_font_typewriter">find, rfind, find_map</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S4.SS13" title="In 15.4 消耗迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.4.13 </span>构建集合：<span class="ltx_text ltx_font_typewriter">collect</span>和<span class="ltx_text ltx_font_typewriter">FromIterator</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S4.SS14" title="In 15.4 消耗迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.4.14 </span><span class="ltx_text ltx_font_typewriter">Extend</span> trait</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S4.SS15" title="In 15.4 消耗迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.4.15 </span><span class="ltx_text ltx_font_typewriter">partition</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch15.html#S4.SS16" title="In 15.4 消耗迭代器 ‣ Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.4.16 </span><span class="ltx_text ltx_font_typewriter">for_each</span>和<span class="ltx_text ltx_font_typewriter">try_for_each</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch15.html#S5" title="In Chapter 15 迭代器 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">15.5 </span>实现自己的迭代器</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch16.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">16</span> </span><span class="ltx_text" style="font-size:120%;">集合</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch16.html#S1" title="In Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.1 </span>概述</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch16.html#S2" title="In Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.2 </span><span class="ltx_text ltx_font_typewriter">Vec&lt;T&gt;</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch16.html#S2.SS1" title="In 16.2 Vec&lt;T&gt; ‣ Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.2.1 </span>访问元素</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch16.html#S2.SS2" title="In 16.2 Vec&lt;T&gt; ‣ Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.2.2 </span>迭代</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch16.html#S2.SS3" title="In 16.2 Vec&lt;T&gt; ‣ Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.2.3 </span>增长和缩减vector</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch16.html#S2.SS4" title="In 16.2 Vec&lt;T&gt; ‣ Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.2.4 </span>连接</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch16.html#S2.SS5" title="In 16.2 Vec&lt;T&gt; ‣ Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.2.5 </span>切分</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch16.html#S2.SS6" title="In 16.2 Vec&lt;T&gt; ‣ Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.2.6 </span>交换</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch16.html#S2.SS7" title="In 16.2 Vec&lt;T&gt; ‣ Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.2.7 </span>排序和搜索</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch16.html#S2.SS8" title="In 16.2 Vec&lt;T&gt; ‣ Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.2.8 </span>比较切片</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch16.html#S2.SS9" title="In 16.2 Vec&lt;T&gt; ‣ Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.2.9 </span>随机元素</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch16.html#S2.SS10" title="In 16.2 Vec&lt;T&gt; ‣ Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.2.10 </span>Rust排除了无效性错误</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch16.html#S3" title="In Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.3 </span><span class="ltx_text ltx_font_typewriter">VecDeque&lt;T&gt;</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch16.html#S4" title="In Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.4 </span><span class="ltx_text ltx_font_typewriter">BinaryHeap&lt;T&gt;</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch16.html#S5" title="In Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.5 </span><span class="ltx_text ltx_font_typewriter">HashMap&lt;K, V&gt;</span>和<span class="ltx_text ltx_font_typewriter">BTreeMap&lt;K, V&gt;</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch16.html#S5.SS1" title="In 16.5 HashMap&lt;K, V&gt;和BTreeMap&lt;K, V&gt; ‣ Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.5.1 </span>条目</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch16.html#S5.SS2" title="In 16.5 HashMap&lt;K, V&gt;和BTreeMap&lt;K, V&gt; ‣ Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.5.2 </span>迭代map</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch16.html#S6" title="In Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.6 </span><span class="ltx_text ltx_font_typewriter">HashSet&lt;T&gt;</span>和<span class="ltx_text ltx_font_typewriter">BTreeSet&lt;T&gt;</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch16.html#S6.SS1" title="In 16.6 HashSet&lt;T&gt;和BTreeSet&lt;T&gt; ‣ Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.6.1 </span>迭代set</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch16.html#S6.SS2" title="In 16.6 HashSet&lt;T&gt;和BTreeSet&lt;T&gt; ‣ Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.6.2 </span>当相等的值不同时</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch16.html#S6.SS3" title="In 16.6 HashSet&lt;T&gt;和BTreeSet&lt;T&gt; ‣ Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.6.3 </span>集合操作</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch16.html#S7" title="In Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.7 </span>哈希</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch16.html#S8" title="In Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.8 </span>使用一个自定义的哈希算法</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch16.html#S9" title="In Chapter 16 集合 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">16.9 </span>标准集合之外</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch17.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">17</span> </span><span class="ltx_text" style="font-size:120%;">字符串与文本</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch17.html#S1" title="In Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.1 </span>Unicode背景知识</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S1.SS1" title="In 17.1 Unicode背景知识 ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.1.1 </span>ASCII、Latin-1和Unicode</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S1.SS2" title="In 17.1 Unicode背景知识 ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.1.2 </span>UTF-8</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S1.SS3" title="In 17.1 Unicode背景知识 ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.1.3 </span>文本方向</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch17.html#S2" title="In Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.2 </span>字符(<span class="ltx_text ltx_font_typewriter">char</span>)</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S2.SS1" title="In 17.2 字符(char) ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.2.1 </span>字符分类</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S2.SS2" title="In 17.2 字符(char) ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.2.2 </span>处理数字</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S2.SS3" title="In 17.2 字符(char) ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.2.3 </span>字符大小写转换</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S2.SS4" title="In 17.2 字符(char) ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.2.4 </span>与整数之间的转换</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch17.html#S3" title="In Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3 </span><span class="ltx_text ltx_font_typewriter">String</span>和<span class="ltx_text ltx_font_typewriter">str</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S3.SS1" title="In 17.3 String和str ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3.1 </span>创建<span class="ltx_text ltx_font_typewriter">String</span>值</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S3.SS2" title="In 17.3 String和str ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3.2 </span>简单的查看方法</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S3.SS3" title="In 17.3 String和str ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3.3 </span>附加和插入文本</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S3.SS4" title="In 17.3 String和str ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3.4 </span>移除和替换文本</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S3.SS5" title="In 17.3 String和str ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3.5 </span>搜索和迭代的约定</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S3.SS6" title="In 17.3 String和str ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3.6 </span>搜索文本的模式</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S3.SS7" title="In 17.3 String和str ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3.7 </span>搜索和替换</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S3.SS8" title="In 17.3 String和str ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3.8 </span>迭代文本</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S3.SS9" title="In 17.3 String和str ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3.9 </span>修剪</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S3.SS10" title="In 17.3 String和str ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3.10 </span>字符串大小写转换</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S3.SS11" title="In 17.3 String和str ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3.11 </span>从字符串解析其他类型</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S3.SS12" title="In 17.3 String和str ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3.12 </span>把其他类型转换为字符串</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S3.SS13" title="In 17.3 String和str ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3.13 </span>借用为其他文本类类型</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S3.SS14" title="In 17.3 String和str ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3.14 </span>以UTF-8的形式访问文本</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S3.SS15" title="In 17.3 String和str ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3.15 </span>从UTF-8数据产生文本</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S3.SS16" title="In 17.3 String和str ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3.16 </span>推迟分配</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S3.SS17" title="In 17.3 String和str ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.3.17 </span>字符串作为泛型集合</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch17.html#S4" title="In Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.4 </span>格式化值</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S4.SS1" title="In 17.4 格式化值 ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.4.1 </span>格式化文本值</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S4.SS2" title="In 17.4 格式化值 ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.4.2 </span>格式化数字</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S4.SS3" title="In 17.4 格式化值 ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.4.3 </span>格式化其他类型</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S4.SS4" title="In 17.4 格式化值 ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.4.4 </span>格式化用于调试的值</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S4.SS5" title="In 17.4 格式化值 ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.4.5 </span>格式化指针用于调试</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S4.SS6" title="In 17.4 格式化值 ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.4.6 </span>按索引或名称引用参数</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S4.SS7" title="In 17.4 格式化值 ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.4.7 </span>动态宽度和精度</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S4.SS8" title="In 17.4 格式化值 ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.4.8 </span>格式化你自己的类型</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S4.SS9" title="In 17.4 格式化值 ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.4.9 </span>在你自己的代码中使用格式化语言</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch17.html#S5" title="In Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.5 </span>正则表达式</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S5.SS1" title="In 17.5 正则表达式 ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.5.1 </span>基本的正则使用</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S5.SS2" title="In 17.5 正则表达式 ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.5.2 </span>惰性构建正则值</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch17.html#S6" title="In Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.6 </span>规范化</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S6.SS1" title="In 17.6 规范化 ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.6.1 </span>规范形式</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch17.html#S6.SS2" title="In 17.6 规范化 ‣ Chapter 17 字符串与文本 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">17.6.2 </span>unicode-normalization crate</span></a></li>
+</ol>
+</li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch18.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">18</span> </span><span class="ltx_text" style="font-size:120%;">输入输出</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch18.html#S1" title="In Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">18.1 </span>Reader和Writer</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch18.html#S1.SS1" title="In 18.1 Reader和Writer ‣ Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">18.1.1 </span>Reader</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch18.html#S1.SS2" title="In 18.1 Reader和Writer ‣ Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">18.1.2 </span>有缓冲的Reader</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch18.html#S1.SS3" title="In 18.1 Reader和Writer ‣ Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">18.1.3 </span>读取行</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch18.html#S1.SS4" title="In 18.1 Reader和Writer ‣ Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">18.1.4 </span>收集行</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch18.html#S1.SS5" title="In 18.1 Reader和Writer ‣ Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">18.1.5 </span>Writer</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch18.html#S1.SS6" title="In 18.1 Reader和Writer ‣ Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">18.1.6 </span>File</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch18.html#S1.SS7" title="In 18.1 Reader和Writer ‣ Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">18.1.7 </span>Seek</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch18.html#S1.SS8" title="In 18.1 Reader和Writer ‣ Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">18.1.8 </span>其他Reader和Writer类型</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch18.html#S1.SS9" title="In 18.1 Reader和Writer ‣ Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">18.1.9 </span>二进制数据，压缩和序列化</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch18.html#S2" title="In Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">18.2 </span>文件和目录</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch18.html#S2.SS1" title="In 18.2 文件和目录 ‣ Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">18.2.1 </span><span class="ltx_text ltx_font_typewriter">OsStr</span>和<span class="ltx_text ltx_font_typewriter">Path</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch18.html#S2.SS2" title="In 18.2 文件和目录 ‣ Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">18.2.2 </span><span class="ltx_text ltx_font_typewriter">Path</span>和<span class="ltx_text ltx_font_typewriter">PathBuf</span>方法</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch18.html#S2.SS3" title="In 18.2 文件和目录 ‣ Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">18.2.3 </span>文件系统访问函数</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch18.html#S2.SS4" title="In 18.2 文件和目录 ‣ Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">18.2.4 </span>读取目录</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch18.html#S2.SS5" title="In 18.2 文件和目录 ‣ Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">18.2.5 </span>平台特定特性</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch18.html#S3" title="In Chapter 18 输入输出 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">18.3 </span>网络</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch19.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">19</span> </span><span class="ltx_text" style="font-size:120%;">并发</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch19.html#S1" title="In Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.1 </span>fork-join并行</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S1.SS1" title="In 19.1 fork-join并行 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.1.1 </span><span class="ltx_text ltx_font_typewriter">spawn</span>和<span class="ltx_text ltx_font_typewriter">join</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S1.SS2" title="In 19.1 fork-join并行 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.1.2 </span>跨线程的错误处理</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S1.SS3" title="In 19.1 fork-join并行 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.1.3 </span>跨线程共享不可变数据</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S1.SS4" title="In 19.1 fork-join并行 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.1.4 </span>Rayon</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S1.SS5" title="In 19.1 fork-join并行 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.1.5 </span>回顾曼德勃罗集</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch19.html#S2" title="In Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.2 </span>通道</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S2.SS1" title="In 19.2 通道 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.2.1 </span>发送值</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S2.SS2" title="In 19.2 通道 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.2.2 </span>接收值</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S2.SS3" title="In 19.2 通道 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.2.3 </span>运行流水线</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S2.SS4" title="In 19.2 通道 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.2.4 </span>通道的特性和性能</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S2.SS5" title="In 19.2 通道 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.2.5 </span>线程安全：<span class="ltx_text ltx_font_typewriter">Send</span>和<span class="ltx_text ltx_font_typewriter">Sync</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S2.SS6" title="In 19.2 通道 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.2.6 </span>使用管道串联迭代器</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S2.SS7" title="In 19.2 通道 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.2.7 </span>超越流水线</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch19.html#S3" title="In Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.3 </span>共享可变状态</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S3.SS1" title="In 19.3 共享可变状态 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.3.1 </span>互斥锁是什么？</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S3.SS2" title="In 19.3 共享可变状态 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.3.2 </span><span class="ltx_text ltx_font_typewriter">Mutex&lt;T&gt;</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S3.SS3" title="In 19.3 共享可变状态 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.3.3 </span><span class="ltx_text ltx_font_typewriter">mut</span>和<span class="ltx_text ltx_font_typewriter">Mutex</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S3.SS4" title="In 19.3 共享可变状态 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.3.4 </span>为什么有时互斥锁不是好方案</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S3.SS5" title="In 19.3 共享可变状态 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.3.5 </span>死锁</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S3.SS6" title="In 19.3 共享可变状态 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.3.6 </span>中毒的互斥锁</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S3.SS7" title="In 19.3 共享可变状态 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.3.7 </span>使用互斥锁的多消费者通道</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S3.SS8" title="In 19.3 共享可变状态 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.3.8 </span>读写锁(<span class="ltx_text ltx_font_typewriter">RwLock&lt;T&gt;</span>)</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S3.SS9" title="In 19.3 共享可变状态 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.3.9 </span>条件变量(<span class="ltx_text ltx_font_typewriter">Condvar</span>)</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S3.SS10" title="In 19.3 共享可变状态 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.3.10 </span>原子量</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch19.html#S3.SS11" title="In 19.3 共享可变状态 ‣ Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.3.11 </span>全局变量</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch19.html#S4" title="In Chapter 19 并发 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">19.4 </span>Rust中的hacking并发代码是什么样的</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch20.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">20</span> </span><span class="ltx_text" style="font-size:120%;">异步编程</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch20.html#S1" title="In Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.1 </span>从同步到异步</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S1.SS1" title="In 20.1 从同步到异步 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.1.1 </span><span class="ltx_text ltx_font_typewriter">Future</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S1.SS2" title="In 20.1 从同步到异步 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.1.2 </span><span class="ltx_text ltx_font_typewriter">async</span>函数和<span class="ltx_text ltx_font_typewriter">await</span>表达式</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S1.SS3" title="In 20.1 从同步到异步 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.1.3 </span>在同步代码中调用异步函数：<span class="ltx_text ltx_font_typewriter">block_on</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S1.SS4" title="In 20.1 从同步到异步 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.1.4 </span>spawn异步任务</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S1.SS5" title="In 20.1 从同步到异步 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.1.5 </span><span class="ltx_text ltx_font_typewriter">async</span>块</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S1.SS6" title="In 20.1 从同步到异步 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.1.6 </span>从异步块中构建异步函数</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S1.SS7" title="In 20.1 从同步到异步 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.1.7 </span>在一个线程池中spawn异步任务</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S1.SS8" title="In 20.1 从同步到异步 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.1.8 </span>但你的future实现了<span class="ltx_text ltx_font_typewriter">Send</span>吗？</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S1.SS9" title="In 20.1 从同步到异步 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.1.9 </span>长时间计算：<span class="ltx_text ltx_font_typewriter">yield_now</span>和<span class="ltx_text ltx_font_typewriter">spawn_blocking</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S1.SS10" title="In 20.1 从同步到异步 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.1.10 </span>比较异步设计</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S1.SS11" title="In 20.1 从同步到异步 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.1.11 </span>一个真实的异步HTTP客户端</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch20.html#S2" title="In Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.2 </span>一个异步的客户端和服务器</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S2.SS1" title="In 20.2 一个异步的客户端和服务器 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.2.1 </span><span class="ltx_text ltx_font_typewriter">Error</span>和<span class="ltx_text ltx_font_typewriter">Result</span>类型</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S2.SS2" title="In 20.2 一个异步的客户端和服务器 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.2.2 </span>协议</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S2.SS3" title="In 20.2 一个异步的客户端和服务器 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.2.3 </span>获取用户输入：异步流</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S2.SS4" title="In 20.2 一个异步的客户端和服务器 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.2.4 </span>发送包</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S2.SS5" title="In 20.2 一个异步的客户端和服务器 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.2.5 </span>接收包：更多异步流</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S2.SS6" title="In 20.2 一个异步的客户端和服务器 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.2.6 </span>客户端的<span class="ltx_text ltx_font_typewriter">main</span>函数</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S2.SS7" title="In 20.2 一个异步的客户端和服务器 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.2.7 </span>服务器的<span class="ltx_text ltx_font_typewriter">main</span>函数</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S2.SS8" title="In 20.2 一个异步的客户端和服务器 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.2.8 </span>处理聊天连接：异步的<span class="ltx_text ltx_font_typewriter">Mutex</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S2.SS9" title="In 20.2 一个异步的客户端和服务器 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.2.9 </span>聊天组表：同步的<span class="ltx_text ltx_font_typewriter">Mutex</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S2.SS10" title="In 20.2 一个异步的客户端和服务器 ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.2.10 </span>聊天组：tokio的广播通道</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch20.html#S3" title="In Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.3 </span>原语future和executor：何时一个future值得再次poll</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S3.SS1" title="In 20.3 原语future和executor：何时一个future值得再次poll ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.3.1 </span>调用waker：<span class="ltx_text ltx_font_typewriter">spawn_blocking</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S3.SS2" title="In 20.3 原语future和executor：何时一个future值得再次poll ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.3.2 </span>实现<span class="ltx_text ltx_font_typewriter">block_on</span></span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch20.html#S4" title="In Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.4 </span><span class="ltx_text ltx_font_typewriter">Pin</span></span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S4.SS1" title="In 20.4 Pin ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.4.1 </span>future的两个生命阶段</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S4.SS2" title="In 20.4 Pin ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.4.2 </span>Pinned 指针</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch20.html#S4.SS3" title="In 20.4 Pin ‣ Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.4.3 </span><span class="ltx_text ltx_font_typewriter">Unpin</span> trait</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch20.html#S5" title="In Chapter 20 异步编程 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">20.5 </span>异步代码什么时候能带来帮助？</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch21.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">21</span> </span><span class="ltx_text" style="font-size:120%;">宏</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch21.html#S1" title="In Chapter 21 宏 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">21.1 </span>宏基础</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch21.html#S1.SS1" title="In 21.1 宏基础 ‣ Chapter 21 宏 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">21.1.1 </span>宏展开基础</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch21.html#S1.SS2" title="In 21.1 宏基础 ‣ Chapter 21 宏 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">21.1.2 </span>意外的结果</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch21.html#S1.SS3" title="In 21.1 宏基础 ‣ Chapter 21 宏 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">21.1.3 </span>重复</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch21.html#S2" title="In Chapter 21 宏 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">21.2 </span>内建的宏</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch21.html#S3" title="In Chapter 21 宏 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">21.3 </span>调试宏</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch21.html#S4" title="In Chapter 21 宏 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">21.4 </span>构建<span class="ltx_text ltx_font_typewriter">json!</span>宏</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch21.html#S4.SS1" title="In 21.4 构建json!宏 ‣ Chapter 21 宏 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">21.4.1 </span>片段类型</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch21.html#S4.SS2" title="In 21.4 构建json!宏 ‣ Chapter 21 宏 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">21.4.2 </span>宏中的递归</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch21.html#S4.SS3" title="In 21.4 构建json!宏 ‣ Chapter 21 宏 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">21.4.3 </span>宏和trait</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch21.html#S4.SS4" title="In 21.4 构建json!宏 ‣ Chapter 21 宏 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">21.4.4 </span>作用域和hygiene</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch21.html#S4.SS5" title="In 21.4 构建json!宏 ‣ Chapter 21 宏 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">21.4.5 </span>导入和导出宏</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch21.html#S5" title="In Chapter 21 宏 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">21.5 </span>在匹配时避免语法错误</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch21.html#S6" title="In Chapter 21 宏 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">21.6 </span><span class="ltx_text ltx_font_typewriter">macro_rules!</span>之外</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch22.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">22</span> </span><span class="ltx_text" style="font-size:120%;">unsafe代码</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch22.html#S1" title="In Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.1 </span>unsafe从何而来？</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch22.html#S2" title="In Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.2 </span>unsafe块</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch22.html#S3" title="In Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.3 </span>示例：一个高效的ASCII字符类型</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch22.html#S4" title="In Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.4 </span>unsafe函数</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch22.html#S5" title="In Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.5 </span>unsafe块还是unsafe函数？</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch22.html#S6" title="In Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.6 </span>未定义行为</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch22.html#S7" title="In Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.7 </span>unsafe trait</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch22.html#S8" title="In Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.8 </span>原始指针</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch22.html#S8.SS1" title="In 22.8 原始指针 ‣ Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.8.1 </span>安全地解引用原始指针</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch22.html#S8.SS2" title="In 22.8 原始指针 ‣ Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.8.2 </span>示例：<span class="ltx_text ltx_font_typewriter">RefWithFlag</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch22.html#S8.SS3" title="In 22.8 原始指针 ‣ Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.8.3 </span>可空的指针</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch22.html#S8.SS4" title="In 22.8 原始指针 ‣ Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.8.4 </span>类型大小和对齐</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch22.html#S8.SS5" title="In 22.8 原始指针 ‣ Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.8.5 </span>指针算术</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch22.html#S8.SS6" title="In 22.8 原始指针 ‣ Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.8.6 </span>移进和移出内存</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch22.html#S8.SS7" title="In 22.8 原始指针 ‣ Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.8.7 </span>示例：<span class="ltx_text ltx_font_typewriter">GapBuffer</span></span></a></li>
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch22.html#S8.SS8" title="In 22.8 原始指针 ‣ Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.8.8 </span>unsafe代码中的panic安全性</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section">
+<a href="Ch22.html#S9" title="In Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.9 </span>使用<span class="ltx_text ltx_font_typewriter">union</span>重新解释内存</span></a>
+<ol class="ltx_toclist ltx_toclist_section">
+<li class="ltx_tocentry ltx_tocentry_subsection"><a href="Ch22.html#S9.SS1" title="In 22.9 使用union重新解释内存 ‣ Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.9.1 </span>match union</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch22.html#S10" title="In Chapter 22 unsafe代码 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">22.10 </span>借用<span class="ltx_text ltx_font_typewriter">union</span>的引用</span></a></li>
+</ol>
+</li>
+<li class="ltx_tocentry ltx_tocentry_chapter">
+<a href="Ch23.html" title="In Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref"><span class="ltx_text" style="font-size:120%;">23</span> </span><span class="ltx_text" style="font-size:120%;">外部函数</span></span></a>
+<ol class="ltx_toclist ltx_toclist_chapter">
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch23.html#S1" title="In Chapter 23 外部函数 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">23.1 </span>寻找公共的数据表示</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch23.html#S2" title="In Chapter 23 外部函数 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">23.2 </span>声明外部函数和变量</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch23.html#S3" title="In Chapter 23 外部函数 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">23.3 </span>使用库里的函数</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch23.html#S4" title="In Chapter 23 外部函数 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">23.4 </span>一个libgit2的原始接口</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch23.html#S5" title="In Chapter 23 外部函数 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">23.5 </span>一个libgit2的安全接口</span></a></li>
+<li class="ltx_tocentry ltx_tocentry_section"><a href="Ch23.html#S6" title="In Chapter 23 外部函数 ‣ Programming Rust, 2nd Edition" class="ltx_ref"><span class="ltx_text ltx_ref_title"><span class="ltx_tag ltx_tag_ref">23.6 </span>总结</span></a></li>
+</ol>
+</li>
+</ol></nav>
+</div>
+</section>
+</div>
+</div>
+</div>
+<a href="Chx1.html" class="navigation navigation-next" aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+</div>
+</div>
+</body>
+
+</html>
