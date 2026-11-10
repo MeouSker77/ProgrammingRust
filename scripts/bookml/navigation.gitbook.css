@@ -1,0 +1,20 @@
+/* BookML's desktop chapter links otherwise cover the full page height. */
+@media (min-width: 1241px) {
+  .book .book-body .navigation {
+    top: 50%;
+    bottom: auto;
+    min-width: 0;
+    width: 72px;
+    max-width: 72px;
+    height: 88px;
+    transform: translateY(-50%);
+  }
+
+  .book .book-body .navigation.navigation-next {
+    right: 20px;
+  }
+
+  .book .book-body .navigation.navigation-prev {
+    left: 20px;
+  }
+}

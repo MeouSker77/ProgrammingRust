@@ -21,9 +21,9 @@
 
 感谢 @knowaywood 提供了静态网站的部署方案。
 
-本站点由 [VitePress](https://vitepress.dev/) 从 `src/*.tex` 自动构建并部署到 GitHub Pages。
+本站点使用 [BookML](https://github.com/vlmantova/bookml) 从 LaTeX 直接构建 HTML，并使用其原版 GitBook 风格。前言、译者序和各章节与 PDF 共享同一组 `.tex` 文件，按章生成网页。由于 LaTeXML 不支持 `minted`，构建脚本仅在临时副本中把代码环境转换为 `listings`；PDF 源文件不变。章节更新会通过 GitHub Actions 自动重新构建并发布。
 
-构建时用 pandoc 转为 Markdown，再由 VitePress 生成静态站点。章节更新会通过 GitHub Actions 自动重新构建并发布。
+网页正文使用与 PDF 对应的 Fandol 宋体和 Latin Modern Roman，代码使用 Inconsolata；字体文件随网页一起发布，避免因读者系统字体不同而显示不一致。Fandol 和 Latin Modern 的许可文件位于 `fonts/web/`。
 
 ---
 
@@ -64,18 +64,14 @@
 
 ## 本地构建网站
 
-需要 `node`、`npm` 和 `pandoc`。
+需要 Python 3 和 Docker。构建脚本使用固定版本的 BookML 官方镜像：
 
 ```bash
-# 安装依赖
-npm install
-
-# 构建（生成静态站点到 dist/）
-npm run build
+# 构建（生成 dist/index.html 和静态资源）
+bash scripts/build-html.sh
 
 # 预览构建产物
-npm run preview
+python3 -m http.server 4173 --directory dist
 ```
 
-> 提示：本地预览请用 `npm run preview` 或 `npm run dev`，不要用 `python -m http.server`，
-> 因为站点配置了 `base`（`/ProgrammingRust/`），直接 serve dist 会丢失样式和资源。
+也可以设置 `BOOKML_IMAGE` 环境变量指定其他 BookML 镜像。

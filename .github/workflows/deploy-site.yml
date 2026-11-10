@@ -7,9 +7,6 @@ on:
       - 'src/**'
       - 'img/**'
       - 'scripts/**'
-      - '.vitepress/**'
-      - 'package.json'
-      - 'package-lock.json'
       - '.github/workflows/deploy-site.yml'
   workflow_dispatch:
 
@@ -27,23 +24,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install pandoc 3.10.2
-        run: |
-          curl -sL -o /tmp/pandoc.tar.gz https://github.com/jgm/pandoc/releases/download/3.10.2/pandoc-3.10.2-linux-amd64.tar.gz
-          tar xzf /tmp/pandoc.tar.gz -C /tmp
-          echo "/tmp/pandoc-3.10.2/bin" >> "$GITHUB_PATH"
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
       - name: Build site from tex
-        run: npm run build
+        run: bash scripts/build-html.sh
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
