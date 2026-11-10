@@ -15,11 +15,36 @@ pages = list(site.glob("*.html"))
 chapters = list(site.glob("Ch[0-9]*.html"))
 if len(pages) != 26 or len(chapters) != 23:
     raise RuntimeError(f"Expected 26 pages and 23 chapters, got {len(pages)} and {len(chapters)}")
+for font in (
+    "FandolSong-Regular.otf",
+    "FandolSong-Bold.otf",
+    "lmroman10-regular.otf",
+    "lmroman10-bold.otf",
+    "lmroman10-italic.otf",
+    "lmroman10-bolditalic.otf",
+    "Inconsolata-Regular.ttf",
+    "Inconsolata-Bold.ttf",
+):
+    if not (site / "bmluser" / font).is_file():
+        raise RuntimeError(f"Missing web font: {font}")
 
 code_count = 0
 for page in pages:
     html = page.read_text(encoding="utf-8")
     code_count += html.count('class="bml_listing"')
+    html = html.replace("font-size-2 font-family-1", "font-size-2 font-family-0")
+    html = re.sub(
+        r"(<code\b[^>]*>)(.*?)(</code>)",
+        lambda match: match.group(1)
+        + match.group(2).replace("“", "&quot;").replace("”", "&quot;")
+        .replace("…", "...")
+        .replace("–", "--")
+        .replace("—", "---")
+        .replace("␣", " ")
+        + match.group(3),
+        html,
+        flags=re.S,
+    )
     html = re.sub(
         r'(<a\b[^>]*\brel="start"[^>]*>).*?(</a>)',
         r'\1Programming Rust, 2nd Edition\2',

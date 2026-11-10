@@ -19,5 +19,7 @@ test "$(find "$SITE" -maxdepth 1 -name 'Ch[0-9]*.html' | wc -l)" -eq 23 || {
 rm -rf "$OUT"
 mkdir -p "$OUT"
 cp -a "$SITE/." "$OUT/"
+cp -a "$ROOT/fonts/web/." "$OUT/bmluser/"
+cp -a "$ROOT/fonts/Inconsolata-Regular.ttf" "$ROOT/fonts/Inconsolata-Bold.ttf" "$OUT/bmluser/"
 python3 "$ROOT/scripts/bookml/finalize.py" "$OUT" "$STAGE"
 echo "BookML HTML site generated in $OUT"

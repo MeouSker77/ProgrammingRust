@@ -1,0 +1,171 @@
+This package was debianized by Florent Rougon <f.rougon@free.fr> on
+Tue, 27 Jan 2004 20:12:21 +0100.
+
+The following TeX Live packages were downloaded from
+    http://www.ctan.org/tex-archive/systems/texlive/tlnet/archive/
+and merged into one orig.tar.gz file:
+    lm.tar.xz
+    lm.doc.tar.xz
+    lm-math.tar.xz
+    lm-math.doc.tar.xz
+
+
+Upstream work
+-------------
+
+The upstream README-Latin-Modern.txt file says:
+
+  Font: The Latin Modern Family of Fonts
+  Designer (Computer Modern Family of Fonts): Donald E. Knuth
+  Author: Bogus\l{}aw Jackowski and Janusz M. Nowacki
+  Version: 2.003
+  Date: 16 IX 2009
+  Downloads: http://www.gust.org.pl/projects/e-foundry/latin-modern/
+  License:
+    % Copyright 2003--2009 by B. Jackowski and J.M. Nowacki
+    % (on behalf of TeX Users Groups).
+    % This work is released under the GUST Font License
+    %   -- see GUST-FONT-LICENSE.txt.
+    % This work has the LPPL maintenance status "maintained".
+    % The Current Maintainer of this work is Bogus\l{}aw Jackowski
+    %   and Janusz M. Nowacki.
+    % This work consists of the files listed in the MANIFEST.txt file.
+
+  [...]
+
+  The current LM package contains the most recent version
+  of the Latin Modern family of fonts in the PostScript Type 1 and
+  OpenType format. The fonts are based on Donald E. Knuth's Computer Modern
+  fonts in the PostScript Type 1 format, released into public domain by the
+  American Mathematical Society (for the history of the outline version of
+  the CM fonts see, e.g., http://www.math.utah.edu/~beebe/fonts/bluesky.html ).
+  The project is supported by TeX users groups: CSTUG, DANTE eV, GUST,
+  GUTenberg, NTG, and TUG.
+
+
+The current README-Latin-Modern-Math.txt says
+License:
+  % Copyright 2012--2014 for the Latin Modern math extensions by B. Jackowski,
+  % P. Strzelczyk and P. Pianowski (on behalf of TeX Users Groups).
+  %
+  % This work can be freely used and distributed under
+  % the GUST Font License (GFL -- see GUST-FONT-LICENSE.txt)
+  % which is actually an instance of the LaTeX Project Public License
+  % (LPPL -- see http://www.latex-project.org/lppl.txt).
+  %
+  % This work has the maintenance status "maintained". The Current Maintainer
+  % of this work is Bogus\l{}aw Jackowski, Piotr Strzelczyk and Piotr Pianowski.
+  %
+  % This work consists of the files listed
+  % in the MANIFEST-Latin-Modern-Math.txt file.
+
+
+See the appendix B for the GUST Font License.
+
+Please read the appendix A below if you want to examine the licensing terms
+for the Computer Modern fonts in Type 1 format on which the Latin Modern fonts
+are based.
+
+
+Debian packaging
+----------------
+
+Copyright (c) 2004-2007 Florent Rougon
+Copyright (c) 2005-2015 Norbert Preining
+
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; version 2 dated June, 1991.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; see the file COPYING. If not, write to the
+   Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
+   Boston, MA  02110-1301 USA.
+
+On Debian systems, the complete text of the GNU General Public License version
+2 can be found in `/usr/share/common-licenses/GPL-2'.
+
+
+Appendix A -- Licensing terms for the Computer Modern fonts in Type 1 format
+              on which the Latin Modern fonts are based.
+-----------------------------------------------------------------------------
+
+Running t1disasm (from the t1utils package) on
+/usr/share/texmf/fonts/type1/bluesky/cm/*.pfb and
+/usr/share/texmf/fonts/type1/bluesky/cmextra/*.pfb yields:
+
+  Copyright (C) 1997 American Mathematical Society.  All Rights Reserved
+
+  [ Florent Rougon's note: well, for
+    /usr/share/texmf/fonts/type1/bluesky/cm/cmb{,sy}10.pfb, you will only get
+    one space between "Society." and "All" (with tetex-extra 2.0.2-5.1). ;-) ]
+
+The precise distribution conditions for these fonts can be found in
+/usr/share/doc/texmf/fonts/bluesky/README from the tetex-doc package. I will
+duplicate here the relevant excerpt for your convenience:
+
+  The PostScript Type 1 implementation of the Computer Modern fonts produced
+  by and previously distributed by Blue Sky Research and Y&Y, Inc. are now
+  freely available for general use. This has been accomplished through the
+  cooperation of a consortium of scientific publishers with Blue Sky Research
+  and Y&Y. Members of this consortium include:
+
+        Elsevier Science
+        IBM Corporation
+        Society for Industrial and Applied Mathematics (SIAM)
+        Springer-Verlag
+        American Mathematical Society (AMS)
+
+  In order to assure the authenticity of these fonts, copyright will be held
+  by the American Mathematical Society. This is not meant to restrict in any
+  way the legitimate use of the fonts, such as (but not limited to) electronic
+  distribution of documents containing these fonts, inclusion of these fonts
+  into other public domain or commercial font collections or computer
+  applications, use of the outline data to create derivative fonts and/or
+  faces, etc. However, the AMS does require that the AMS copyright notice be
+  removed from any derivative versions of the fonts which have been altered in
+  any way. In addition, to ensure the fidelity of TeX documents using Computer
+  Modern fonts, Professor Donald Knuth, creator of the Computer Modern faces,
+  has requested that any alterations which yield different font metrics be
+  given a different name.
+
+
+Appendix B -- GUST Font License
+-------------------------------
+
+What follows is the exact contents of GUST-FONT-LICENSE.txt from the
+upstream distribution of the Latin Modern fonts.
+
+% This is version 1.0, dated 22 June 2009, of the GUST Font License.
+% (GUST is the Polish TeX Users Group, http://www.gust.org.pl)
+%
+% For the most recent version of this license see
+% http://www.gust.org.pl/fonts/licenses/GUST-FONT-LICENSE.txt
+% or
+% http://tug.org/fonts/licenses/GUST-FONT-LICENSE.txt
+%
+% This work may be distributed and/or modified under the conditions
+% of the LaTeX Project Public License, either version 1.3c of this
+% license or (at your option) any later version.
+%
+% Please also observe the following clause:
+% 1) it is requested, but not legally required, that derived works be
+%    distributed only after changing the names of the fonts comprising this
+%    work and given in an accompanying "manifest", and that the
+%    files comprising the Work, as listed in the manifest, also be given
+%    new names. Any exceptions to this request are also given in the
+%    manifest.
+%
+%    We recommend the manifest be given in a separate file named
+%    MANIFEST-<fontid>.txt, where <fontid> is some unique identification
+%    of the font family. If a separate "readme" file accompanies the Work,
+%    we recommend a name of the form README-<fontid>.txt.
+%
+% The latest version of the LaTeX Project Public License is in
+% http://www.latex-project.org/lppl.txt and version 1.3c or later
+% is part of all distributions of LaTeX version 2006/05/20 or later.

@@ -1,0 +1,6 @@
+/* Leave a non-clickable strip beside the TOC's scrollbar. */
+.book .book-summary ul.summary {
+  box-sizing: border-box;
+  padding-right: 16px;
+  scrollbar-gutter: stable;
+}

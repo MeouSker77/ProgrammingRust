@@ -23,6 +23,8 @@
 
 本站点使用 [BookML](https://github.com/vlmantova/bookml) 从 LaTeX 直接构建 HTML，并使用其原版 GitBook 风格。前言、译者序和各章节与 PDF 共享同一组 `.tex` 文件，按章生成网页。由于 LaTeXML 不支持 `minted`，构建脚本仅在临时副本中把代码环境转换为 `listings`；PDF 源文件不变。章节更新会通过 GitHub Actions 自动重新构建并发布。
 
+网页正文使用与 PDF 对应的 Fandol 宋体和 Latin Modern Roman，代码使用 Inconsolata；字体文件随网页一起发布，避免因读者系统字体不同而显示不一致。Fandol 和 Latin Modern 的许可文件位于 `fonts/web/`。
+
 ---
 
 ## 说明

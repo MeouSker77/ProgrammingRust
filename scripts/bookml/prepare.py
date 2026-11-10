@@ -10,6 +10,9 @@ root = Path(sys.argv[1]).resolve()
 stage = Path(sys.argv[2]).resolve()
 stage.mkdir(parents=True, exist_ok=True)
 shutil.copytree(root / "img", stage / "img", dirs_exist_ok=True)
+(stage / "bmluser").mkdir(exist_ok=True)
+shutil.copy2(root / "scripts" / "bookml" / "fonts.gitbook.css", stage / "bmluser")
+shutil.copy2(root / "scripts" / "bookml" / "navigation.gitbook.css", stage / "bmluser")
 
 languages = {"c": "C", "c++": "C++", "python": "Python", "bash": "bash"}
 minted_start = re.compile(r"\\begin\{minted\}(?:\[[^\]]*\])?\{([^}]+)\}")
